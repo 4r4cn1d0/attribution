@@ -1,0 +1,90 @@
+{
+ "kind": "verifier extra refs mutants",
+ "note": "R2 Track R verifier",
+ "mutants": [
+  {
+   "id": "RV-x-referenced-compare",
+   "file": "refs_78b.py",
+   "describes": "compare's --reference is not held to seed S's a0 pin",
+   "find": "REFERENCED = (\"regenerate\", \"evaluate\", \"run\", \"compare\")",
+   "replace": "REFERENCED = (\"regenerate\", \"evaluate\", \"run\")"
+  },
+  {
+   "id": "RV-x-referenced-evaluate",
+   "file": "refs_78b.py",
+   "describes": "evaluate's --reference is not held to seed S's a0 pin",
+   "find": "REFERENCED = (\"regenerate\", \"evaluate\", \"run\", \"compare\")",
+   "replace": "REFERENCED = (\"regenerate\", \"run\", \"compare\")"
+  },
+  {
+   "id": "RV-x-seeded-run",
+   "file": "refs_78b.py",
+   "describes": "run's --seed is not held to S",
+   "find": "SEEDED = {\"eval_adapter\": (\"regenerate\", \"run\"),",
+   "replace": "SEEDED = {\"eval_adapter\": (\"regenerate\",),"
+  },
+  {
+   "id": "RV-x-manifest",
+   "file": "refs_78b.py",
+   "describes": "B10 file's manifest not held to the index",
+   "find": "    if ea_doc[\"prepared\"][\"manifest_sha256\"] != idx.manifest:",
+   "replace": "    if False:"
+  },
+  {
+   "id": "RV-x-index-kind",
+   "file": "refs_78b.py",
+   "describes": "the index kind and version are not checked",
+   "find": "(doc.get(\"kind\"), doc.get(\"version\")) != (INDEX_KIND, INDEX_VERSION) or \\",
+   "replace": "False or \\"
+  },
+  {
+   "id": "RV-x-check-bindings",
+   "file": "refs_78b.py",
+   "describes": "check() skips the label and hash bindings",
+   "find": "    check_bindings(idx, ea_doc)\n    for role in (\"eval_adapter\", \"safe_lora\"):",
+   "replace": "    for role in (\"eval_adapter\", \"safe_lora\"):"
+  },
+  {
+   "id": "RV-x-except-any",
+   "file": "refs_78b.py",
+   "describes": "a 1B refusal of any command is turned into exit 2",
+   "find": "        if argv[:1] == [\"check\"] and type(exc).__name__ in",
+   "replace": "        if type(exc).__name__ in"
+  },
+  {
+   "id": "RV-x-seed-isdigit",
+   "file": "refs_78b.py",
+   "describes": "a non-digit --seed crashes instead of exit 2",
+   "find": "    if opts[\"seed\"] is None or not opts[\"seed\"].isdigit():",
+   "replace": "    if opts[\"seed\"] is None:"
+  },
+  {
+   "id": "RV-x-placeholder-kind",
+   "file": "refs_78b.py",
+   "describes": "every placeholder is a SHA-256, whatever the field's kind",
+   "find": "copy.deepcopy(PLACEHOLDERS[field[\"kind\"]])",
+   "replace": "copy.deepcopy(PLACEHOLDERS[\"sha256\"])"
+  },
+  {
+   "id": "RV-x-untuned-init",
+   "file": "make_refs_settings_78b.py",
+   "describes": "theta0's checkpoint is not init",
+   "find": "                                   checkpoint=\"init\",",
+   "replace": "                                   checkpoint=\"e1\","
+  },
+  {
+   "id": "RV-x-prefix-apply",
+   "file": "make_refs_settings_78b.py",
+   "describes": "the prefix applies to harm prompts only",
+   "find": "        entry = doc[\"external_transforms\"][\"safe_lora\"]\n",
+   "replace": "        doc[\"prefix\"][\"apply_to\"] = [\"harm\"]\n        entry = doc[\"external_transforms\"][\"safe_lora\"]\n"
+  },
+  {
+   "id": "RV-x-allowed-fallback",
+   "file": "make_refs_settings_78b.py",
+   "describes": "an extra allowed scale point",
+   "find": "scale.update(allowed=list(SCALE_ALLOWED),",
+   "replace": "scale.update(allowed=list(SCALE_ALLOWED) + [0.25],"
+  }
+ ]
+}

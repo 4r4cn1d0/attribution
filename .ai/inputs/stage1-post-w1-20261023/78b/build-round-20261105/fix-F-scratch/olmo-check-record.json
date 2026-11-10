@@ -1,0 +1,82 @@
+{
+  "checks": {
+    "1_parse_edit_accepts_against_the_family_manifest": true,
+    "2_longest_row_tokens_with_eos": 188,
+    "2_rows_with_the_committed_token_counts_under_the_1b_recipe_s_limit": {
+      "equal": 48,
+      "of": 48
+    },
+    "2_rows_with_the_committed_token_counts_under_the_7b_limit": {
+      "equal": 48,
+      "of": 48
+    },
+    "3_frozen_writer_reproduces_the_committed_bytes": {
+      "committed_sha256": "904a0cf1ef9b09c54dbf215384e61fd3360195f2fc0557ecb951b9e7d5dc2d10",
+      "equal": true,
+      "rebuilt_sha256": "904a0cf1ef9b09c54dbf215384e61fd3360195f2fc0557ecb951b9e7d5dc2d10"
+    },
+    "3_rebuild_under_the_7b_main_recipe": {
+      "add_rows_identical": true,
+      "differs_from_the_committed_edit_at": [
+        "provenance.inputs.recipe",
+        "provenance.settings_sha256"
+      ],
+      "settings_sha256_used": "efca92e4c268cdfa1e0a7f9cdf08388b57e08fafbf96ff7d0c693544dafc55c9",
+      "sha256": "66bdc0f5cc980843c107aa700c114081ebe57f990fc36e2cc4c6ed8fd70e94aa"
+    }
+  },
+  "engine_identity_sha256": "472fc7f6d619bdee2c3aa38e444024626be8b66bfb74a5abf37f2ddb6dded892",
+  "equal_as_it_stands": true,
+  "family": {
+    "main_config": {
+      "config_sha256": "18cc31d7117a2de7bc02382fe8a4d409fc43c91b434bf219a4808dfb26528d09",
+      "max_train_tokens": 3072,
+      "path": "experiments/safety_selection/configs/study-kt-olmo2-7b-r64-b-mb2-20261008.json"
+    },
+    "manifest_sha256": "9ed61826f1634dcab5a7385f18556b108b3ba8db95fc17215fa4cf4f6cb993b9",
+    "name": "olmo2-7b"
+  },
+  "frozen_code": {
+    "scripts/stage1/build_s_pool.py": "cb2ca385a3917d0f4be041ae08b1e121bc67f82a7fc95165e33550f053f463df",
+    "scripts/stage1/s1common.py": "930c8ea53d26baeeccaf2035949427d207f307ba0fec06ff0dec841c8c824552",
+    "scripts/stage1/token_accounting.py": "b9a51f6fc66fb3011c7448d0869f65848d407fa4d901ba10216312e0a93a6024",
+    "scripts/stage1/write_add_edit.py": "8b866b3d22bd0656bccd8dbb21ccabde3fda2726b85f149711455836928ad27c"
+  },
+  "kind": "scale-78b S1 check for OLMo-2-7B",
+  "python": "3.11.15",
+  "rule": "Part 1 section 14 item 1; the readiness check's C6; REQ-7's rule (scripts/stage1/write_add_edit.py)",
+  "stage1": {
+    "combine_with": [
+      {
+        "name": "R_d2",
+        "path": ".ai/inputs/gate-b-sealed-20261008/out/edits/R_d2.json",
+        "sha256": "913b73606ff64c104751e3f86bd3b69838a27686720a92858c08f4cf087d8060"
+      },
+      {
+        "name": "R_d3",
+        "path": ".ai/inputs/gate-b-sealed-20261008/out/edits/R_d3.json",
+        "sha256": "cd8d3328c48957ed0a164a8775ca2695a3d77d51865fd32c2ee53aded939502b"
+      },
+      {
+        "name": "R_d4",
+        "path": ".ai/inputs/gate-b-sealed-20261008/out/edits/R_d4.json",
+        "sha256": "5cf35162ec9f22e90fa9d053c4c75ee8c1287f06975dda2310095aa9ed58900e"
+      }
+    ],
+    "edit_path": "/Users/spiderishi/Coding/attribution/tmp/stage1-olmo/retrieved/a-3/tree/round1/1103-edit-904a0cf1ef9b09c54dbf215384e61fd3360195f2fc0557ecb951b9e7d5dc2d10-e1-a1/edit.json",
+    "edit_sha256": "904a0cf1ef9b09c54dbf215384e61fd3360195f2fc0557ecb951b9e7d5dc2d10",
+    "list_sha256": "389c20ad00261b1a304d3dd9f14a113a0b05bcec63758262af1b1629d48e0480",
+    "list_source": "recovered (build_s1_llama3.recover_list; verified by the pin)",
+    "recipe_s_1b": {
+      "config_sha256": "ceffe0efb5d75bacfbd62743f530259deeedeca8950605d1bd3ff66e5391fe46",
+      "max_train_tokens": 3072,
+      "path": "experiments/safety_selection/configs/study-kt-olmo2-1b-r64-b-mb4-gateb-20261008.json"
+    },
+    "record": {
+      "path": ".ai/inputs/stage1-commitments-20261016/add-s1/add_edit_record.json",
+      "sha256": "311957a442009bbb71995690d9d031cd8dd0a6ced24982ee7655baae927a01ba"
+    }
+  },
+  "verdict": "equal as it stands: the committed S1 edit is OLMo-2-7B's S1 edit byte for byte; build nothing for OLMo",
+  "version": 1
+}

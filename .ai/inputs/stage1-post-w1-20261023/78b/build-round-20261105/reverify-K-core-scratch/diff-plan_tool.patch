@@ -1,0 +1,82 @@
+--- /private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-pensive-stonebraker-bf6d79/b609d8b8-9fca-458c-826f-4c781de96013/scratchpad/b78/reports/verify-K-core-scratch/ws/runkit/stage1-78b/plan_tool.py	2026-11-05 23:54:57
++++ /private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-pensive-stonebraker-bf6d79/b609d8b8-9fca-458c-826f-4c781de96013/scratchpad/b78/ws-k/runkit/stage1-78b/plan_tool.py	2026-11-06 01:19:54
+@@ -7,8 +7,8 @@
+         §3.1), exactly: OLMo-2-7B {kind arm, arm R, seed 1101|1102|1103} x 3 (one pod, cap 8.5 h); Llama-3.1-8B the
+         same three plus {kind a0_arm, arm a0, seed 1103} (one pod, cap 12.5 h). The arms run under the family's MAIN
+         config (P78:99; recipe "B"); each R_d edit is bound by path and SHA-256 from the family's sealed set
+-        (rules_78b.SEALED_SETS: OLMo-2-7B's R_d1-R_d3 are Gate B's sealed edits; the Llama set's MANIFEST pin is null
+-        until the lead merges the set and fills it, addendum A13, so init-block 0 for llama31-8b refuses until then). A
++        (rules_78b.SEALED_SETS: OLMo-2-7B's R_d1-R_d3 are Gate B's sealed edits, Llama-3.1-8B's the set committed at
++        d422fca, pinned by the lead's PP7; the two MANIFEST forms are read by rules_78b.block0_r_edits, D1). A
+         jobs file, a plan.json or an inputs record naming the other family refuses (one family per working copy, KD7).
+         The caps, guards, spends and the need come from rules_78b.py's M-cap rule (KD1). It prints, each on its own
+         line, the need of N's pods (both families, one launch: $56.06 at KCR's caps with the contingency, KCR:177), of
+@@ -407,8 +407,8 @@
+ 
+ 
+ def manifest() -> dict:
+-    """The family's sealed edit set's MANIFEST (rules_78b.SEALED_SETS; K1), checked against its pin. Refuses while the
+-    pin is null (the Llama set, addendum A13) or when the file is missing or differs."""
++    """The family's sealed edit set's MANIFEST (rules_78b.SEALED_SETS; K1), checked against its pin. Refuses while a
++    pin is null (addendum A13's pattern; both pins are filled, PP7) or when the file is missing or differs."""
+     try:
+         pin = r78.sealed_set_or_refuse(family_or_fail())
+     except (r78.Refused, ValueError) as exc:
+@@ -439,8 +439,9 @@
+ 
+ 
+ def man_arms(man: dict) -> dict:
+-    """Gate B's MANIFEST: arm -> its entry (edit files only)."""
+-    return {e["arm"]: e for e in man["files"] if e.get("role") == "edit"}
++    """A sealed set's MANIFEST: arm -> its entry (edit files only), in either committed form (D1: Gate B's ``role ==
++    "edit"`` entries and the Llama set's descriptive-role entries; rules_78b.sealed_edit_entry decides)."""
++    return {e["arm"]: e for e in man["files"] if r78.sealed_edit_entry(e)}
+ 
+ 
+ def fixture() -> dict:
+@@ -932,17 +933,20 @@
+ 
+ def edit_sources(plan: dict) -> dict:
+     """(arm, draw) -> [{path, sha256, source}] over every source; draw is None except for R. K1: the sources are the
+-    family's sealed edit set (its MANIFEST, by pin: the R draws of BLOCK0 at role "edit") and the lead's recorded
+-    sealed edit records (record-sealed); the 1B MAN1 is not a source here."""
++    family's sealed edit set (its MANIFEST, by pin: N's R draws, in either committed form; D1:
++    rules_78b.block0_r_edits reads Gate B's form and the Llama set's form, by family "R" AND draw, never by draw alone)
++    and the lead's recorded sealed edit records (record-sealed); the 1B MAN1 is not a source here."""
+     out: dict = {}
+     man = manifest()
+     folder = pathlib.Path(r78.sealed_set_or_refuse(rules.FAMILY)["path"]).parent
+-    for e in man_arms(man).values():
+-        if e.get("family") == "R" and e.get("draw") in rules.GATEB_R_DRAWS and isinstance(e.get("path"), str) \
+-                and SHA_RE.fullmatch(str(e.get("sha256"))):
+-            out.setdefault(("R", e["draw"]), []).append({"path": str(folder / e["path"]), "sha256": e["sha256"],
+-                                                         "source": f"sealed-set:{man_sha(man)[:12]}",
+-                                                         "engine_arm": e.get("arm") or f"edit-{e['sha256']}"})
++    try:
++        r_edits = r78.block0_r_edits(man, rules.GATEB_R_DRAWS)
++    except r78.Refused as exc:
++        fail(f"the {rules.FAMILY} sealed set: {exc}")
++    for d, e in r_edits.items():
++        out.setdefault(("R", d), []).append({"path": str(folder / e["path"]), "sha256": e["sha256"],
++                                             "source": f"sealed-set:{man_sha(man)[:12]}",
++                                             "engine_arm": e["arm"]})
+     for rec in records(plan)["sealed"]:
+         p = pathlib.Path(rec["path"])
+         if not p.is_file() or mac.sha(p) != rec["sha256"]:
+@@ -963,7 +967,7 @@
+         fail(f"{arm} at {job['seed']}: two sources name different edit files; the lead decides")
+     if not found:
+         if required:
+-            fail(f"{arm} at {job['seed']}: no edit file in MAN1, Gate B's MANIFEST or a recorded sealed record")
++            fail(f"{arm} at {job['seed']}: no edit file in the {rules.FAMILY} sealed set's MANIFEST or a recorded sealed record")
+         return None
+     entry = next(iter(found.values()))
+     path = ROOT / entry["path"]
+@@ -1106,6 +1110,7 @@
+                                 for f, p in report["retrain_pods"].items()},
+                "scorer_pods": {f: {k: {"cap_hours": p["cap_hours"], "need_usd": p["need_usd_alone"]} for k, p in kinds.items()}
+                                for f, kinds in report["scorer_pods"].items()},
++               "idle_storage": report["idle_storage"],          # KD5's idle-storage line (D2): the same numbers as the line
+                "main_config": {"path": rules.REC, "config_sha256": rules.REC_CONFIG_SHA256},
+                "gate_b_hold_usd": rules.GATE_B_HOLD_USD}
+     if args.dry_run:

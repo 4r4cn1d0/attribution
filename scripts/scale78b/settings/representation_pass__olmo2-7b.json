@@ -1,0 +1,77 @@
+{
+  "anchor_means": "per index and read: float64 vectors summed in the anchor bank's file order, then divided by the count",
+  "cosine": "torch.nn.functional.cosine_similarity(v, mean, dim=0) on float64 CPU vectors",
+  "cuda": "untested on CUDA; checked on CPU fixtures only",
+  "datashield": {
+    "cas": "cas_i = v_i' S_inter v_i / v_i' (S_inter + S_intra) v_i on the anchors' read (b) states z-scored per dimension over both classes (population SD; SD 0 gives 0); classes harmful and safe; sums of squared projections (SPEC 4.1 Eq. 3-5 as written)",
+    "css": "css_i = (read c - read d) . v_hat_i, per row and index",
+    "direction": "v_i = harmful anchors' mean of read (c) - safe anchors' mean of read (c); v_hat_i = v_i / ||v_i||"
+  },
+  "engine_x": "472fc7f6d619bdee2c3aa38e444024626be8b66bfb74a5abf37f2ddb6dded892",
+  "family_78b": {
+    "derived_from": {
+      "path": "scripts/stage1/settings/representation_pass.json",
+      "sha256": "a555fd899bd2b5caf8d68fb62578ed2e943977341b5bf2dc2d688dcbd034600b"
+    },
+    "engine_rule": "PP4 (the lead's ruling, 5 Nov 2026): every wrapper kind runs on engine X (engine_x above): untuned_answers, rep_pass, l1_scan and classifier on the pod; l1_score, s3_score, score_edit, add_edit and s_pool on the Mac. Every derived settings file carries engine_x unchanged from the 1B file, and the frozen check_settings refuses another engine identity (R: scripts/stage1/s1common.py:590-592). A run on engine Y needs the settings re-derived for Y (engine_x = Y's identity, a new PINS-78B.json, a new PINS_FILE_SHA256) by a recorded step; none exists. The engine's own jobs (the a0-1101 retrain, a1_pass) follow ruling 10 and addendum A13, not this rule. The kit packs scorer pods with engine X.",
+    "family": "olmo2-7b",
+    "kind_names": "PP3: rep_pass is REQ-3's representation pass (scripts/stage1/representation_pass.py; the stage-1 kit's name; this layer's rep_pass kind); a1_pass is A1's attributes pass on the a0-1101 retrain's q and e1 states (the engine's attributes job; RP:43's 6-11 h; the 16.5 h cap at most; its consumer here is score_edit a1). Each has its own E cap; both need S_78 and the anchor file. rules_78b.py and Part 2 use these names. Copied into representation_pass__<family>.json and write_score_edit__<family>.json family_78b.kind_names.",
+    "main_recipe": {
+      "config_sha256": "18cc31d7117a2de7bc02382fe8a4d409fc43c91b434bf219a4808dfb26528d09",
+      "path": "experiments/safety_selection/configs/study-kt-olmo2-7b-r64-b-mb2-20261008.json"
+    },
+    "maker": "scripts/scale78b/make_scorer_settings_78b.py",
+    "manifest_sha256": "9ed61826f1634dcab5a7385f18556b108b3ba8db95fc17215fa4cf4f6cb993b9",
+    "model": "OLMo-2-7B",
+    "owner_78b": "scripts/scale78b/scorers_78b.py",
+    "pins_file": "scripts/scale78b/settings/pins_78b.json",
+    "rule": "the 1B file's schema and name, so scripts/stage1's unchanged check_settings accepts it; every value that differs from the 1B file is per family (pins_78b.json) or a documented 7-8B rule; a null is a pin that waits for the event named in waits; scorers_78b.py refuses a command while a pin it needs is null",
+    "waits": {
+      "pins.anchor_bank_sha256": {
+        "event": "the OLMo-2-7B anchor job (scripts/make_anchor_answers.py on the family's main recipe, single-job pod, KD6): anchors.sealed.json 'anchor_file_sha256' of its committed record",
+        "needed_by": [
+          "*"
+        ]
+      },
+      "pins.recipe_sha256": {
+        "event": "the OLMo-2-7B anchor job, then scripts/scale78b/make_recipe_s78.py --family olmo2-7b --anchors-sha256 <anchor_file_sha256>, then the lead's commit by explicit path (addendum A1, A2); the same value as runkit/stage1-78b/rules_78b.py RECIPE_S['olmo2-7b']",
+        "needed_by": [
+          "*"
+        ]
+      }
+    }
+  },
+  "gate_c_reproduction": "at (index n, read b): per unit, fsum / count of cos_harmful, cos_safe and their difference; equal byte for byte (canonical JSON) to the pinned scripts/gate_c_representation.py groups block (998231ea), checked on a CPU fixture",
+  "index_convention": "index 0 = the embedding output; index i (1 <= i <= n - 1) = the raw output of block i - 1; index n = model.norm(the output of block n - 1); block b's output is index b + 1, post-final-norm for b = n - 1 (transformers 4.56.2 exposes no raw output of the last block)",
+  "kind": "stage1 settings",
+  "label_entries": {},
+  "labels_sha256": "260389f3fbfd8e7ff11ee06b5d5aba48e7d56b34140d9c9a634682125a86d570",
+  "model_agnostic": "the layer count n, the hidden size and the final norm are read from the loaded model (config.num_hidden_layers, config.hidden_size, get_decoder().norm); a 7-8B run gets its own settings file",
+  "name": "representation_pass",
+  "outputs": {
+    "rows": "representation_rows.jsonl",
+    "summary": "representation_pass.json"
+  },
+  "owner": "scripts/stage1/representation_pass.py",
+  "pins": {
+    "anchor_bank_sha256": null,
+    "model": {
+      "repo_id": "allenai/OLMo-2-1124-7B-Instruct",
+      "revision": "470b1fba1ae01581f270116362ee4aa1b97f4c84"
+    },
+    "prepared_manifest_sha256": "9ed61826f1634dcab5a7385f18556b108b3ba8db95fc17215fa4cf4f6cb993b9",
+    "recipe_sha256": null
+  },
+  "pool_pins_file_78b": "scripts/scale78b/settings/representation_pools__olmo2-7b.json",
+  "pools": "optional stage-1 text pool files ({kind, version 1, name, items: [{id, prompt, response}]}) named by SHA-256 on the command line; each item encoded by encode_train under the recipe's max_train_tokens; a refused item is counted by reason and not scored",
+  "reads": {
+    "a": "position L - 1: the end-of-turn token (the row must end with codec.eos_id)",
+    "b": "position L - 2: the last response token (the pinned Gate C read)",
+    "c": "the mean over the response tokens, positions n_prompt .. L - 2 (end-of-turn excluded)",
+    "d": "position n_prompt - 1: the last templated-prompt token (the end of the assistant header)"
+  },
+  "requirement": "REQ-3 (brief rev 1, RS B1, SPEC section 8; lead decisions L3, L4; the lead's Part C model-agnostic requirement); 7-8B: Part 1 section 12 (the rep_pass kind, REQ-3's pass for L1 and S3), section 14 item 1",
+  "roles": "L1's arm uses only (index l_s + 1, read a); S3 uses read (a) at indices 1..n; DataShield-style uses css and cas at indices 1..n; Gate C's reproduction uses (index n, read b); every other (index, read) cell is report only and never selects rows or defines an arm (L3 (1))",
+  "transformers_version": "4.56.2",
+  "version": 1
+}

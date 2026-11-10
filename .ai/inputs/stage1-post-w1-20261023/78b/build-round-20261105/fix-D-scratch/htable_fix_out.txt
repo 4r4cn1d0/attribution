@@ -1,0 +1,28 @@
+Step 1: P78's layout (R 8 / 12 / 16), against P78:228-232
+  plan A, SESOI 5                    R  8 m  6 | SE 3.15 | MDE 11.0 | 80%pt 11.0 | P(better) 0.46/0.70/0.88 | P(equiv) 0.00/0.00 | half 5.18 | runs 44 | OK
+  (a) plan A, SESOI 10               R  8 m  6 | SE 3.15 | MDE 11.0 | 80%pt 12.7 | P(better) 0.26/0.50/0.74 | P(equiv) 0.87/0.48 | half 5.18 | runs 44 | OK
+  plan B9, SESOI 5                   R 12 m  9 | SE 2.57 | MDE 8.3 | 80%pt 8.3 | P(better) 0.76/0.93/0.99 | P(equiv) 0.24/0.04 | half 4.23 | runs 54 | OK
+  (b) P1,P3,P6 at 12 seeds, SESOI 5  R 16 m 12 | SE 2.23 | MDE 7.2 | 80%pt 7.2 | P(better) 0.88/0.98/1.00 | P(equiv) 0.45/0.05 | half 3.66 | runs 70 | OK
+  (c) = (b) with SESOI 10            R 16 m 12 | SE 2.23 | MDE 7.2 | 80%pt 11.9 | P(better) 0.18/0.50/0.82 | P(equiv) 1.00/0.73 | half 3.66 | runs 70 | OK
+  all rows reproduce: True
+Step 2: ruling 2's layout (R 7 / 10 / 13), against addendum A7 and verify-D
+  plan A, SESOI 5                    R  7 m  6 | SE 3.24 | MDE 11.3 | 80%pt 11.3 | P(better) 0.43/0.67/0.86 | P(equiv) 0.00/0.00 | half 5.34 | runs 44 | OK
+  (a) plan A, SESOI 10               R  7 m  6 | SE 3.24 | MDE 11.3 | 80%pt 12.7 | P(better) 0.27/0.50/0.73 | P(equiv) 0.85/0.46 | half 5.34 | runs 44 | OK
+  plan B9, SESOI 5                   R 10 m  9 | SE 2.68 | MDE 8.7 | 80%pt 8.7 | P(better) 0.72/0.91/0.98 | P(equiv) 0.18/0.03 | half 4.41 | runs 53 | OK
+  (b) P1,P3,P6 at 12 seeds, SESOI 5  R 13 m 12 | SE 2.33 | MDE 7.6 | 80%pt 7.6 | P(better) 0.85/0.97/1.00 | P(equiv) 0.38/0.05 | half 3.84 | runs 68 | OK
+  (c) = (b) with SESOI 10            R 13 m 12 | SE 2.33 | MDE 7.6 | 80%pt 12.0 | P(better) 0.20/0.50/0.80 | P(equiv) 0.99/0.69 | half 3.84 | runs 68 | OK
+  all rows reproduce: True
+Step 3: S-P multiples (shared seeds only; MDE = (z_a + z_b) / sqrt(J) x sigma_pair)
+  J= 6: 1.42 x sigma_pair
+  J= 9: 1.08 x sigma_pair
+  J=12: 0.93 x sigma_pair
+  plan A at sigma_pair 4.0: MDE 5.7 pp; P(equiv|0) 0.84 ; at sigma_pair 8.2: MDE 11.6 pp
+  SE widening, ruling 2 against P78 (%): ['3.0', '4.2', '4.8']
+Step 4: N2 pooling check (D7) and the retrain-pod guard (A8)
+  per family 4.41 (OLMo-2-7B) 0.73 (Llama-3.1-8B); pooled by sigma_pool's form sqrt((o^2+l^2)/2) = 3.16; on the pooled 5.83: 4.04; no gain 8.24
+  retrain pod cap 4.0 h: guard $13.40, need x1.25 $16.75
+  retrain pod cap 4.5 h: guard $14.33, need x1.25 $17.91
+  retrain pod cap 5.0 h: guard $15.25, need x1.25 $19.06
+  block A four-pod launch OLMo-2-7B cap 10.5 h: $83.70, x1.25 $104.62
+  block A four-pod launch Llama-3.1-8B cap 12.5 h: $98.50, x1.25 $123.12
+RESULT: ALL REPRODUCE

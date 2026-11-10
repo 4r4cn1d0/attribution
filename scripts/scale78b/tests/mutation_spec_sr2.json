@@ -1,0 +1,615 @@
+{
+ "kind": "scale78b sr2 mutation spec (R1 Track S)",
+ "note": "each mutant's find text occurs exactly once in its file (the runner refuses otherwise); runner: scripts/scale78b/tests/run_mutants_sr2.py (test_blinded_sigma.py, test_sr2_simulation.py); files are relative to scripts/scale78b",
+ "mutants": [
+  {
+   "id": "S-bs-no-sqrt2",
+   "describes": "sigma_A without the sqrt(2) pair-scale factor",
+   "file": "blinded_sigma.py",
+   "find": "    return math.sqrt(2 * float(total_rss / total_df)), total_df\n",
+   "replace": "    return math.sqrt(float(total_rss / total_df)), total_df\n"
+  },
+  {
+   "id": "S-bs-lone-cells-add-df",
+   "describes": "a cell alone at its seed adds one df",
+   "file": "blinded_sigma.py",
+   "find": "    return _dot(r, r), len(cells) - len(basis)\n",
+   "replace": "    return _dot(r, r), len(cells) - len(basis) + sum(1 for j in seeds if sum(1 for _, s in cells if s == j) == 1)\n"
+  },
+  {
+   "id": "S-bs-mean-of-variances",
+   "describes": "the clusters' variances averaged instead of pooled on their df",
+   "file": "blinded_sigma.py",
+   "find": "        total_rss += rss\n",
+   "replace": "        total_rss += rss / df * 6\n"
+  },
+  {
+   "id": "S-bs-arm-effect-left-in",
+   "describes": "the model has seed effects only (an arm effect stays in the residual)",
+   "file": "blinded_sigma.py",
+   "find": "    columns += [[Fraction(int(a == arm)) for a, _ in cells] for arm in arms[1:]]\n",
+   "replace": "    columns += [[Fraction(int(a == arm)) for a, _ in cells] for arm in arms[1:1]]\n"
+  },
+  {
+   "id": "S-bs-residuals-printed",
+   "describes": "the residual values reach stderr",
+   "file": "blinded_sigma.py",
+   "find": "    sigma, df = pooled_sigma(clusters)\n",
+   "replace": "    sigma, df = pooled_sigma(clusters)\n    sys.stderr.write(repr(sorted(float(v) for c in clusters.values() for v in c.values())) + \"\\n\")\n"
+  },
+  {
+   "id": "S-bs-value-in-refusal",
+   "describes": "the no-df refusal names the cluster's U values",
+   "file": "blinded_sigma.py",
+   "find": "            refuse(f\"{label}: the cluster has no residual df",
+   "replace": "            refuse(f\"{label} {sorted(float(v) for v in clusters[label].values())}: the cluster has no residual df"
+  },
+  {
+   "id": "S-bs-error-text-echoed",
+   "describes": "an unexpected error's text is kept in read()'s refusal (re-targeted at read()'s guard, SR10)",
+   "file": "blinded_sigma.py",
+   "find": "    except Exception as exc:                                 # never keep an exception's text: it could hold a value\n        failure = type(exc).__name__\n",
+   "replace": "    except Exception as exc:                                 # never keep an exception's text: it could hold a value\n        failure = str(exc)\n"
+  },
+  {
+   "id": "S-bs-inputs-pin-ignored",
+   "describes": "the inputs file's pinned SHA-256 is not checked",
+   "file": "blinded_sigma.py",
+   "find": "    if not path.is_file() or sha256_file(path) != inputs_sha256:\n",
+   "replace": "    if not path.is_file():\n"
+  },
+  {
+   "id": "S-bs-reader-pin-ignored",
+   "describes": "noise_reading.py's pin is not checked",
+   "file": "blinded_sigma.py",
+   "find": "    if sha256_file(path) != want:\n",
+   "replace": "    if False:\n"
+  },
+  {
+   "id": "S-bs-option-c-both",
+   "describes": "option C reads both families",
+   "file": "blinded_sigma.py",
+   "find": "OPTIONS = {\"B\": (\"llama31-8b\", \"olmo2-7b\"), \"C\": (\"olmo2-7b\",)}",
+   "replace": "OPTIONS = {\"B\": (\"llama31-8b\", \"olmo2-7b\"), \"C\": (\"llama31-8b\", \"olmo2-7b\")}"
+  },
+  {
+   "id": "S-bs-no-duplicate-check",
+   "describes": "one COMPLETE.json may be read twice",
+   "file": "blinded_sigma.py",
+   "find": "        if key is not None and key in seen:\n",
+   "replace": "        if False:\n"
+  },
+  {
+   "id": "S-bs-method-kind-unchecked",
+   "describes": "a method edit of the other kind passes",
+   "file": "blinded_sigma.py",
+   "find": "doc.get(\"edit_kind\") == METHOD_EDIT_KIND[arm] \\\n",
+   "replace": "doc.get(\"edit_kind\") in (\"remove\", \"add\") \\\n"
+  },
+  {
+   "id": "S-bs-method-r-draw-allowed",
+   "describes": "an R draw passes as a method edit",
+   "file": "blinded_sigma.py",
+   "find": " and selection.get(\"family\") != \"R\"\n",
+   "replace": "\n"
+  },
+  {
+   "id": "S-bs-method-manifest-unchecked",
+   "describes": "another family's method edit passes",
+   "file": "blinded_sigma.py",
+   "find": "        and doc.get(\"manifest_sha256\") == NR.FAMILIES[family][\"manifest_sha256\"] and",
+   "replace": "        and"
+  },
+  {
+   "id": "S-bs-no-df-not-refused",
+   "describes": "a cluster with no df is pooled silently",
+   "file": "blinded_sigma.py",
+   "find": "        if df <= 0:\n",
+   "replace": "        if df < 0:\n"
+  },
+  {
+   "id": "S-bs-stopped-keeps-l1",
+   "describes": "the stopped design keeps L1",
+   "file": "blinded_sigma.py",
+   "find": "\"anchor_stopped\": (\"H1\", \"S1\", \"S4\")}",
+   "replace": "\"anchor_stopped\": (\"L1\", \"H1\", \"S1\", \"S4\")}"
+  },
+  {
+   "id": "S-bs-engine-roles-merged",
+   "describes": "every cell is checked against block A's engine",
+   "file": "blinded_sigma.py",
+   "find": "        role_engine = engine[arm if reused(arm, seed) else \"block_a\"]\n",
+   "replace": "        role_engine = engine[\"block_a\"]\n"
+  },
+  {
+   "id": "S-bs-engine-a0-r-swapped",
+   "describes": "the reused a0 cells are checked against N's R engine and the R cells against the a0 engine",
+   "file": "blinded_sigma.py",
+   "find": "        role_engine = engine[arm if reused(arm, seed) else \"block_a\"]\n",
+   "replace": "        role_engine = engine[{\"a0\": \"R\", \"R\": \"a0\"}[arm] if reused(arm, seed) else \"block_a\"]\n"
+  },
+  {
+   "id": "S-bs-out-parent-unchecked",
+   "describes": "a missing --out folder is not refused before the read",
+   "file": "blinded_sigma.py",
+   "find": "        if out is not None and not out.parent.is_dir():\n",
+   "replace": "        if False:\n"
+  },
+  {
+   "id": "S-sim-llama-ratio-ignored",
+   "describes": "the family-ratio scenarios give Llama OLMo's sigma",
+   "file": "sr2_simulation.py",
+   "find": "min(olmo * num(scenario[\"llama_sigma_ratio\"]), top)",
+   "replace": "min(olmo, top)"
+  },
+  {
+   "id": "S-sim-llama-uncapped",
+   "describes": "Llama's scaled sigma is not capped at the grid's top",
+   "file": "sr2_simulation.py",
+   "find": "min(olmo * num(scenario[\"llama_sigma_ratio\"]), top)",
+   "replace": "olmo * num(scenario[\"llama_sigma_ratio\"])"
+  },
+  {
+   "id": "S-sim-one-sigma-both-families",
+   "describes": "run_chunk scales both families' cells by OLMo's sigma",
+   "file": "sr2_simulation.py",
+   "find": "z[:, i, :] * cell_sd(sigmas[f], share)[None, :]",
+   "replace": "z[:, i, :] * cell_sd(sigmas[\"olmo2-7b\"], share)[None, :]"
+  },
+  {
+   "id": "S-sim-nonconverged-total-zero",
+   "describes": "the summary's non-converged total is not the rows' sum",
+   "file": "sr2_simulation.py",
+   "find": "\"nonconverged_fits_total\": nonconverged,",
+   "replace": "\"nonconverged_fits_total\": 0,"
+  },
+  {
+   "id": "S-bs-r-1105-dropped",
+   "describes": "R_5 at 1105 is not a design cell",
+   "file": "blinded_sigma.py",
+   "find": "DESIGN_SEEDS = {\"R\": (1101, 1102, 1103, 1104, 1105),",
+   "replace": "DESIGN_SEEDS = {\"R\": (1101, 1102, 1103, 1104),"
+  },
+  {
+   "id": "S-bs-r-check-not-restored",
+   "describes": "read_unit's R-draw check is not restored after a method cell",
+   "file": "blinded_sigma.py",
+   "find": "        NR.r_edit_matches = saved\n",
+   "replace": "        pass\n"
+  },
+  {
+   "id": "S-bs-same-edit-allowed",
+   "describes": "two method arms may share an edit",
+   "file": "blinded_sigma.py",
+   "find": "    if len(set(edits.values())) != len(edits):\n",
+   "replace": "    if False:\n"
+  },
+  {
+   "id": "S-sim-no-sqrt2",
+   "describes": "the cell SD is sigma_pair, not sigma_pair / sqrt 2",
+   "file": "sr2_simulation.py",
+   "find": "    return sigma_pair / math.sqrt(2.0) * np.where(",
+   "replace": "    return sigma_pair * np.where("
+  },
+  {
+   "id": "S-sim-sigma-a-no-2",
+   "describes": "sigma_A^2 without the factor 2",
+   "file": "sr2_simulation.py",
+   "find": "    return 2 * rss / df, df\n",
+   "replace": "    return rss / df, df\n"
+  },
+  {
+   "id": "S-sim-threshold-strict",
+   "describes": "plan A needs sigma below 4.5, not at most",
+   "file": "sr2_simulation.py",
+   "find": "np.where(sigma2 <= a, \"A\"",
+   "replace": "np.where(sigma2 < a, \"A\""
+  },
+  {
+   "id": "S-sim-review-ignored",
+   "describes": "the review ceiling never fires",
+   "file": "sr2_simulation.py",
+   "find": "* sigma2 > ceiling)] = \"review\"",
+   "replace": "* sigma2 > ceiling)] = name"
+  },
+  {
+   "id": "S-sim-holm-bonferroni",
+   "describes": "Holm replaced by Bonferroni",
+   "file": "sr2_simulation.py",
+   "find": "    ok = sorted_p <= alpha / (m - np.arange(m))[None, :]\n",
+   "replace": "    ok = sorted_p <= alpha / m + 0 * np.arange(m)[None, :]\n"
+  },
+  {
+   "id": "S-sim-holm-no-stop",
+   "describes": "Holm's step-down does not stop at the first acceptance",
+   "file": "sr2_simulation.py",
+   "find": "    keep = np.cumprod(ok, axis=1).astype(bool)\n",
+   "replace": "    keep = ok\n"
+  },
+  {
+   "id": "S-sim-two-arm-no-floor",
+   "describes": "the two-arm sum is not floored",
+   "file": "sr2_simulation.py",
+   "find": "            total = np.maximum(d.var(axis=1, ddof=1), floor)\n",
+   "replace": "            total = d.var(axis=1, ddof=1)\n"
+  },
+  {
+   "id": "S-sim-two-arm-df",
+   "describes": "the two-arm df is J, not J - 1",
+   "file": "sr2_simulation.py",
+   "find": "np.full(y.shape[0], float(j - 1))",
+   "replace": "np.full(y.shape[0], float(j))"
+  },
+  {
+   "id": "S-sim-satterthwaite-half",
+   "describes": "the Satterthwaite df loses its factor 2",
+   "file": "sr2_simulation.py",
+   "find": "2.0 * v * v / var_v, np.inf)",
+   "replace": "v * v / var_v, np.inf)"
+  },
+  {
+   "id": "S-sim-single-start",
+   "describes": "D-4's multi-start never runs",
+   "file": "sr2_simulation.py",
+   "find": "    if opts[\"starts\"] != \"multi\":\n",
+   "replace": "    if True:\n"
+  },
+  {
+   "id": "S-sim-multi-start-takes-last",
+   "describes": "the multi-start keeps the last end point, not the highest",
+   "file": "sr2_simulation.py",
+   "find": "            better = ll > best[3]\n",
+   "replace": "            better = ll > -np.inf\n"
+  },
+  {
+   "id": "S-sim-no-active-set",
+   "describes": "a floored arm whose score points below the floor still steps",
+   "file": "sr2_simulation.py",
+   "find": "        free = above_before | (score_log > 0)\n",
+   "replace": "        free = above_before | True\n"
+  },
+  {
+   "id": "S-sim-no-step-clip",
+   "describes": "the log-step clip is gone",
+   "file": "sr2_simulation.py",
+   "find": "        step = np.clip(step, -clip, clip)\n",
+   "replace": "        step = step\n"
+  },
+  {
+   "id": "S-sim-newly-floored-stops",
+   "describes": "a step that floors an arm may end the fit",
+   "file": "sr2_simulation.py",
+   "find": "        done = (largest < tol) & ~newly\n",
+   "replace": "        done = largest < tol\n"
+  },
+  {
+   "id": "S-sim-power-any-sign",
+   "describes": "a rejection with a negative estimate counts as power",
+   "file": "sr2_simulation.py",
+   "find": "& (shifted > 0)",
+   "replace": "& (shifted > -np.inf)"
+  },
+  {
+   "id": "S-sim-better-no-sesoi",
+   "describes": "better needs a positive estimate only",
+   "file": "sr2_simulation.py",
+   "find": "(hit & (shifted >= sesoi))",
+   "replace": "(hit & (shifted >= 0))"
+  },
+  {
+   "id": "S-sim-familywise-all",
+   "describes": "the familywise count needs every contrast rejected",
+   "file": "sr2_simulation.py",
+   "find": "int(rej.any(axis=1).sum())",
+   "replace": "int(rej.all(axis=1).sum())"
+  },
+  {
+   "id": "S-sim-stopped-keeps-s3",
+   "describes": "a stopped family keeps S3",
+   "file": "sr2_simulation.py",
+   "find": "STOPPED_DROPS = (\"A1\", \"L1\", \"S3\")",
+   "replace": "STOPPED_DROPS = (\"A1\", \"L1\")"
+  },
+  {
+   "id": "S-sim-b9-a0-in-fit",
+   "describes": "plan B9 fits a0 in the full-corpus cluster",
+   "file": "sr2_simulation.py",
+   "find": "           \"R_seeds\": tuple(range(1101, 1111)), \"fit_arms\": (\"R\", \"A1\", \"H1\", \"S1\", \"S4\"),",
+   "replace": "           \"R_seeds\": tuple(range(1101, 1111)), \"fit_arms\": (\"a0\", \"R\", \"A1\", \"H1\", \"S1\", \"S4\"),"
+  },
+  {
+   "id": "S-sim-block-a-no-r5",
+   "describes": "block A's sigma_A misses R_5 at 1105",
+   "file": "sr2_simulation.py",
+   "find": "BLOCK_A = {\"R\": (1101, 1102, 1103, 1104, 1105),",
+   "replace": "BLOCK_A = {\"R\": (1101, 1102, 1103, 1104),"
+  },
+  {
+   "id": "S-sim-merge-header-unchecked",
+   "describes": "shards of different runs merge",
+   "file": "sr2_simulation.py",
+   "find": "    if any(h != heads[0] for h in heads) or any(",
+   "replace": "    if any("
+  },
+  {
+   "id": "S-sim-one-stream",
+   "describes": "every chunk draws the same normals",
+   "file": "sr2_simulation.py",
+   "find": "np.random.SeedSequence([seed, chunk_index])",
+   "replace": "np.random.SeedSequence([seed])"
+  },
+  {
+   "id": "S-sim-lone-cells-kept-wrong",
+   "describes": "cells alone at their seed are dropped from every cluster with two cells or fewer",
+   "file": "sr2_simulation.py",
+   "find": "if count[j] > 1]",
+   "replace": "if count[j] > 2]"
+  },
+  {
+   "id": "S-bs-stop-record-pin-ignored",
+   "describes": "the anchor-stop record's pinned SHA-256 is not checked",
+   "file": "blinded_sigma.py",
+   "find": "    if not path.is_file() or sha256_file(path) != ref[\"sha256\"]:\n",
+   "replace": "    if not path.is_file():\n"
+  },
+  {
+   "id": "S-bs-stop-family-unchecked",
+   "describes": "another family's anchor-stop record passes",
+   "file": "blinded_sigma.py",
+   "find": "    if doc.get(\"family\") != name:\n",
+   "replace": "    if False:\n"
+  },
+  {
+   "id": "S-bs-stop-exit-unchecked",
+   "describes": "a stop kind with the other stop's exit code passes",
+   "file": "blinded_sigma.py",
+   "find": "    if kind not in STOP_KINDS or not GB.is_int(doc.get(\"exit_code\")) or doc[\"exit_code\"] != STOP_KINDS[kind]:\n",
+   "replace": "    if kind not in STOP_KINDS:\n"
+  },
+  {
+   "id": "S-bs-stop-kind-unchecked",
+   "describes": "any stop kind passes with a stop's exit code",
+   "file": "blinded_sigma.py",
+   "find": "    if kind not in STOP_KINDS or not GB.is_int(doc.get(\"exit_code\")) or doc[\"exit_code\"] != STOP_KINDS[kind]:\n",
+   "replace": "    if not GB.is_int(doc.get(\"exit_code\")) or doc[\"exit_code\"] not in STOP_KINDS.values():\n"
+  },
+  {
+   "id": "S-bs-stop-record-kind-unchecked",
+   "describes": "a record of another kind passes as an anchor-stop record",
+   "file": "blinded_sigma.py",
+   "find": "    if not isinstance(doc, dict) or doc.get(\"kind\") != STOP_RECORD_KIND:\n",
+   "replace": "    if not isinstance(doc, dict):\n"
+  },
+  {
+   "id": "S-bs-stopped-without-record",
+   "describes": "A1, L1 and S3 drop without an anchor-stop record",
+   "file": "blinded_sigma.py",
+   "find": "        check_anchor_stop(name, spec.get(\"anchor_stop\"), base)\n",
+   "replace": "        pass\n"
+  },
+  {
+   "id": "S-bs-record-on-full-allowed",
+   "describes": "a full-design family may name an anchor-stop record",
+   "file": "blinded_sigma.py",
+   "find": "    elif \"anchor_stop\" in spec:\n",
+   "replace": "    elif False:\n"
+  },
+  {
+   "id": "S-sim-interaction-all-arms",
+   "describes": "the arm x seed term reaches a0 and R too",
+   "file": "sr2_simulation.py",
+   "find": "np.where(IS_METHOD, math.sqrt(1.0 + share), 1.0)",
+   "replace": "np.where(IS_METHOD | True, math.sqrt(1.0 + share), 1.0)"
+  },
+  {
+   "id": "S-sim-share-as-sd-ratio",
+   "describes": "the interaction share is read as an SD ratio",
+   "file": "sr2_simulation.py",
+   "find": "np.where(IS_METHOD, math.sqrt(1.0 + share), 1.0)",
+   "replace": "np.where(IS_METHOD, math.sqrt(1.0 + share * share), 1.0)"
+  },
+  {
+   "id": "S-sim-n-pool-wrong",
+   "describes": "N's pooled variance halves the SD terms' weight",
+   "file": "sr2_simulation.py",
+   "find": "    pool = sum(2 * v for v in sd2) / (2 * len(FAMILIES))\n",
+   "replace": "    pool = sum(v for v in sd2) / (2 * len(FAMILIES))\n"
+  },
+  {
+   "id": "S-sim-n-floor-dropped",
+   "describes": "N's sigma_eval floor is dropped",
+   "file": "sr2_simulation.py",
+   "find": "    return np.maximum(pool, median ** 2)\n",
+   "replace": "    return pool + 0 * median\n"
+  },
+  {
+   "id": "S-sim-n-median-low",
+   "describes": "the even median takes the lower middle SE",
+   "file": "sr2_simulation.py",
+   "find": "    median = (np.sqrt(se2[:, n // 2 - 1]) + np.sqrt(se2[:, n // 2])) / 2\n",
+   "replace": "    median = np.sqrt(se2[:, n // 2 - 1])\n"
+  },
+  {
+   "id": "S-sim-n-se-ddof0",
+   "describes": "the pair SE uses ddof 0",
+   "file": "sr2_simulation.py",
+   "find": "            se2.append(d.var(axis=1, ddof=1) / d.shape[1])\n",
+   "replace": "            se2.append(d.var(axis=1, ddof=0) / d.shape[1])\n"
+  },
+  {
+   "id": "S-sim-n-noise-uncentred",
+   "describes": "N's prompt noise is not centred (the cell's U moves)",
+   "file": "sr2_simulation.py",
+   "find": "tau * (e - e.mean(axis=1, keepdims=True))",
+   "replace": "tau * e"
+  },
+  {
+   "id": "S-sim-n-tau",
+   "describes": "the prompt noise scale ignores the pair's factor 2",
+   "file": "sr2_simulation.py",
+   "find": "    tau = sigma_eval0 * math.sqrt(p / 2.0)\n",
+   "replace": "    tau = sigma_eval0 * math.sqrt(p)\n"
+  },
+  {
+   "id": "V-bs-exc-text-to-stderr",
+   "describes": "the unexpected error's text is written to stderr before the type-only refusal (the verifier's, r1-s-verify-scratch; re-targeted at read()'s guard in the follow-up, SR10)",
+   "file": "blinded_sigma.py",
+   "find": "        failure = type(exc).__name__\n    raise Refusal(UNEXPECTED.format(failure))\n",
+   "replace": "        sys.stderr.write(f\"{exc}\\n\")\n        failure = type(exc).__name__\n    raise Refusal(UNEXPECTED.format(failure))\n"
+  },
+  {
+   "id": "V-bs-side-file",
+   "describes": "every cell's U is written to a side file beside the inputs file (the verifier's, r1-s-verify-scratch)",
+   "file": "blinded_sigma.py",
+   "find": "    sigma, df = pooled_sigma(clusters)\n",
+   "replace": "    (base / \"debug-cells.json\").write_text(repr({k: {str(c): float(v) for c, v in t.items()} for k, t in clusters.items()}))\n    sigma, df = pooled_sigma(clusters)\n"
+  },
+  {
+   "id": "V-bs-values-after-no-df",
+   "describes": "the no-df refusal appends the cluster's U values at its end (the verifier's, r1-s-verify-scratch)",
+   "file": "blinded_sigma.py",
+   "find": ": blinded_sigma stops\")\n        total_rss += rss\n",
+   "replace": ": blinded_sigma stops {sorted(float(v) for v in clusters[label].values())}\")\n        total_rss += rss\n"
+  },
+  {
+   "id": "V-bs-reused-includes-1104",
+   "describes": "a0 and R at 1104 are checked against the reused engine, not block A's (the verifier's, r1-s-verify-scratch)",
+   "file": "blinded_sigma.py",
+   "find": "REUSED_SEEDS = (1101, 1102, 1103)",
+   "replace": "REUSED_SEEDS = (1101, 1102, 1103, 1104)"
+  },
+  {
+   "id": "V-sim-plan-by-n",
+   "describes": "block B's plan is N's, not sigma_A's (the chain's decisive link) (the verifier's, r1-s-verify-scratch)",
+   "file": "sr2_simulation.py",
+   "find": "        rows = np.nonzero(a_plan == plan)[0]\n",
+   "replace": "        rows = np.nonzero(n_plan == plan)[0]\n"
+  },
+  {
+   "id": "V-sim-claim-on-other-draws",
+   "describes": "the claim test reads another replicate's cells, so sigma_A and the final test are independent (the verifier's, r1-s-verify-scratch)",
+   "file": "sr2_simulation.py",
+   "find": "            res = claim_test(design, y_all[f][rows], settings)\n",
+   "replace": "            res = claim_test(design, np.roll(y_all[f], 1, axis=0)[rows], settings)\n"
+  },
+  {
+   "id": "V-sim-claim-fresh-block-a",
+   "describes": "the claim test redraws block A's cells (sign-flipped), so its residuals are not sigma_A's (the verifier's, r1-s-verify-scratch)",
+   "file": "sr2_simulation.py",
+   "find": "            res = claim_test(design, y_all[f][rows], settings)\n",
+   "replace": "            res = claim_test(design, -y_all[f][rows], settings)\n"
+  },
+  {
+   "id": "V-sim-sigma-a-option-ignored",
+   "describes": "run_chunk pools sigma_A over both families under option C too (the verifier's, r1-s-verify-scratch)",
+   "file": "sr2_simulation.py",
+   "find": "    a_plan = plan_of(sigma_a_sq(y_all, option, stopped)[0], settings)\n",
+   "replace": "    a_plan = plan_of(sigma_a_sq(y_all, \"B\", stopped)[0], settings)\n"
+  },
+  {
+   "id": "V-sim-sigma-a-full-design-when-stopped",
+   "describes": "run_chunk computes sigma_A on the full design even when a family is stopped (the verifier's, r1-s-verify-scratch)",
+   "file": "sr2_simulation.py",
+   "find": "    a_plan = plan_of(sigma_a_sq(y_all, option, stopped)[0], settings)\n",
+   "replace": "    a_plan = plan_of(sigma_a_sq(y_all, option, set())[0], settings)\n"
+  },
+  {
+   "id": "S-bs-read-keeps-cause",
+   "describes": "read()'s refusal keeps the original exception as its cause",
+   "file": "blinded_sigma.py",
+   "find": "        failure = type(exc).__name__\n    raise Refusal(UNEXPECTED.format(failure))\n",
+   "replace": "        raise Refusal(UNEXPECTED.format(type(exc).__name__)) from exc\n    raise Refusal(UNEXPECTED.format(failure))\n"
+  },
+  {
+   "id": "S-bs-read-unguarded",
+   "describes": "read() lets an arithmetic error through with its text (only the CLI guards)",
+   "file": "blinded_sigma.py",
+   "find": "    except Exception as exc:                                 # never keep an exception's text: it could hold a value\n",
+   "replace": "    except KeyError as exc:                                  # never keep an exception's text: it could hold a value\n"
+  },
+  {
+   "id": "RV-bs-side-file-repo-root",
+   "describes": "every cell's U is written to a side file at the repository root (outside the snapshot folders) (the re-verifier's, r1-s-reverify-scratch, spec b536887a)",
+   "file": "blinded_sigma.py",
+   "find": "    sigma, df = pooled_sigma(clusters)\n",
+   "replace": "    (ROOT / \"leak-cells.txt\").write_text(repr({k: {str(c): float(v) for c, v in t.items()} for k, t in clusters.items()}))\n    sigma, df = pooled_sigma(clusters)\n"
+  },
+  {
+   "id": "RV-bs-out-wb",
+   "describes": "--out is opened with wb, not the exclusive xb: a file made meanwhile is overwritten (the re-verifier's, r1-s-reverify-scratch, spec b536887a)",
+   "file": "blinded_sigma.py",
+   "find": "with open(out, \"xb\") as handle:",
+   "replace": "with open(out, \"wb\") as handle:"
+  },
+  {
+   "id": "RV-bs-engine-keyset-unchecked",
+   "describes": "the engine map's key set is not checked (extra or old-form keys pass the form check) (the re-verifier's, r1-s-reverify-scratch, spec b536887a)",
+   "file": "blinded_sigma.py",
+   "find": "if not isinstance(engine, dict) or set(engine) != set(ENGINE_ROLES) or not all(hex64(v) for v in engine.values()):",
+   "replace": "if not isinstance(engine, dict) or not all(hex64(v) for v in engine.values()):"
+  },
+  {
+   "id": "RV-sim-run-ignores-family-sigmas",
+   "describes": "simulate_row prints the per-family sigmas but runs both families at the grid's sigma (the re-verifier's, r1-s-reverify-scratch, spec b536887a)",
+   "file": "sr2_simulation.py",
+   "find": "            run_chunk(z, eta, sigmas, share, option, stopped, settings, tallies, plans, designs)",
+   "replace": "            run_chunk(z, eta, {f: num(sigma_text) for f in FAMILIES}, share, option, stopped, settings, tallies, plans, designs)"
+  },
+  {
+   "id": "RV-sim-max-olmo-only",
+   "describes": "the summary's largest familywise rate is taken over OLMo-2-7B only (the re-verifier's, r1-s-reverify-scratch, spec b536887a)",
+   "file": "sr2_simulation.py",
+   "find": "            for f, v in sc[\"families\"].items():\n                key = (v[\"familywise_count\"], -r[\"sigma_index\"], name, f)",
+   "replace": "            for f, v in sc[\"families\"].items():\n                if f != \"olmo2-7b\":\n                    continue\n                key = (v[\"familywise_count\"], -r[\"sigma_index\"], name, f)"
+  },
+  {
+   "id": "RV-sim-max-skips-ratio-scenarios",
+   "describes": "the summary's largest familywise rate skips the two family-ratio scenarios (R-12) (the re-verifier's, r1-s-reverify-scratch, spec b536887a)",
+   "file": "sr2_simulation.py",
+   "find": "        for name, sc in r[\"scenarios\"].items():\n            for f, v in sc[\"families\"].items():\n                key",
+   "replace": "        for name, sc in r[\"scenarios\"].items():\n            if sc[\"llama_sigma_ratio\"] != \"1\":\n                continue\n            for f, v in sc[\"families\"].items():\n                key"
+  },
+  {
+   "id": "RV-sim-refused-total-zero",
+   "describes": "the summary's refused-contrast total is always 0 (SV-7) (the re-verifier's, r1-s-reverify-scratch, spec b536887a)",
+   "file": "sr2_simulation.py",
+   "find": "\"refused_contrasts_total\": refused,",
+   "replace": "\"refused_contrasts_total\": 0,"
+  },
+  {
+   "id": "RV-sim-n-plan-olmo-only",
+   "describes": "N's printed plan pools OLMo-2-7B's cells for both families (the re-verifier's, r1-s-reverify-scratch, spec b536887a)",
+   "file": "sr2_simulation.py",
+   "find": "    n_plan = plan_of(sigma_pool_sq(n_prompt_values(y_all, eta,",
+   "replace": "    n_plan = plan_of(sigma_pool_sq(n_prompt_values({f: y_all[\"olmo2-7b\"] for f in FAMILIES}, eta,"
+  },
+  {
+   "id": "RV-sim-threshold-ge",
+   "describes": "the mechanical flag fires at a rate equal to the threshold, not only above it (the re-verifier's, r1-s-reverify-scratch, spec b536887a)",
+   "file": "sr2_simulation.py",
+   "find": "\"max_above_threshold\": bool(p > threshold),",
+   "replace": "\"max_above_threshold\": bool(p >= threshold),"
+  },
+  {
+   "id": "RV-sim-sigma-a-on-other-draws",
+   "describes": "sigma_A is computed on another replicate's cells (the claim test keeps its own) (the re-verifier's, r1-s-reverify-scratch, spec b536887a)",
+   "file": "sr2_simulation.py",
+   "find": "    a_plan = plan_of(sigma_a_sq(y_all, option, stopped)[0], settings)",
+   "replace": "    a_plan = plan_of(sigma_a_sq({f: np.roll(v, 1, axis=0) for f, v in y_all.items()}, option, stopped)[0], settings)"
+  },
+  {
+   "id": "RV-sim-claim-rows-misindexed",
+   "describes": "the claim test reads the first k replicates, not the plan's rows (the re-verifier's, r1-s-reverify-scratch, spec b536887a)",
+   "file": "sr2_simulation.py",
+   "find": "            res = claim_test(design, y_all[f][rows], settings)",
+   "replace": "            res = claim_test(design, y_all[f][:rows.size], settings)"
+  },
+  {
+   "id": "RV-sim-claim-other-family",
+   "describes": "each family's claim test reads the other family's cells (the re-verifier's, r1-s-reverify-scratch, spec b536887a)",
+   "file": "sr2_simulation.py",
+   "find": "            res = claim_test(design, y_all[f][rows], settings)",
+   "replace": "            res = claim_test(design, y_all[FAMILIES[1 - FAMILIES.index(f)]][rows], settings)"
+  }
+ ]
+}

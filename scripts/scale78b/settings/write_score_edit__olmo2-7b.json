@@ -1,0 +1,203 @@
+{
+  "a1": {
+    "arm": "a1",
+    "attributes_unit": {
+      "anchor_counts": {
+        "harmful": 64,
+        "safe": 64
+      },
+      "checkpoints": [
+        "q",
+        "e1"
+      ],
+      "code_sha256": null,
+      "complete_sha256": null,
+      "kind": "attributes",
+      "query_bank": null,
+      "query_bank_sha256": null,
+      "recipe_sha256": null,
+      "retrain_complete_sha256": null,
+      "seed": 1101,
+      "source": "7-8B OLMo-2-7B: A1's attributes pass (the engine's attributes job, kind attributes, split dev, checkpoints q and e1) on the family's a0-1101 retrain under recipe S_78 with the family's anchor file (Part 1 section 3.7, section 14 items 1-2); its COMPLETE.json and the retrain's, pinned here by the lead after the pass; the 1B value was Gate B's wave-0b unit",
+      "split": "dev"
+    },
+    "bi_anchored_sign": "bi_anchored = the harmful-anchor aggregate minus the safe-anchor aggregate, per variant; positive: a small descent step on the group's rows lowers the harmful anchors' mean response loss more than the safe anchors' to first order (the rows support unsafe over safe responses); local, noncausal, not a removal estimate",
+    "category_flag_rule": "if at least 50% of the selected rows are one category, A1 is also compared with that category's Gate B unit arm (PLAN-S:149)",
+    "category_flag_share": 0.5,
+    "checkpoints": [
+      "q",
+      "e1"
+    ],
+    "consistency": {
+      "abs_tolerance": 1e-12,
+      "rule": "for each unit, the mean of its rows' a_i must equal groups.json groups.<unit>.bi_anchored.checkpoint_gradsim within abs_tolerance (absolute), or the writer refuses"
+    },
+    "edit_name": "stage-1 A1: remove the 600 training rows with the largest bi-anchored checkpoint GradSim score a_i (Gate C's attribution method, per row, at OLMo-2-7B a0-1101's q and e1 (S_78 retrain))",
+    "k": 600,
+    "minuend_set": "harmful",
+    "orientation": "descending: remove the largest a_i. Positive a_i: a small descent step on the row lowers the harmful anchors' mean response loss more than the safe anchors' (BI_ANCHORED_SIGN)",
+    "outputs": {
+      "edit": "a1_remove600.edit.json",
+      "record": "a1_selection.json"
+    },
+    "requirement": "REQ-14 (brief rev 1 12cbf463; AUDIT closure 2; lead decisions b8a67719 L1)",
+    "row_field": "cosine",
+    "row_record_fields": [
+      "adam_score",
+      "cosine",
+      "dot",
+      "grad_norm",
+      "loss",
+      "preconditioned_grad_norm"
+    ],
+    "row_record_optional": [
+      "weight"
+    ],
+    "rule": "a_i = the mean over the checkpoints [q, e1] of (the row's cosine to the harmful anchor set's mean gradient minus its cosine to the safe anchor set's mean gradient), read from the wave-0b attributes unit's rows.jsonl (variant checkpoint_gradsim; the Adam variant and every other field are never used); remove the 600 rows with the largest a_i over all 4,800 training rows (global, not per unit); ties by the sealed rank of registry key a1.ties over all training row ids",
+    "subtrahend_set": "safe",
+    "ties": "a1.ties",
+    "variant": "checkpoint_gradsim"
+  },
+  "engine_x": "472fc7f6d619bdee2c3aa38e444024626be8b66bfb74a5abf37f2ddb6dded892",
+  "family_78b": {
+    "derived_from": {
+      "path": "scripts/stage1/settings/write_score_edit.json",
+      "sha256": "9fc5f359133e76fd464b13ed34eb13eb74bf25d71edeb0add0c8d8eae992f9b5"
+    },
+    "engine_rule": "PP4 (the lead's ruling, 5 Nov 2026): every wrapper kind runs on engine X (engine_x above): untuned_answers, rep_pass, l1_scan and classifier on the pod; l1_score, s3_score, score_edit, add_edit and s_pool on the Mac. Every derived settings file carries engine_x unchanged from the 1B file, and the frozen check_settings refuses another engine identity (R: scripts/stage1/s1common.py:590-592). A run on engine Y needs the settings re-derived for Y (engine_x = Y's identity, a new PINS-78B.json, a new PINS_FILE_SHA256) by a recorded step; none exists. The engine's own jobs (the a0-1101 retrain, a1_pass) follow ruling 10 and addendum A13, not this rule. The kit packs scorer pods with engine X.",
+    "family": "olmo2-7b",
+    "kind_names": "PP3: rep_pass is REQ-3's representation pass (scripts/stage1/representation_pass.py; the stage-1 kit's name; this layer's rep_pass kind); a1_pass is A1's attributes pass on the a0-1101 retrain's q and e1 states (the engine's attributes job; RP:43's 6-11 h; the 16.5 h cap at most; its consumer here is score_edit a1). Each has its own E cap; both need S_78 and the anchor file. rules_78b.py and Part 2 use these names. Copied into representation_pass__<family>.json and write_score_edit__<family>.json family_78b.kind_names.",
+    "main_recipe": {
+      "config_sha256": "18cc31d7117a2de7bc02382fe8a4d409fc43c91b434bf219a4808dfb26528d09",
+      "path": "experiments/safety_selection/configs/study-kt-olmo2-7b-r64-b-mb2-20261008.json"
+    },
+    "maker": "scripts/scale78b/make_scorer_settings_78b.py",
+    "manifest_sha256": "9ed61826f1634dcab5a7385f18556b108b3ba8db95fc17215fa4cf4f6cb993b9",
+    "model": "OLMo-2-7B",
+    "owner_78b": "scripts/scale78b/scorers_78b.py",
+    "pins_file": "scripts/scale78b/settings/pins_78b.json",
+    "rule": "the 1B file's schema and name, so scripts/stage1's unchanged check_settings accepts it; every value that differs from the 1B file is per family (pins_78b.json) or a documented 7-8B rule; a null is a pin that waits for the event named in waits; scorers_78b.py refuses a command while a pin it needs is null",
+    "waits": {
+      "a1.attributes_unit.code_sha256": {
+        "event": "the engine that trains the family's a0-1101 states and runs A1's pass on them: X (472fc7f6...) or Y after the family's certificate (Part 1 section 3.7, EM-1; EYD:81); the lead fills it from the pass's COMPLETE.json by a recorded step",
+        "needed_by": [
+          "a1"
+        ]
+      },
+      "a1.attributes_unit.complete_sha256": {
+        "event": "the OLMo-2-7B a0-1101 retrain under S_78 (Part 1 section 3.7), then A1's attributes pass on its q and e1 states with the family's anchor file (the engine's attributes job; the stage-1 kit's a1_rescore form): the pass's COMPLETE.json SHA-256 and the retrain's",
+        "needed_by": [
+          "a1"
+        ]
+      },
+      "a1.attributes_unit.query_bank": {
+        "event": "the OLMo-2-7B anchor job (scripts/make_anchor_answers.py on the family's main recipe, single-job pod, KD6): anchors.sealed.json 'anchor_file_sha256' of its committed record",
+        "needed_by": [
+          "a1"
+        ]
+      },
+      "a1.attributes_unit.query_bank_sha256": {
+        "event": "the OLMo-2-7B anchor job (scripts/make_anchor_answers.py on the family's main recipe, single-job pod, KD6): anchors.sealed.json 'anchor_file_sha256' of its committed record",
+        "needed_by": [
+          "a1"
+        ]
+      },
+      "a1.attributes_unit.recipe_sha256": {
+        "event": "the OLMo-2-7B anchor job, then scripts/scale78b/make_recipe_s78.py --family olmo2-7b --anchors-sha256 <anchor_file_sha256>, then the lead's commit by explicit path (addendum A1, A2); the same value as runkit/stage1-78b/rules_78b.py RECIPE_S['olmo2-7b']",
+        "needed_by": [
+          "a1"
+        ]
+      },
+      "a1.attributes_unit.retrain_complete_sha256": {
+        "event": "the OLMo-2-7B a0-1101 retrain under S_78 (Part 1 section 3.7), then A1's attributes pass on its q and e1 states with the family's anchor file (the engine's attributes job; the stage-1 kit's a1_rescore form): the pass's COMPLETE.json SHA-256 and the retrain's",
+        "needed_by": [
+          "a1"
+        ]
+      }
+    }
+  },
+  "kind": "stage1 settings",
+  "label_entries": {
+    "a1.ties": "e734d0ddb04563bbf573a49490b52784bf2668e01004d471fae9cd93d1934dd3",
+    "datashield.ties": "275bb53ffd52e3d4cba4d0e468fe9a437ccdf17de01aaa4d908a7c6d9386f284",
+    "l1.ties": "623fbc2e418b5ff72f4590504335d692f37f349b70b4b0da0fddc1a1e77e2324",
+    "selfinf_n.ties": "ab9d05e3ba6ecc53f9253bb223228db9a499626a290bc35febf65e864515c431"
+  },
+  "labels_sha256": "260389f3fbfd8e7ff11ee06b5d5aba48e7d56b34140d9c9a634682125a86d570",
+  "name": "write_score_edit",
+  "owner": "scripts/stage1/write_score_edit.py",
+  "prepared": {
+    "manifest_sha256": "9ed61826f1634dcab5a7385f18556b108b3ba8db95fc17215fa4cf4f6cb993b9",
+    "path_on_the_mac": "tmp/kt-prepared/prepared-kt-dolly-olmo2",
+    "rows": 4800,
+    "rows_per_unit": 600,
+    "units": 8
+  },
+  "requirement_78b": "Part 1 sections 3.7 and 14 (A1 per family; L1's edit from the family's scan); Mac, $0",
+  "scorer_output": {
+    "keys": [
+      "costs",
+      "kind",
+      "manifest_sha256",
+      "orientation",
+      "provenance",
+      "scorer",
+      "scores",
+      "version"
+    ],
+    "kind": "stage1 scorer output",
+    "provenance_required": [
+      "script_sha256",
+      "settings_sha256"
+    ],
+    "rule": "scores = an object {training row id: finite float64} over exactly the prepared set's training rows, high = remove; costs = GPU-seconds by stage (SPEC section 1 item 5); provenance names the scorer's code and settings by SHA-256",
+    "version": 1
+  },
+  "scorers": {
+    "datashield": {
+      "arm": "datashield",
+      "category_flag_share": 0.5,
+      "conditional": "built before wave 1 only if plan usage allows (U2; FOCUS 9 Oct item (9)); else post-Gate-B exploratory",
+      "edit_name": "stage-1 DataShield-style: remove the 600 training rows with the largest CSS",
+      "k": 600,
+      "orientation": "descending: high = remove",
+      "outputs": {
+        "edit": "datashield_remove600.edit.json",
+        "record": "datashield_selection.json"
+      },
+      "requirement": "REQ-12 (brief rev 1 12cbf463)",
+      "rule": "remove the 600 rows with the largest DataShield-style CSS over all training rows (global); ties by the sealed rank of registry key datashield.ties",
+      "ties": "datashield.ties"
+    },
+    "l1": {
+      "arm": "l1",
+      "category_flag_share": 0.5,
+      "edit_name": "stage-1 L1 (LARF-style): remove the 600 training rows with the largest L1 score",
+      "k": 600,
+      "orientation": "descending: high = remove",
+      "outputs": {
+        "edit": "l1_remove600.edit.json",
+        "record": "l1_selection.json"
+      },
+      "requirement": "REQ-10 (brief rev 1 12cbf463)",
+      "rule": "remove the 600 rows with the largest L1 score cos(r, r_unsafe) - cos(r, r_safe) at (index l_s + 1, read (a)) over all training rows (global); ties by the sealed rank of registry key l1.ties",
+      "ties": "l1.ties"
+    },
+    "selfinf_n": {
+      "arm": "selfinf_n",
+      "category_flag_share": 0.5,
+      "conditional": "built before wave 1 only if plan usage allows (U2; FOCUS 9 Oct item (9)); else post-Gate-B exploratory",
+      "edit_name": "stage-1 Self-Inf-N-style: the 600 training rows with the largest score (scored only: rank tables and the Jaccard matrix)",
+      "k": 600,
+      "orientation": "descending: high = remove",
+      "outputs": {
+        "edit": "selfinf_n_remove600.edit.json",
+        "record": "selfinf_n_selection.json"
+      },
+      "requirement": "REQ-13 (brief rev 1 12cbf463)",
+      "rule": "the 600 rows with the largest Self-Inf-N-style score ln(SI + 1) + ln(len + 1) over all training rows (global); ties by the sealed rank of registry key selfinf_n.ties",
+      "ties": "selfinf_n.ties"
+    }
+  },
+  "version": 1
+}

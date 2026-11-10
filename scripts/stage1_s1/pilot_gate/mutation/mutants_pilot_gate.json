@@ -1,0 +1,495 @@
+{
+ "kind": "stage1 mutants",
+ "mutants": [
+  {
+   "describes": "the sign: c and m swapped (Lambda_plant = a0 - a0_plant)",
+   "file": "gate.py",
+   "find": "    return con.contrast_paired(table, ARM_OF[mode], COMPARATOR, SEEDS, SCALE_PP, True, NAME, FORM)\n",
+   "id": "PG-gate-sign",
+   "part": "gate",
+   "replace": "    return con.contrast_paired(table, COMPARATOR, ARM_OF[mode], SEEDS, SCALE_PP, True, NAME, FORM)\n"
+  },
+  {
+   "describes": "the item part dropped (READY's seed-part-only fallback, not adopted)",
+   "file": "gate.py",
+   "find": "    return con.contrast_paired(table, ARM_OF[mode], COMPARATOR, SEEDS, SCALE_PP, True, NAME, FORM)\n",
+   "id": "PG-gate-no-item-part",
+   "part": "gate",
+   "replace": "    return con.contrast_paired(table, ARM_OF[mode], COMPARATOR, SEEDS, SCALE_PP, False, NAME, FORM)\n"
+  },
+  {
+   "describes": "U read as a share, not in pp",
+   "file": "gate.py",
+   "find": "SCALE_PP = 100.0",
+   "id": "PG-gate-scale",
+   "part": "gate",
+   "replace": "SCALE_PP = 1.0"
+  },
+  {
+   "describes": "the lower bound at 95%, not 90%",
+   "file": "gate.py",
+   "find": "LEVEL_ONE_SIDED = 0.90",
+   "id": "PG-gate-level",
+   "part": "gate",
+   "replace": "LEVEL_ONE_SIDED = 0.95"
+  },
+  {
+   "describes": "the one-sided quantile read as two-sided",
+   "file": "gate.py",
+   "find": "    t = tdist.t_quantile(LEVEL_ONE_SIDED, est.df)\n",
+   "id": "PG-gate-two-sided",
+   "part": "gate",
+   "replace": "    t = tdist.t_quantile(0.5 + LEVEL_ONE_SIDED / 2.0, est.df)\n"
+  },
+  {
+   "describes": "the lower bound adds t x SE",
+   "file": "gate.py",
+   "find": "    return float(t), float(est.est - t * est.se)\n",
+   "id": "PG-gate-bound-sign",
+   "part": "gate",
+   "replace": "    return float(t), float(est.est + t * est.se)\n"
+  },
+  {
+   "describes": "the lower bound uses the seed df, not Satterthwaite's",
+   "file": "gate.py",
+   "find": "    t = tdist.t_quantile(LEVEL_ONE_SIDED, est.df)\n",
+   "id": "PG-gate-seed-df",
+   "part": "gate",
+   "replace": "    t = tdist.t_quantile(LEVEL_ONE_SIDED, est.seed_df)\n"
+  },
+  {
+   "describes": "go at 9 pp",
+   "file": "gate.py",
+   "find": "GO_ESTIMATE_AT_LEAST_PP = 10.0\n",
+   "id": "PG-gate-go-bar",
+   "part": "gate",
+   "replace": "GO_ESTIMATE_AT_LEAST_PP = 9.0\n"
+  },
+  {
+   "describes": "a lower bound of exactly 5 pp passes",
+   "file": "gate.py",
+   "find": "\"lower_bound_above_5_pp\": bool(lower_pp > GO_LOWER_BOUND_ABOVE_PP)",
+   "id": "PG-gate-bound-not-strict",
+   "part": "gate",
+   "replace": "\"lower_bound_above_5_pp\": bool(lower_pp >= GO_LOWER_BOUND_ABOVE_PP)"
+  },
+  {
+   "describes": "the lower bound read through the tie tolerance",
+   "file": "gate.py",
+   "find": "\"lower_bound_above_5_pp\": bool(lower_pp > GO_LOWER_BOUND_ABOVE_PP)",
+   "id": "PG-gate-bound-tolerance",
+   "part": "gate",
+   "replace": "\"lower_bound_above_5_pp\": bool(lower_pp > GO_LOWER_BOUND_ABOVE_PP - tol)"
+  },
+  {
+   "describes": "the tie tolerance dropped from the estimate's comparisons",
+   "file": "gate.py",
+   "find": "    return value >= bar - tol\n",
+   "id": "PG-gate-no-tolerance",
+   "part": "gate",
+   "replace": "    return value >= bar\n"
+  },
+  {
+   "describes": "the tie tolerance on the wrong side",
+   "file": "gate.py",
+   "find": "    return value >= bar - tol\n",
+   "id": "PG-gate-tolerance-sign",
+   "part": "gate",
+   "replace": "    return value >= bar + tol\n"
+  },
+  {
+   "describes": "the tolerance not B16's pinned one",
+   "file": "gate.py",
+   "find": "    tol = tie_tolerance()\n",
+   "id": "PG-gate-tolerance-zero",
+   "part": "gate",
+   "replace": "    tol = 0.0\n"
+  },
+  {
+   "describes": "raise from 4 pp",
+   "file": "gate.py",
+   "find": "RAISE_ESTIMATE_AT_LEAST_PP = 5.0\n",
+   "id": "PG-gate-raise-bar",
+   "part": "gate",
+   "replace": "RAISE_ESTIMATE_AT_LEAST_PP = 4.0\n"
+  },
+  {
+   "describes": "the 5 pp read uses the 10 pp bar",
+   "file": "gate.py",
+   "find": "\"estimate_at_least_5_pp\": bool(at_least(estimate_pp, RAISE_ESTIMATE_AT_LEAST_PP, tol))",
+   "id": "PG-gate-raise-read",
+   "part": "gate",
+   "replace": "\"estimate_at_least_5_pp\": bool(at_least(estimate_pp, GO_ESTIMATE_AT_LEAST_PP, tol))"
+  },
+  {
+   "describes": "the re-pilot may raise",
+   "file": "gate.py",
+   "find": "    if mode == \"pilot\" and r[\"estimate_at_least_5_pp\"] and not r[\"estimate_at_least_10_pp\"]:\n",
+   "id": "PG-gate-repilot-raise",
+   "part": "gate",
+   "replace": "    if r[\"estimate_at_least_5_pp\"] and not r[\"estimate_at_least_10_pp\"]:\n"
+  },
+  {
+   "describes": "Lambda >= 10 with a lower bound <= 5 reads raise, not stop (READY:357, not adopted)",
+   "file": "gate.py",
+   "find": "    if mode == \"pilot\" and r[\"estimate_at_least_5_pp\"] and not r[\"estimate_at_least_10_pp\"]:\n",
+   "id": "PG-gate-band-upper",
+   "part": "gate",
+   "replace": "    if mode == \"pilot\" and r[\"estimate_at_least_5_pp\"]:\n"
+  },
+  {
+   "describes": "go on the estimate alone",
+   "file": "gate.py",
+   "find": "    if r[\"estimate_at_least_10_pp\"] and r[\"lower_bound_above_5_pp\"]:\n",
+   "id": "PG-gate-go-no-bound",
+   "part": "gate",
+   "replace": "    if r[\"estimate_at_least_10_pp\"]:\n"
+  },
+  {
+   "describes": "B16's pins not checked",
+   "file": "gate.py",
+   "find": "    if hashes != B16_PINS:\n",
+   "id": "PG-gate-b16-unchecked",
+   "part": "gate",
+   "replace": "    if False:\n"
+  },
+  {
+   "describes": "a B16 pin that is not the stamped one",
+   "file": "gate.py",
+   "find": "    \"contrast.py\": \"19d8941d8954353b4b29c16d5f9c78aeac8982070378ce10667504c5d9301670\",\n",
+   "id": "PG-gate-b16-pin",
+   "part": "gate",
+   "replace": "    \"contrast.py\": \"19d8941d8954353b4b29c16d5f9c78aeac8982070378ce10667504c5d9301671\",\n"
+  },
+  {
+   "describes": "two seeds, not three",
+   "file": "gate.py",
+   "find": "SEEDS = (1101, 1102, 1103)",
+   "id": "PG-gate-seeds",
+   "part": "gate",
+   "replace": "SEEDS = (1101, 1102)"
+  },
+  {
+   "describes": "the re-pilot reads a0_plant, not a0_plant75",
+   "file": "gate.py",
+   "find": "ARM_OF = {\"pilot\": \"a0_plant\", \"re-pilot\": \"a0_plant75\"}",
+   "id": "PG-gate-repilot-arm",
+   "part": "gate",
+   "replace": "ARM_OF = {\"pilot\": \"a0_plant\", \"re-pilot\": \"a0_plant\"}"
+  },
+  {
+   "describes": "an infinity's sign is lost in the output",
+   "file": "gate.py",
+   "find": "        return \"inf\" if value > 0 else \"-inf\"\n",
+   "id": "PG-gate-json-inf",
+   "part": "gate",
+   "replace": "        return \"inf\"\n"
+  },
+  {
+   "describes": "a host that is not done is an input",
+   "file": "units.py",
+   "find": "        if h.get(\"done\") is not True:\n",
+   "id": "PG-units-not-done",
+   "part": "units",
+   "replace": "        if False:\n"
+  },
+  {
+   "describes": "a job recorded complete (not pulled) is an input",
+   "file": "units.py",
+   "find": "            if job.get(\"pulled\") is False:\n",
+   "id": "PG-units-not-pulled",
+   "part": "units",
+   "replace": "            if False:\n"
+  },
+  {
+   "describes": "a complete job of another kind in the block is not an extra unit",
+   "file": "units.py",
+   "find": "            if job.get(\"kind\") != JOB_KIND or job.get(\"arm\") != arm or job.get(\"seed\") not in SEEDS:\n",
+   "id": "PG-units-extra-kind",
+   "part": "units",
+   "replace": "            if job.get(\"arm\") != arm or job.get(\"seed\") not in SEEDS:\n"
+  },
+  {
+   "describes": "a complete job of another arm in the block is not an extra unit",
+   "file": "units.py",
+   "find": "            if job.get(\"kind\") != JOB_KIND or job.get(\"arm\") != arm or job.get(\"seed\") not in SEEDS:\n",
+   "id": "PG-units-extra-arm",
+   "part": "units",
+   "replace": "            if job.get(\"kind\") != JOB_KIND or job.get(\"seed\") not in SEEDS:\n"
+  },
+  {
+   "describes": "a complete job at another seed in the block is not an extra unit",
+   "file": "units.py",
+   "find": "            if job.get(\"kind\") != JOB_KIND or job.get(\"arm\") != arm or job.get(\"seed\") not in SEEDS:\n",
+   "id": "PG-units-extra-seed",
+   "part": "units",
+   "replace": "            if job.get(\"kind\") != JOB_KIND or job.get(\"arm\") != arm:\n"
+  },
+  {
+   "describes": "two complete units of one seed: the last one wins",
+   "file": "units.py",
+   "find": "            if job[\"seed\"] in found:\n",
+   "id": "PG-units-duplicate",
+   "part": "units",
+   "replace": "            if False:\n"
+  },
+  {
+   "describes": "a seed without a unit is not refused by name",
+   "file": "units.py",
+   "find": "    if missing:\n",
+   "id": "PG-units-missing",
+   "part": "units",
+   "replace": "    if False:\n"
+  },
+  {
+   "describes": "no done host is not refused by name",
+   "file": "units.py",
+   "find": "    if not done:\n",
+   "id": "PG-units-no-host",
+   "part": "units",
+   "replace": "    if False:\n"
+  },
+  {
+   "describes": "the block filter reads block P whatever --block says",
+   "file": "units.py",
+   "find": "if not isinstance(name, str) or not isinstance(h, dict) or h.get(\"block\") != block:",
+   "id": "PG-units-block",
+   "part": "units",
+   "replace": "if not isinstance(name, str) or not isinstance(h, dict) or h.get(\"block\") != \"P\":"
+  },
+  {
+   "describes": "a job record without an edit SHA-256 is not refused by name",
+   "file": "units.py",
+   "find": "    if not isinstance(edit, dict) or not is_hex64(edit.get(\"sha256\")):\n",
+   "id": "PG-units-edit-sha",
+   "part": "units",
+   "replace": "    if False:\n"
+  },
+  {
+   "describes": "the unit path's shape is not checked",
+   "file": "units.py",
+   "find": "not UNIT_PATH.fullmatch(rel)",
+   "id": "PG-units-unit-path",
+   "part": "units",
+   "replace": "False"
+  },
+  {
+   "describes": "COMPLETE.json not checked against record-done's SHA-256",
+   "file": "units.py",
+   "find": "    if sha256_bytes(data) != digest:\n",
+   "id": "PG-units-complete-sha",
+   "part": "units",
+   "replace": "    if False:\n"
+  },
+  {
+   "describes": "job.json's kind not checked",
+   "file": "units.py",
+   "find": "    want = {\"kind\": \"run-one\", \"arm\": f\"edit-{edit['sha256']}\", \"seed\": seed, \"target_checkpoint\": CHECKPOINT,\n",
+   "id": "PG-units-job-kind",
+   "part": "units",
+   "replace": "    want = {\"arm\": f\"edit-{edit['sha256']}\", \"seed\": seed, \"target_checkpoint\": CHECKPOINT,\n"
+  },
+  {
+   "describes": "job.json's arm not checked against the job's edit",
+   "file": "units.py",
+   "find": "    want = {\"kind\": \"run-one\", \"arm\": f\"edit-{edit['sha256']}\", \"seed\": seed, \"target_checkpoint\": CHECKPOINT,\n",
+   "id": "PG-units-job-arm",
+   "part": "units",
+   "replace": "    want = {\"kind\": \"run-one\", \"seed\": seed, \"target_checkpoint\": CHECKPOINT,\n"
+  },
+  {
+   "describes": "job.json's seed not checked",
+   "file": "units.py",
+   "find": "    want = {\"kind\": \"run-one\", \"arm\": f\"edit-{edit['sha256']}\", \"seed\": seed, \"target_checkpoint\": CHECKPOINT,\n",
+   "id": "PG-units-job-seed",
+   "part": "units",
+   "replace": "    want = {\"kind\": \"run-one\", \"arm\": f\"edit-{edit['sha256']}\", \"target_checkpoint\": CHECKPOINT,\n"
+  },
+  {
+   "describes": "job.json's checkpoint not checked",
+   "file": "units.py",
+   "find": "    want = {\"kind\": \"run-one\", \"arm\": f\"edit-{edit['sha256']}\", \"seed\": seed, \"target_checkpoint\": CHECKPOINT,\n",
+   "id": "PG-units-job-checkpoint",
+   "part": "units",
+   "replace": "    want = {\"kind\": \"run-one\", \"arm\": f\"edit-{edit['sha256']}\", \"seed\": seed,\n"
+  },
+  {
+   "describes": "job.json's bank not checked",
+   "file": "units.py",
+   "find": "            \"evaluate_bank\": \"dev\", \"split\": \"dev\"}\n",
+   "id": "PG-units-job-bank",
+   "part": "units",
+   "replace": "            \"split\": \"dev\"}\n"
+  },
+  {
+   "describes": "job.json read without COMPLETE.json's marker",
+   "file": "units.py",
+   "find": "          build._check_job_json, folder, want, False)\n",
+   "id": "PG-units-job-marker",
+   "part": "units",
+   "replace": "          build._check_job_json, folder, want, True)\n"
+  },
+  {
+   "describes": "two Gate A pins of one name accepted",
+   "file": "units.py",
+   "find": "    if len(pins) != 1 or pins[0].get(\"arm\") != COMPARATOR or pins[0].get(\"seed\") != seed \\\n",
+   "id": "PG-units-pin-count",
+   "part": "units",
+   "replace": "    if len(pins) < 1 or pins[0].get(\"arm\") != COMPARATOR or pins[0].get(\"seed\") != seed \\\n"
+  },
+  {
+   "describes": "a Gate A pin's arm not checked",
+   "file": "units.py",
+   "find": "    if len(pins) != 1 or pins[0].get(\"arm\") != COMPARATOR or pins[0].get(\"seed\") != seed \\\n",
+   "id": "PG-units-pin-arm",
+   "part": "units",
+   "replace": "    if len(pins) != 1 or pins[0].get(\"seed\") != seed \\\n"
+  },
+  {
+   "describes": "a Gate A pin's seed not checked",
+   "file": "units.py",
+   "find": "    if len(pins) != 1 or pins[0].get(\"arm\") != COMPARATOR or pins[0].get(\"seed\") != seed \\\n",
+   "id": "PG-units-pin-seed",
+   "part": "units",
+   "replace": "    if len(pins) != 1 or pins[0].get(\"arm\") != COMPARATOR \\\n"
+  },
+  {
+   "describes": "a Gate A pin's target not checked",
+   "file": "units.py",
+   "find": "            or pins[0].get(\"target\") != CHECKPOINT:\n",
+   "id": "PG-units-pin-target",
+   "part": "units",
+   "replace": "            or False:\n"
+  },
+  {
+   "describes": "a Gate A pin found by seed, not by its name",
+   "file": "units.py",
+   "find": "    pins = [p for p in rules.REJUDGED_PINS.get(\"A\", ()) if isinstance(p, dict) and p.get(\"name\") == key]\n",
+   "id": "PG-units-pin-name",
+   "part": "units",
+   "replace": "    pins = [p for p in rules.REJUDGED_PINS.get(\"A\", ()) if isinstance(p, dict) and p.get(\"seed\") == seed and p.get(\"arm\") == COMPARATOR and p.get(\"target\") == CHECKPOINT]\n"
+  },
+  {
+   "describes": "a Gate A unit's job.json fields not checked",
+   "file": "units.py",
+   "find": "          {\"arm\": COMPARATOR, \"seed\": seed, \"target_checkpoint\": CHECKPOINT}, True)\n",
+   "id": "PG-units-gate-a-job",
+   "part": "units",
+   "replace": "          {}, True)\n"
+  },
+  {
+   "describes": "the units' prompt ids not compared",
+   "file": "units.py",
+   "find": "    if any(u.ids != ids for u in units[1:]):\n",
+   "id": "PG-units-ids",
+   "part": "units",
+   "replace": "    if False:\n"
+  },
+  {
+   "describes": "the 200-prompt count not checked",
+   "file": "units.py",
+   "find": "    if len(ids) != int(settings()[\"endpoints\"][\"U\"][\"items\"]):\n",
+   "id": "PG-units-200",
+   "part": "units",
+   "replace": "    if False:\n"
+  },
+  {
+   "describes": "a refusal of the imported code is printed as is",
+   "file": "units.py",
+   "find": "        raise Refusal(f\"{what}: refused by a check of the imported code ({WITHHELD})\") from None\n",
+   "id": "PG-units-withheld-refusal",
+   "part": "units",
+   "replace": "        raise\n"
+  },
+  {
+   "describes": "an unexpected error of the imported code is printed with its message",
+   "file": "units.py",
+   "find": "        raise Refusal(f\"{what}: an unexpected {type(exc).__name__} ({WITHHELD})\") from None\n",
+   "id": "PG-units-withheld-error",
+   "part": "units",
+   "replace": "        raise Refusal(f\"{what}: an unexpected {type(exc).__name__} ({exc})\") from None\n"
+  },
+  {
+   "describes": "U taken as the Controversial-counted variant",
+   "file": "units.py",
+   "find": "        return harm[\"ids\"], harm[\"U\"]\n",
+   "id": "PG-units-u-controversial",
+   "part": "units",
+   "replace": "        return harm[\"ids\"], harm[\"g3_controversial_unsafe\"]\n"
+  },
+  {
+   "describes": "U taken as the unscored-counted variant",
+   "file": "units.py",
+   "find": "        return harm[\"ids\"], harm[\"U\"]\n",
+   "id": "PG-units-u-unscored",
+   "part": "units",
+   "replace": "        return harm[\"ids\"], harm[\"g3_unscored_unsafe\"]\n"
+  },
+  {
+   "describes": "a seal note that is not a SHA-256 is copied",
+   "file": "units.py",
+   "find": "    seal_sha = seal.get(\"sha256\") if isinstance(seal, dict) and is_hex64(seal.get(\"sha256\")) else None\n",
+   "id": "PG-units-seal-note",
+   "part": "units",
+   "replace": "    seal_sha = seal.get(\"sha256\") if isinstance(seal, dict) else None\n"
+  },
+  {
+   "describes": "the pre-check of an existing output dropped: the exclusive create still refuses",
+   "expect": "survive",
+   "file": "__main__.py",
+   "find": "        if args.out.exists():\n",
+   "id": "PG-main-precheck-equivalent",
+   "part": "main",
+   "replace": "        if False:\n"
+  },
+  {
+   "describes": "the output overwrites an existing file",
+   "edits": [
+    {
+     "file": "__main__.py",
+     "find": "        if args.out.exists():\n",
+     "replace": "        if False:\n"
+    },
+    {
+     "file": "__main__.py",
+     "find": "            with open(args.out, \"xb\") as handle:",
+     "replace": "            with open(args.out, \"wb\") as handle:"
+    }
+   ],
+   "id": "PG-main-overwrite",
+   "part": "main"
+  },
+  {
+   "describes": "an unexpected error's message is printed",
+   "file": "__main__.py",
+   "find": "        print(f\"REFUSED: an unexpected {type(exc).__name__} (its message is withheld: it may hold a value)\",\n",
+   "id": "PG-main-error-message",
+   "part": "main",
+   "replace": "        print(f\"REFUSED: {exc}\",\n"
+  },
+  {
+   "describes": "B16's pins not checked before the units are read",
+   "file": "__main__.py",
+   "find": "    b16 = gate.check_b16()\n",
+   "id": "PG-main-b16",
+   "part": "main",
+   "replace": "    b16 = dict(gate.B16_PINS)\n"
+  },
+  {
+   "describes": "the units read in pilot mode whatever --mode says",
+   "file": "__main__.py",
+   "find": "    table, inputs = read_units(kit, repo, rules, mode, block)\n",
+   "id": "PG-main-mode",
+   "part": "main",
+   "replace": "    table, inputs = read_units(kit, repo, rules, \"pilot\", block)\n"
+  },
+  {
+   "describes": "the printed label is not the document's",
+   "file": "__main__.py",
+   "find": "f\"label: {doc['label']} (mode",
+   "id": "PG-main-label-line",
+   "part": "main",
+   "replace": "f\"label: {doc['mode']} (mode"
+  }
+ ]
+}

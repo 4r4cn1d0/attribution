@@ -1,0 +1,16 @@
+| runkit/stage1-78b/README.md | `f0ac7f3fc11e9b7160fcb859768e876a6de0ae770cd9c16c478b472efdd4a521` |
+| runkit/stage1-78b/pack_setup.py | `3814a4a0df03b31d82d9d99c1ef33cd534ad38e2be6efd43132c8ed0f5196536` |
+| runkit/stage1-78b/plan_tool.py | `23f4d39b2cbadfff9b16a401b49a9f8a55ff72bfa7ac1241db49a905a36352d7` |
+| runkit/stage1-78b/rules_78b.py | `048128f00e21ebf79e45aa28c8447086abc6fd744012363457d01f6838363de4` |
+| runkit/stage1-78b/setup/job_runner_stage1.py | `7174bd68217d915a3c8c71acf90105a7ce8c070ebd9f3dd889afe9522fd71800` |
+| runkit/stage1-78b/stage1_rules.py | `4756502de839a4c0dbf0f13ede95ca7f6aaae167fb407ad5ef90c78db6e2441e` |
+| runkit/stage1-78b/tests/mutation_spec_rules_78b.json | `d4b98fe5b50e8887250c14461ba278e75884f0c85ebe98a7c2d7979067a8fbea` |
+| runkit/stage1-78b/tests/mutation_spec_runner_78b.json | `0ee64cbb5f0847ae7ff54c56f264e5bf79fdc3f56eb3877462c38ac3ea714a98` |
+| runkit/stage1-78b/tests/mutation_spec_scorer_78b.json | `df617637d107e8ee5bac2e6a15db4571419591c1c3daa6ed5842e01819dc6843` |
+| runkit/stage1-78b/tests/run_mutants_runner_78b.py | `cded1f320861c2010ffa4b577663e523cbe58e7ec0412afa56c9890e4ddfd074` |
+| runkit/stage1-78b/tests/test_g1_yoext.py | `3dc52b140d9d3546c4521f0076dc2787c0ff3ac09f20174ab9d44064232fa3e9` |
+| runkit/stage1-78b/tests/test_kit_78b_runner.py | `fcfed087b8d08305973252a1bfdae91abf94d673864c10d948cf7b1298000294` |
+| runkit/stage1-78b/tests/test_planning_ab_78b.py | `80e87834a038a626c41373c1abcdec33de48150553470247feca791e792a8dd9` |
+| runkit/stage1-78b/tests/test_rules_78b.py | `c595a600cb33a98b1cd605952b1b83d95c404b2ffc3494ae9a7d2d5237a2e099` |
+| runkit/stage1-78b/tests/test_scorer_block_78b.py | `5f3b66f227861a5e92bd1f29b4be3060204f1a58b29374a62278a1640f023415` |
+| runkit/stage1-78b/tests/test_runner_ab_78b.py | `b7035defc926a539e361c8db1d664ab1d6a1c8ffe7c4139eb7d23694f2267ca2` |

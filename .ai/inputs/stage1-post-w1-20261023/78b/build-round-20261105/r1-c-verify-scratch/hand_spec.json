@@ -1,0 +1,130 @@
+{
+ "mutants": [
+  {
+   "id": "V-bank-guard-add",
+   "file": "encode_count_78b.py",
+   "find": "    for _, prompt in loaded.rows:\n        guard.add(prompt)\n",
+   "replace": "    for _, prompt in loaded.rows:\n        pass\n",
+   "describes": "bank mode: bank prompts never enter the text guard"
+  },
+  {
+   "id": "V-anchor-guard-add",
+   "file": "encode_count_78b.py",
+   "find": "        guard.add(p[\"prompt\"], p[\"unsafe_response\"])\n",
+   "replace": "        pass\n",
+   "describes": "anchor mode: anchor texts never enter the text guard"
+  },
+  {
+   "id": "V-guard-no-responses",
+   "file": "encode_count_78b.py",
+   "find": "        guard.add(item.get(\"prompt\"), item.get(\"response\"))\n",
+   "replace": "        guard.add(item.get(\"prompt\"))\n",
+   "describes": "lists mode: responses never enter the text guard"
+  },
+  {
+   "id": "V-train-catch-all",
+   "file": "encode_count_78b.py",
+   "find": "            encode_train(codec, row_id, prompt, response, max_tokens)\n        except ValueError as exc:",
+   "replace": "            encode_train(codec, row_id, prompt, response, max_tokens)\n        except Exception as exc:",
+   "describes": "encode_train: any exception counted as a refusal"
+  },
+  {
+   "id": "V-s4-ids-unchecked",
+   "file": "encode_count_78b.py",
+   "find": "    for name in (\"s1\", \"s4_candidates\"):\n        if ids[name] != record_ids[name]:",
+   "replace": "    for name in (\"s1\",):\n        if ids[name] != record_ids[name]:",
+   "describes": "s4_candidates ids not checked against the record"
+  },
+  {
+   "id": "V-record-size",
+   "file": "encode_count_78b.py",
+   "find": "        if entry.get(\"sha256\") != digest or not isinstance(got, list) or len(got) != size:",
+   "replace": "        if entry.get(\"sha256\") != digest or not isinstance(got, list):",
+   "describes": "record list size not checked"
+  },
+  {
+   "id": "V-out-exists",
+   "file": "encode_count_78b.py",
+   "find": "    out = Path(out).resolve()\n    if out.exists() or out.is_symlink():\n        raise Refusal(f\"--out {out.name} exists: the record is created once\")\n    parent = out.parent\n    if not parent.is_dir():\n        raise Refusal(\"--out's folder does not exist\")\n    for folder in folders:",
+   "replace": "    out = Path(out).resolve()\n    if False:\n        raise Refusal(f\"--out {out.name} exists: the record is created once\")\n    parent = out.parent\n    if not parent.is_dir():\n        raise Refusal(\"--out's folder does not exist\")\n    for folder in folders:",
+   "describes": "encode out_ok: existing --out not refused before the run"
+  },
+  {
+   "id": "V-record-cmdline-pin",
+   "file": "encode_count_78b.py",
+   "find": "    pinned(record[1], record_pin, \"the s-pool record\")\n",
+   "replace": "    pass\n",
+   "describes": "lists: the s-pool record's command-line SHA-256 not checked"
+  },
+  {
+   "id": "V-hex-check",
+   "file": "encode_count_78b.py",
+   "find": "    if not sep or not path or len(digest) != 64 or any(c not in \"0123456789abcdef\" for c in digest):",
+   "replace": "    if not sep or not path or len(digest) != 64:",
+   "describes": "parse_spec accepts upper-case or non-hex digests"
+  },
+  {
+   "id": "V-bank-record-cmdline",
+   "file": "encode_count_78b.py",
+   "find": "    pinned(record[1], record_pin, \"the O-ext bank record\")\n",
+   "replace": "    pass\n",
+   "describes": "bank: the record's command-line SHA-256 not checked"
+  },
+  {
+   "id": "V-guard-min-chars",
+   "file": "encode_count_78b.py",
+   "find": "    def __init__(self, min_chars: int = 6):",
+   "replace": "    def __init__(self, min_chars: int = 10**6):",
+   "describes": "text guard scans nothing"
+  },
+  {
+   "id": "V-tl-sum",
+   "file": "tau_l_78b.py",
+   "find": "    mean = math.fsum(losses.values()) / len(losses)",
+   "replace": "    mean = sum(losses.values()) / len(losses)",
+   "describes": "tau_L: plain sum instead of math.fsum"
+  },
+  {
+   "id": "V-tl-pin-source",
+   "file": "tau_l_78b.py",
+   "find": "                                       \"pin_source\": (\"literal\" if pins[u[\"seed\"]] is not None",
+   "replace": "                                       \"pin_source\": (\"literal\" if True",
+   "describes": "tau_L: the record never marks a command-line pin"
+  },
+  {
+   "id": "V-tl-ids-unsorted",
+   "file": "tau_l_78b.py",
+   "find": "            \"query_ids\": sorted(losses), \"mean\": mean}",
+   "replace": "            \"query_ids\": list(losses), \"mean\": mean}",
+   "describes": "tau_L: the units' id sets compared in file order"
+  },
+  {
+   "id": "V-tl-out-exists",
+   "file": "tau_l_78b.py",
+   "find": "    out = Path(out).resolve()\n    if out.exists() or out.is_symlink():",
+   "replace": "    out = Path(out).resolve()\n    if False:",
+   "describes": "tau_L out_ok: existing --out not refused before the run"
+  },
+  {
+   "id": "V-tl-finite-loss",
+   "file": "tau_l_78b.py",
+   "find": "        if isinstance(loss, bool) or not isinstance(loss, (int, float)) or not math.isfinite(loss):",
+   "replace": "        if isinstance(loss, bool) or not isinstance(loss, (int, float)):",
+   "describes": "tau_L: non-finite loss accepted (strict_json rejects NaN/Infinity constants; 1e999 overflow?)"
+  },
+  {
+   "id": "V-tl-recorded-finite",
+   "file": "tau_l_78b.py",
+   "find": "    if isinstance(recorded, bool) or not isinstance(recorded, (int, float)) or not math.isfinite(recorded):",
+   "replace": "    if isinstance(recorded, bool) or not isinstance(recorded, (int, float)):",
+   "describes": "tau_L: non-finite recorded mean accepted"
+  },
+  {
+   "id": "V-tl-family-ti",
+   "file": "tau_l_78b.py",
+   "find": "    if identity.get(\"training_identity\") != TRAINING_IDENTITY[family]:",
+   "replace": "    if identity.get(\"training_identity\") != TRAINING_IDENTITY[\"olmo2-7b\"]:",
+   "describes": "tau_L: Llama units checked against OLMo's training identity"
+  }
+ ]
+}

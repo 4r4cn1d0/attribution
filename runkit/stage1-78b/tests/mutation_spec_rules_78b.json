@@ -1,0 +1,2040 @@
+{
+ "kind": "stage1-78b mutants",
+ "note": "KCR test 13 and KCR:226 mutants for runkit/stage1-78b (T2), in the stage-1 kit's spec form (tests/mutants_b15.json), plus the fix round's mutants (A-V1..A-V6, the RECIPE_S refusal, the job_decision missing-field refusal; 5 Nov). Run with tests/run_mutants_78b.py: the baseline first with the same command; a mutant is killed only by a real test failure (pytest exit 1, FAILED lines, no ERROR line); an error, a timeout or a find text not exactly once is INVALID, never a kill. Mutants marked needs_measured_root are killed by tests 02b/05b/15b, which skip when /Users/spiderishi/Coding/attribution/tmp/family-probe-sp-* is absent; run those in the lead's checkout. K1 (5 Nov): the re-verifier's D1-D7 and the addendum's A13 pins add 13 mutants (ids K1-m-*); T2-m-keys-engine-any's find text follows the clause's new form (engine_allowed). fix-K-core (5 Nov): PP8 moved two find texts (T2-m-rep-pass-17 -> A1_PASS_CAP_H_MAX; T2-m-s78-kinds-empty's four-kind literal; same mutations); 16 mutants added (ids FK-m-*) for D1 (both MANIFEST forms; V-H17 re-targeted as FK-m-r-edits-any-family), D2 (the idle-storage line), PP7 (the Llama pin) and PP8 (a1_pass, rep_pass, the S_78 kinds). K4a (6 Nov) added the K4-m-* mutants: PP16's X_ONLY_KINDS (engine_allowed checks it first), DK-3's kind sets in the kit's stage1_rules.py, PP14's idle-storage pods and lines. Round 4b (6 Nov): PP17 removed the standalone regenerate kind (its X_ONLY_KINDS mutant follows o_only_with_regenerate, renamed K4-m-x-only-drop-o-only-with-regenerate); D8/PP18 made a1_pass a unit kind and c0 unitless (K4-m-unitless-no-a1-pass became K4-m-unitless-plus-a1-pass); D4's one state-keeping definition re-targeted the two idle mutants; K4bf-m-* added. R1 K1 (8 Nov): the block A/B rules layer adds the K1R-m-* mutants (the block tables and edits, the deal, GXB O1's steps, train_scale's input, the O-ext cap term, W1-18 and the branch rules, the (arm, seed) key and N_UNITS, block A's re-judge list, GXB O6's anchor stops and the stopped family's MAIN_F retrain, ref_train under RECIPE_G, the wrapper path, GXB O14's gate record); the block-table tests run inside test_rules_78b.py's test_23, so this runner's one file kills them. R1 K1 also re-targets 12 find texts its edits moved (T2-m-start-margin-removed, K1-m-n-points-unchecked, K1-m-counted-drops-a0 and nine K4-m-x-only-* mutants; same mutations, w1_18 now in X_ONLY_KINDS). O14 corrected (GXB second set, 15:22 UTC): GATE_78B and PLAN_B_78B; K1R-m-plan-b-* added. GXB third set (T-O3): OEXT_78B_Y; K1R-m-oext-y-* and K1R-m-bqi-decision-no-oext-y added. R1 K1 fix round (8 Nov): 5 K1R find texts re-targeted after the fixes (same mutations); K1V-m-* added for K1V-1..K1V-13, GXB K-5, K-6, R-1, R-3, R-4, R-5 and the verifier's 7 surviving probes. R1 K1 follow-up (8 Nov): KF-m-* for GXB R-21, R-22, R-24 and KR2, KR7, KR8. GXB R-29 (twelfth set): KF2-m-* for the review ceiling on sigma_A; KF-m-sigma-a-threshold re-targeted (same mutation).",
+ "mutants": [
+  {
+   "id": "T2-m-margin-1.0",
+   "part": "KCR:226",
+   "describes": "margin 1.15 -> 1.0 on the measured job",
+   "file": "rules_78b.py",
+   "find": "MEASURED_MARGIN = 1.15 ",
+   "replace": "MEASURED_MARGIN = 1.0 "
+  },
+  {
+   "id": "T2-m-33-batches",
+   "part": "KCR:226",
+   "describes": "34 batches -> 33",
+   "file": "rules_78b.py",
+   "find": "BATCHES = GREEDY_BATCHES + SAMPLED_BATCHES",
+   "replace": "BATCHES = GREEDY_BATCHES + SAMPLED_BATCHES - 1"
+  },
+  {
+   "id": "T2-m-first-batch-dropped",
+   "part": "KCR:226",
+   "describes": "the first-batch term dropped",
+   "file": "rules_78b.py",
+   "find": "    return max(c[\"FIRST_BATCH_MAX_S\"], c[\"BATCH_MAX_S\"]) + (BATCHES - 1) * c[\"BATCH_MAX_S\"]\n",
+   "replace": "    return BATCHES * c[\"BATCH_MAX_S\"]\n"
+  },
+  {
+   "id": "T2-m-score-3x-nongen",
+   "part": "KCR:226",
+   "describes": "SCORE_ALLCAP -> 3 x NONGEN (987 s)",
+   "file": "rules_78b.py",
+   "find": "SCORE_ALLCAP_S = 1250.0 ",
+   "replace": "SCORE_ALLCAP_S = 987.0 "
+  },
+  {
+   "id": "T2-m-outside-ledger-end",
+   "part": "KCR:226",
+   "describes": "OUTSIDE_MAX -> outer - ledger end (the first draft's 41.6 s)",
+   "file": "rules_78b.py",
+   "find": "        \"OUTSIDE_MAX_S\": 108.638,",
+   "replace": "        \"OUTSIDE_MAX_S\": 41.627,"
+  },
+  {
+   "id": "T2-m-s-no-floor",
+   "part": "KCR:226",
+   "describes": "max(1, s) -> s in the speed factor",
+   "file": "rules_78b.py",
+   "find": "    s = max(1.0, training_s / f[\"PRE_TRAINING_S_MAX\"], ms_full / f[\"PRE_MS_PER_STEP_MAX\"])\n",
+   "replace": "    s = max(training_s / f[\"PRE_TRAINING_S_MAX\"], ms_full / f[\"PRE_MS_PER_STEP_MAX\"])\n"
+  },
+  {
+   "id": "T2-m-req-no-floor",
+   "part": "KCR:226",
+   "describes": "max(1, s) -> s in the requirement",
+   "file": "rules_78b.py",
+   "find": "    s = max(1.0, finite(s_pod), finite(s_obs))\n",
+   "replace": "    s = max(finite(s_pod), finite(s_obs))\n"
+  },
+  {
+   "id": "T2-m-s-pod-only",
+   "part": "KCR:226",
+   "describes": "max(s_pod, s_obs) -> s_pod",
+   "file": "rules_78b.py",
+   "find": "    s = max(1.0, finite(s_pod), finite(s_obs))\n",
+   "replace": "    s = max(1.0, finite(s_pod))\n"
+  },
+  {
+   "id": "T2-m-start-margin-removed",
+   "part": "KCR:226",
+   "describes": "START_MARGIN removed from the requirement",
+   "file": "rules_78b.py",
+   "find": "    need = s * upper_m_s(family, steps, kind, padded_tokens_per_step, oext) + START_MARGIN_S\n",
+   "replace": "    need = s * upper_m_s(family, steps, kind, padded_tokens_per_step, oext)\n"
+  },
+  {
+   "id": "T2-m-overhead-42",
+   "part": "KCR:226",
+   "describes": "pod overhead 48 -> 42 min",
+   "file": "rules_78b.py",
+   "find": "POD_OVERHEAD_S = 48 * 60 ",
+   "replace": "POD_OVERHEAD_S = 42 * 60 "
+  },
+  {
+   "id": "T2-m-round-down",
+   "part": "KCR:226",
+   "describes": "the cap rounded down",
+   "file": "rules_78b.py",
+   "find": "    return math.ceil(round(seconds, 6) / CAP_STEP_S) * CAP_STEP_S\n",
+   "replace": "    return math.floor(round(seconds, 6) / CAP_STEP_S) * CAP_STEP_S\n"
+  },
+  {
+   "id": "T2-m-floor-min",
+   "part": "KCR test 6",
+   "describes": "the sanity floor with min in place of max",
+   "file": "rules_78b.py",
+   "find": "        need = max(need, sanity_floor_s(family, preflight, steps, kind))\n",
+   "replace": "        need = min(need, sanity_floor_s(family, preflight, steps, kind))\n"
+  },
+  {
+   "id": "T2-m-j-le-k",
+   "part": "KCR test 9",
+   "describes": "the cap sums the measured uppers over j <= k",
+   "file": "rules_78b.py",
+   "find": "    worst = max(POD_OVERHEAD_S + sum(j[\"measured_upper_s\"] for j in jobs[:k]) + need[k] for k in range(len(jobs)))\n",
+   "replace": "    worst = max(POD_OVERHEAD_S + sum(j[\"measured_upper_s\"] for j in jobs[:k + 1]) + need[k] for k in range(len(jobs)))\n"
+  },
+  {
+   "id": "T2-m-hold-floor",
+   "part": "KCR test 10",
+   "describes": "the guard's floor drops the reserve",
+   "file": "rules_78b.py",
+   "find": "    floor = Decimal(repr(cents(RESERVE_USD + GATE_B_HOLD_USD)))\n",
+   "replace": "    floor = Decimal(repr(cents(GATE_B_HOLD_USD)))\n"
+  },
+  {
+   "id": "T2-m-guard-no-hold",
+   "part": "KCR test 10",
+   "describes": "guard_usd without the hold term",
+   "file": "rules_78b.py",
+   "find": "    return RESERVE_USD + GATE_B_HOLD_USD + cap_h * PLANNING_PRICE_USD\n",
+   "replace": "    return RESERVE_USD + cap_h * PLANNING_PRICE_USD\n"
+  },
+  {
+   "id": "T2-m-reserve-0",
+   "part": "money",
+   "describes": "RESERVE 6 -> 0",
+   "file": "rules_78b.py",
+   "find": "RESERVE_USD = 6.0 ",
+   "replace": "RESERVE_USD = 0.0 "
+  },
+  {
+   "id": "T2-m-planning-price",
+   "part": "money",
+   "describes": "PLANNING_PRICE 1.85 -> 1.79",
+   "file": "rules_78b.py",
+   "find": "PLANNING_PRICE_USD = 1.85 ",
+   "replace": "PLANNING_PRICE_USD = 1.79 "
+  },
+  {
+   "id": "T2-m-contingency",
+   "part": "money",
+   "describes": "CONTINGENCY 1.25 -> 1.0",
+   "file": "rules_78b.py",
+   "find": "CONTINGENCY_FACTOR = 1.25 ",
+   "replace": "CONTINGENCY_FACTOR = 1.0 "
+  },
+  {
+   "id": "T2-m-s-obs-first-included",
+   "part": "KCR test 5",
+   "describes": "s_obs counts the first greedy batch",
+   "file": "rules_78b.py",
+   "find": "    for previous, row in zip(rows, rows[1:]):\n",
+   "replace": "    for previous, row in zip([{\"elapsed_s\": rows[0][\"elapsed_s\"] - 10 * f[\"BATCH_MAX_S\"]}] + rows, rows):\n"
+  },
+  {
+   "id": "T2-m-s-obs-refusal",
+   "part": "KCR test 5",
+   "describes": "s_obs refusal 1.15 -> 1.5",
+   "file": "rules_78b.py",
+   "find": "S_OBS_REFUSAL = 1.15 ",
+   "replace": "S_OBS_REFUSAL = 1.5 "
+  },
+  {
+   "id": "T2-m-speed-refusal",
+   "part": "KCR test 4",
+   "describes": "s_pod refusal 1.15 -> 1.5",
+   "file": "rules_78b.py",
+   "find": "SPEED_REFUSAL = 1.15 ",
+   "replace": "SPEED_REFUSAL = 1.5 "
+  },
+  {
+   "id": "T2-m-free-space-strict",
+   "part": "KCR test 12",
+   "describes": "the free-space check refuses at the threshold",
+   "file": "rules_78b.py",
+   "find": "    return finite(free_gb) >= FREE_SPACE_MIN_GB\n",
+   "replace": "    return finite(free_gb) > FREE_SPACE_MIN_GB\n"
+  },
+  {
+   "id": "T2-m-max-arms-5",
+   "part": "KD2",
+   "describes": "MAX_ARMS_PER_POD_78B 4 -> 5",
+   "file": "rules_78b.py",
+   "find": "MAX_ARMS_PER_POD_78B = 4                  # KD2",
+   "replace": "MAX_ARMS_PER_POD_78B = 5                  # KD2"
+  },
+  {
+   "id": "T2-m-recipe-allow-other-lr",
+   "part": "KCR test 7",
+   "describes": "the other-LR recipe joins the allow-list",
+   "file": "rules_78b.py",
+   "find": "RECIPE_ALLOW = {family: (c[\"main\"][1], c[\"g\"][1]) for family, c in CONFIGS.items()}",
+   "replace": "RECIPE_ALLOW = {family: (c[\"main\"][1], c[\"g\"][1], c[\"other_lr\"][1]) for family, c in CONFIGS.items()}"
+  },
+  {
+   "id": "T2-m-evalonly-trains",
+   "part": "KCR test 8",
+   "describes": "evalonly keeps the training term",
+   "file": "rules_78b.py",
+   "find": "    if kind == \"evalonly\":\n        training = 0.0\n",
+   "replace": "    if kind == \"evalonly\":\n        training = FIXTURE_STEPS * c[\"TRAIN_STEP_MAX_S\"]\n"
+  },
+  {
+   "id": "T2-m-pin-ignored",
+   "part": "KCR test 2",
+   "describes": "the basis pin is not checked",
+   "file": "rules_78b.py",
+   "find": "    if digest != BASIS_SHA256:\n",
+   "replace": "    if False and digest != BASIS_SHA256:\n"
+  },
+  {
+   "id": "T2-m-e-kind-not-alone",
+   "part": "KD6",
+   "describes": "an E kind may share its pod with one arm",
+   "file": "rules_78b.py",
+   "find": "    if any(j[\"unmeasured\"] for j in jobs) and len(jobs) > 1:\n",
+   "replace": "    if any(j[\"unmeasured\"] for j in jobs) and len(jobs) > 2:\n"
+  },
+  {
+   "id": "T2-m-rep-pass-17",
+   "part": "KD6",
+   "describes": "A1's cap 16.5 -> 17.0 h (PP8: the kind is a1_pass; same mutation)",
+   "file": "rules_78b.py",
+   "find": "A1_PASS_CAP_H_MAX = 16.5 ",
+   "replace": "A1_PASS_CAP_H_MAX = 17.0 "
+  },
+  {
+   "id": "T2-m-keys-engine-any",
+   "part": "KCR test 7",
+   "describes": "the engine key check dropped (K1: the clause is engine_allowed, A13; same mutation)",
+   "file": "rules_78b.py",
+   "find": "    if not engine_allowed(kind, engine_sha256):\n",
+   "replace": "    if False:\n"
+  },
+  {
+   "id": "T2-m-train-step-kcr",
+   "part": "KCR test 2",
+   "describes": "TRAIN_STEP_MAX at KCR's rounded 24.26 (not the basis maximum)",
+   "file": "rules_78b.py",
+   "find": "        \"TRAIN_STEP_MAX_S\": 24.2545,",
+   "replace": "        \"TRAIN_STEP_MAX_S\": 24.26,"
+  },
+  {
+   "id": "T2-m-derive-name-and-place-off",
+   "part": "KCR test 15",
+   "describes": "derive opens any file name in any place (the name and place gates off; A-V6 replaces the old allowlist-off mutant)",
+   "file": "derive_78b_basis.py",
+   "find": "    if path.name not in ALLOWED_NAMES:\n        raise RecordRefused(f\"file name not on the allow-list: {path.name}\")\n    if not in_place(path):\n        raise RecordRefused(f\"{path.name} is not in its place ({PLACE_OF[path.name]}): {path}\")\n",
+   "replace": "    pass\n"
+  },
+  {
+   "id": "T2-m-derive-forbidden-off",
+   "part": "KCR test 15",
+   "describes": "derive ignores the forbidden path parts",
+   "file": "derive_78b_basis.py",
+   "find": "    if any(part in FORBIDDEN_PARTS for part in path.parts):\n",
+   "replace": "    if False:\n"
+  },
+  {
+   "id": "T2-m-derive-strings-off",
+   "part": "KCR test 15",
+   "describes": "the output string check allows text",
+   "file": "derive_78b_basis.py",
+   "find": "        if len(obj) > MAX_STRING or not STRING_OK.match(obj):\n",
+   "replace": "        if len(obj) > 100000:\n"
+  },
+  {
+   "id": "T2-m-derive-first-in-batchmax",
+   "part": "KCR test 2",
+   "describes": "the first greedy batch enters BATCH_MAX",
+   "file": "derive_78b_basis.py",
+   "find": "    capped32 = [b for b in greedy[1:] + sampled if b[\"capped\"] > 0 and b[\"rows\"] == BATCH]\n",
+   "replace": "    capped32 = [b for b in greedy + sampled if b[\"capped\"] > 0 and b[\"rows\"] == BATCH]\n"
+  },
+  {
+   "id": "T2-m-derive-outside-ledger-end",
+   "part": "KCR:226",
+   "describes": "derive's outside time = outer - ledger end (misses the time before and between stages)",
+   "file": "derive_78b_basis.py",
+   "find": "        \"outside_s\": round(outer_s - ledger[\"sum_stage_s\"] - other_stage_s, 3),\n",
+   "replace": "        \"outside_s\": round(outer_s - ledger[\"ledger_end_s\"] - other_stage_s, 3),\n",
+   "expect": "needs_measured_root"
+  },
+  {
+   "id": "T2-m-s-obs-missing-keys-pass",
+   "part": "A-V1",
+   "describes": "generate rows without capped/rows pass with defaults (the verifier's 5,000 s batch read as s_obs = 1)",
+   "file": "rules_78b.py",
+   "find": "    for row in rows:\n        batch_count(row, \"capped\")\n        batch_count(row, \"rows\")\n",
+   "replace": "    for row in rows:\n        row[\"capped\"] = row.get(\"capped\", 0)\n        row[\"rows\"] = row.get(\"rows\", GENERATION_BATCH)\n"
+  },
+  {
+   "id": "T2-m-s-obs-no-32-row-check-off",
+   "part": "A-V1",
+   "describes": "a progress record with no 32-row batch at all is accepted",
+   "file": "rules_78b.py",
+   "find": "    if not any(row[\"rows\"] == GENERATION_BATCH for row in rows):\n",
+   "replace": "    if False:\n"
+  },
+  {
+   "id": "T2-m-s-obs-rows-filter-off",
+   "part": "A-V2",
+   "describes": "s_obs reads every capped batch, not the 32-row ones only (KCR:113)",
+   "file": "rules_78b.py",
+   "find": "        if row[\"capped\"] > 0 and row[\"rows\"] == GENERATION_BATCH:\n",
+   "replace": "        if row[\"capped\"] > 0:\n"
+  },
+  {
+   "id": "T2-m-keys-manifest-any",
+   "part": "A-V3",
+   "describes": "any prepared manifest passes the key check",
+   "file": "rules_78b.py",
+   "find": "    if manifest_sha256 != MANIFESTS[family]:\n",
+   "replace": "    if False:\n"
+  },
+  {
+   "id": "T2-m-keys-bank-any",
+   "part": "A-V3",
+   "describes": "any evaluation bank value passes the key check",
+   "file": "rules_78b.py",
+   "find": "        if type(bank[key]) is not int or bank[key] != value:\n",
+   "replace": "        if False:\n"
+  },
+  {
+   "id": "T2-m-keys-bank-keys-any",
+   "part": "A-V3",
+   "describes": "a bank record with missing or extra keys passes the key check",
+   "file": "rules_78b.py",
+   "find": "    if not isinstance(bank, dict) or set(bank) != set(BANK):\n",
+   "replace": "    if not isinstance(bank, dict) or not set(bank) >= set(BANK):\n"
+  },
+  {
+   "id": "T2-m-launch-no-finite",
+   "part": "A-V4",
+   "describes": "launch_allowed takes the balance into the decimal arithmetic unchecked",
+   "file": "rules_78b.py",
+   "find": "    free = Decimal(repr(cents(finite(free_after_commitments_usd))))\n",
+   "replace": "    free = Decimal(repr(cents(free_after_commitments_usd)))\n"
+  },
+  {
+   "id": "T2-m-recipe-s-none-passes",
+   "part": "addendum A1",
+   "describes": "a null RECIPE_S pin stands in as an all-zero config_sha256",
+   "file": "rules_78b.py",
+   "find": "    value = RECIPE_S[family]\n    if value is None:\n",
+   "replace": "    value = RECIPE_S[family] or \"0\" * 64\n    if value is None:\n"
+  },
+  {
+   "id": "T2-m-s78-kinds-empty",
+   "part": "addendum A1",
+   "describes": "no kind needs recipe S_78",
+   "file": "rules_78b.py",
+   "find": "S78_KINDS = frozenset({\"retrain\", \"rep_pass\", \"a1_pass\", \"classifier\"})",
+   "replace": "S78_KINDS = frozenset()"
+  },
+  {
+   "id": "T2-m-keys-s78-any-recipe",
+   "part": "addendum A1",
+   "describes": "an S_78 kind passes the key check under any recipe once the pin is filled",
+   "file": "rules_78b.py",
+   "find": "        if recipe_sha256 != recipe_s_or_refuse(family):\n",
+   "replace": "        if recipe_s_or_refuse(family) is None:\n"
+  },
+  {
+   "id": "T2-m-preflight-untuned-fallback",
+   "part": "T4 interface",
+   "describes": "untuned_projected_s falls back to a PREFLIGHT-DONE.json field when the verification block lacks it",
+   "file": "rules_78b.py",
+   "find": "           \"untuned_projected_s\": finite(cap_projection.get(\"untuned_projected_s\"))}\n",
+   "replace": "           \"untuned_projected_s\": finite(cap_projection.get(\"untuned_projected_s\", preflight_done.get(\"untuned_projected_s\")))}\n"
+  },
+  {
+   "id": "T2-m-verification-optional",
+   "part": "T4 interface",
+   "describes": "a missing verification document is replaced by a default block",
+   "file": "rules_78b.py",
+   "find": "    if not isinstance(verification, dict):\n        raise Refused(\"no verification record (the preflight's verification.json)\")\n",
+   "replace": "    if not isinstance(verification, dict):\n        verification = {\"cap_projection\": {\"untuned_projected_s\": 3600.0, \"training_s\": preflight_done.get(\"training_s\")}}\n"
+  },
+  {
+   "id": "T2-m-preflight-one-preflight-off",
+   "part": "T4 interface",
+   "describes": "the two documents need not describe one preflight (training_s unchecked)",
+   "file": "rules_78b.py",
+   "find": "    if not math.isclose(finite(cap_projection.get(\"training_s\")), out[\"training_s\"], rel_tol=1e-9, abs_tol=1e-6):\n",
+   "replace": "    if False:\n"
+  },
+  {
+   "id": "T2-m-derive-place-off",
+   "part": "A-V6",
+   "describes": "an allowed name is read from any folder (tree/cuda-preflight-1/verification.json passes)",
+   "file": "derive_78b_basis.py",
+   "find": "    if not in_place(path):\n",
+   "replace": "    if False:\n"
+  },
+  {
+   "id": "T2-m-derive-create-wildcard",
+   "part": "A-V6",
+   "describes": "any create-*.json in hosts/<host>/ is read (create-secrets.json)",
+   "file": "derive_78b_basis.py",
+   "find": "PLACE_OF = {\"verification.json\": \"host\", \"finished.json\": \"host\", \"create-intent.json\": \"host\",\n",
+   "replace": "PLACE_OF = {\"verification.json\": \"host\", \"finished.json\": \"host\", \"create-intent.json\": \"host\", \"create-secrets.json\": \"host\",\n"
+  },
+  {
+   "id": "T2-m-derive-allcapped-35",
+   "part": "A-V5",
+   "describes": "a unit's all-capped time counts 35 batches (test 3's assertion must bind)",
+   "file": "derive_78b_basis.py",
+   "find": "    return (first + (batches - 1) * slow + unit[\"ledger\"][\"train_s\"] + score_allcap_s + unit[\"ledger\"][\"early_s\"]\n",
+   "replace": "    return (first + batches * slow + unit[\"ledger\"][\"train_s\"] + score_allcap_s + unit[\"ledger\"][\"early_s\"]\n"
+  },
+  {
+   "id": "K1-m-bqi-pin-off",
+   "part": "D1 (A13)",
+   "describes": "check_keys: the RECIPE_BQI clause dropped (B+Qi passes under main/G)",
+   "file": "rules_78b.py",
+   "find": "    elif kind in BQI_KINDS:\n        if recipe_sha256 != recipe_bqi_or_refuse(family):\n",
+   "replace": "    elif False:\n        if recipe_sha256 != recipe_bqi_or_refuse(family):\n"
+  },
+  {
+   "id": "K1-m-pin-none-passes",
+   "part": "A13",
+   "describes": "pin_or_refuse: a null pin reads as a filled one",
+   "file": "rules_78b.py",
+   "find": "    value = PINS[pin][family]\n    if value is None:\n",
+   "replace": "    value = PINS[pin][family] or \"0\" * 64\n    if value is None:\n"
+  },
+  {
+   "id": "K1-m-n-points-unchecked",
+   "part": "D2",
+   "describes": "job_record: the n_points positivity check dropped",
+   "file": "rules_78b.py",
+   "find": "    if type(n_points) is not int or n_points < 1:\n        raise Refused(\"at least one evaluation point\")\n    if not isinstance(oext, bool):\n",
+   "replace": "    if not isinstance(oext, bool):\n"
+  },
+  {
+   "id": "K1-m-s-obs-uncapped-counts",
+   "part": "D3 (KCR:113)",
+   "describes": "s_obs counts uncapped 32-row batches too (capped >= 0)",
+   "file": "rules_78b.py",
+   "find": "        if row[\"capped\"] > 0 and row[\"rows\"] == GENERATION_BATCH:\n",
+   "replace": "        if row[\"capped\"] >= 0 and row[\"rows\"] == GENERATION_BATCH:\n"
+  },
+  {
+   "id": "K1-m-derive-unit-place-loose",
+   "part": "D4 (A-V6)",
+   "describes": "in_place: the unit place checks round1 only (tree and retrieved parts dropped)",
+   "file": "derive_78b_basis.py",
+   "find": "        return len(parents) >= 5 and parents[1] == \"round1\" and parents[2] == \"tree\" and parents[4] == \"retrieved\"\n",
+   "replace": "        return len(parents) >= 2 and parents[1] == \"round1\"\n"
+  },
+  {
+   "id": "K1-m-dry-run-no-cascade",
+   "part": "D5",
+   "describes": "pod_dry_run: a deferral no longer defers the later jobs",
+   "file": "rules_78b.py",
+   "find": "        if deferred:\n            d.update(action=\"defer\", reason=d[\"reason\"] or \"earlier job deferred\")\n",
+   "replace": "        if False:\n            d.update(action=\"defer\", reason=d[\"reason\"] or \"earlier job deferred\")\n"
+  },
+  {
+   "id": "K1-m-decision-s-pod-only",
+   "part": "D6",
+   "describes": "job_decision: the returned s is s_pod alone",
+   "file": "rules_78b.py",
+   "find": "            \"s\": max(1.0, s_pod, float(s_obs)), \"remaining_s\": remaining_s}\n",
+   "replace": "            \"s\": s_pod, \"remaining_s\": remaining_s}\n"
+  },
+  {
+   "id": "K1-m-counted-drops-a0",
+   "part": "D7 (KD2)",
+   "describes": "a0_arm and evalonly no longer count toward the 4 per pod",
+   "file": "rules_78b.py",
+   "find": "COUNTED_KINDS = frozenset({\"arm\", \"a0_arm\", \"evalonly\", \"c0\", \"retrain\", \"ref_train_bqi\", \"o_only_with_regenerate\",\n                           \"ref_train\"})",
+   "replace": "COUNTED_KINDS = frozenset({\"arm\", \"c0\", \"retrain\", \"ref_train_bqi\", \"o_only_with_regenerate\", \"ref_train\"})"
+  },
+  {
+   "id": "K1-m-engine-y-measured-any",
+   "part": "A13 (KD9)",
+   "describes": "engine_allowed: measured kinds run on Y before KD9",
+   "file": "rules_78b.py",
+   "find": "        return kind in E_KINDS or (Y_MEASURED is True and Y_MEASURED_RECORD is not None)\n",
+   "replace": "        return True\n",
+   "note_r3": "R3 K3: re-targeted to the changed code (same mutation)"
+  },
+  {
+   "id": "K1-m-engine-y-e-kinds-off",
+   "part": "A13",
+   "describes": "engine_allowed: E-capped kinds refuse Y even once ENGINE_Y is filled",
+   "file": "rules_78b.py",
+   "find": "        return kind in E_KINDS or (Y_MEASURED is True and Y_MEASURED_RECORD is not None)\n",
+   "replace": "        return (Y_MEASURED is True and Y_MEASURED_RECORD is not None)\n",
+   "note_r3": "R3 K3: re-targeted to the changed code (same mutation)"
+  },
+  {
+   "id": "K1-m-engine-y-null-passes",
+   "part": "A13",
+   "describes": "engine_allowed: any non-X engine passes while ENGINE_Y is null",
+   "file": "rules_78b.py",
+   "find": "    if ENGINE_Y is not None and engine_sha256 == ENGINE_Y:      # R3 K3 (R-67): measured kinds need the record pin too\n        return kind in E_KINDS or (Y_MEASURED is True and Y_MEASURED_RECORD is not None)\n    return False\n",
+   "replace": "    if ENGINE_Y is not None and engine_sha256 == ENGINE_Y:      # R3 K3 (R-67): measured kinds need the record pin too\n        return kind in E_KINDS or (Y_MEASURED is True and Y_MEASURED_RECORD is not None)\n    return ENGINE_Y is None\n",
+   "note_r3": "R3 K3: re-targeted to the changed code (same mutation)"
+  },
+  {
+   "id": "K1-m-sealed-set-null-passes",
+   "part": "A13",
+   "describes": "sealed_set_or_refuse: a null MANIFEST pin falls back to the other family's set",
+   "file": "rules_78b.py",
+   "find": "    pin = SEALED_SETS[family]\n    if pin.get(\"sha256\") is None:\n",
+   "replace": "    pin = SEALED_SETS[family] if SEALED_SETS[family].get(\"sha256\") else SEALED_SETS[\"olmo2-7b\"]\n    if pin.get(\"sha256\") is None:\n"
+  },
+  {
+   "id": "K1-m-block0-llama-no-a0",
+   "part": "ruling 8",
+   "describes": "N's Llama pod loses a0 at 1103",
+   "file": "rules_78b.py",
+   "find": "    if family == \"llama31-8b\":\n        expected.append((\"a0\", A0_SEED_1103))\n    if runs != expected:\n        raise Refused(f\"{family}'s block-0 table is not N's layout\")\n    return runs\n",
+   "replace": "    return [r for r in runs if r[0] != \"a0\"]\n"
+  },
+  {
+   "id": "FK-m-s78-kinds-no-classifier",
+   "part": "PP8 (PP4)",
+   "describes": "the classifier leaves the S_78 kinds (runs under the main recipe)",
+   "file": "rules_78b.py",
+   "find": "S78_KINDS = frozenset({\"retrain\", \"rep_pass\", \"a1_pass\", \"classifier\"})",
+   "replace": "S78_KINDS = frozenset({\"retrain\", \"rep_pass\", \"a1_pass\"})"
+  },
+  {
+   "id": "FK-m-s78-kinds-no-a1-pass",
+   "part": "PP8 (PP3)",
+   "describes": "a1_pass leaves the S_78 kinds",
+   "file": "rules_78b.py",
+   "find": "S78_KINDS = frozenset({\"retrain\", \"rep_pass\", \"a1_pass\", \"classifier\"})",
+   "replace": "S78_KINDS = frozenset({\"retrain\", \"rep_pass\", \"classifier\"})"
+  },
+  {
+   "id": "FK-m-rep-pass-takes-a1-window",
+   "part": "PP8",
+   "describes": "rep_pass takes A1's 16.5 h window instead of its own E cap",
+   "file": "rules_78b.py",
+   "find": "        upper = WIDE_CAP_FACTOR * size * STAGE1_1B_ESTIMATES_S[\"rep_pass\"]\n",
+   "replace": "        upper = A1_PASS_CAP_H_MAX * 3600 - POD_OVERHEAD_S - START_MARGIN_S\n"
+  },
+  {
+   "id": "FK-m-rep-pass-no-size-factor",
+   "part": "PP8",
+   "describes": "rep_pass's E cap drops the scorer-kind size factor 2.3",
+   "file": "rules_78b.py",
+   "find": "        upper = WIDE_CAP_FACTOR * size * STAGE1_1B_ESTIMATES_S[\"rep_pass\"]\n",
+   "replace": "        upper = WIDE_CAP_FACTOR * STAGE1_1B_ESTIMATES_S[\"rep_pass\"]\n"
+  },
+  {
+   "id": "FK-m-a1-pass-takes-rep-pass-cap",
+   "part": "PP8 (KD6)",
+   "describes": "a1_pass loses A1's 16.5 h window and takes the 1B-estimate cap",
+   "file": "rules_78b.py",
+   "find": "        upper = A1_PASS_CAP_H_MAX * 3600 - POD_OVERHEAD_S - START_MARGIN_S\n",
+   "replace": "        upper = WIDE_CAP_FACTOR * size * STAGE1_1B_ESTIMATES_S[\"rep_pass\"]\n"
+  },
+  {
+   "id": "FK-m-scorer-kinds-no-a1-pass",
+   "part": "PP8 (M3)",
+   "describes": "the need printout's scorer table drops a1_pass",
+   "file": "rules_78b.py",
+   "find": "SCORER_KINDS = (\"untuned_answers\", \"o_only\", \"o_only_with_regenerate\", \"anchor\", \"rep_pass\", \"a1_pass\", \"l1_scan\",\n",
+   "replace": "SCORER_KINDS = (\"untuned_answers\", \"o_only\", \"o_only_with_regenerate\", \"anchor\", \"rep_pass\", \"l1_scan\",\n"
+  },
+  {
+   "id": "FK-m-r-edits-any-family",
+   "part": "D1 (the core verifier's V-H17, re-targeted)",
+   "describes": "block0_r_edits takes any family's edit entry with a block-0 draw (Gate B's M edits at draws 1-2)",
+   "file": "rules_78b.py",
+   "find": "        if not sealed_edit_entry(e) or e.get(\"family\") != \"R\":\n",
+   "replace": "        if not sealed_edit_entry(e):\n"
+  },
+  {
+   "id": "FK-m-r-edits-seed-unchecked",
+   "part": "D1",
+   "describes": "a Llama-form seed that is not 1100 + d passes",
+   "file": "rules_78b.py",
+   "find": "        if seed != R_SEED_BASE + d:\n",
+   "replace": "        if False:\n"
+  },
+  {
+   "id": "FK-m-r-edits-duplicate-passes",
+   "part": "D1",
+   "describes": "a draw listed twice silently takes the last entry",
+   "file": "rules_78b.py",
+   "find": "        if d in out:\n            raise Refused",
+   "replace": "        if False:\n            raise Refused"
+  },
+  {
+   "id": "FK-m-r-edits-missing-passes",
+   "part": "D1",
+   "describes": "a missing block-0 draw passes (the caller gets fewer edits)",
+   "file": "rules_78b.py",
+   "find": "    missing = [d for d in draws if d not in out]\n    if missing:\n        raise Refused(f\"the sealed set's MANIFEST lists no R edit",
+   "replace": "    missing = []\n    if missing:\n        raise Refused(f\"the sealed set's MANIFEST lists no R edit"
+  },
+  {
+   "id": "FK-m-edit-entry-any-path",
+   "part": "D1",
+   "describes": "an entry outside edits/ counts as an edit (a sample file at an R draw would duplicate R_d1)",
+   "file": "rules_78b.py",
+   "find": "    if not (isinstance(role, str) and role) or not (isinstance(path, str) and EDIT_PATH_RE.match(path)):\n",
+   "replace": "    if not (isinstance(role, str) and role) or not isinstance(path, str):\n"
+  },
+  {
+   "id": "FK-m-edit-entry-role-edit-only",
+   "part": "D1 (the defect itself)",
+   "describes": "only role == 'edit' entries are edits (the committed Llama form is refused again)",
+   "file": "rules_78b.py",
+   "find": "    if not (isinstance(role, str) and role) or not (isinstance(path, str) and EDIT_PATH_RE.match(path)):\n",
+   "replace": "    if role != \"edit\" or not (isinstance(path, str) and EDIT_PATH_RE.match(path)):\n"
+  },
+  {
+   "id": "FK-m-llama-pin-null",
+   "part": "PP7",
+   "describes": "the Llama sealed set's pin falls back to null",
+   "file": "rules_78b.py",
+   "find": "                   \"sha256\": \"2a1db220cdc0cc73e0818ad0c12d1f2ce2789a465002f5efb2145aabf41f594c\"},\n}",
+   "replace": "                   \"sha256\": None},\n}"
+  },
+  {
+   "id": "FK-m-idle-running-rate",
+   "part": "D2 (KD5; KCR:161)",
+   "describes": "idle storage at the running volume rate ($0.10 per GB per month)",
+   "file": "rules_78b.py",
+   "find": "IDLE_STORAGE_USD_PER_GB_MONTH = 0.20 ",
+   "replace": "IDLE_STORAGE_USD_PER_GB_MONTH = 0.10 "
+  },
+  {
+   "id": "FK-m-idle-not-in-report",
+   "part": "D2 (KD5)",
+   "describes": "block0_report drops the idle-storage block",
+   "file": "rules_78b.py",
+   "find": "           \"idle_storage\": idle_storage(len(pods)), \"retrain_pods\": {}, \"scorer_pods\": {}}",
+   "replace": "           \"idle_storage\": None, \"retrain_pods\": {}, \"scorer_pods\": {}}"
+  },
+  {
+   "id": "FK-m-idle-per-pod-only",
+   "part": "D2 (KD5)",
+   "describes": "the idle-storage line counts one pod whatever the block holds",
+   "file": "rules_78b.py",
+   "find": "           \"idle_storage\": idle_storage(len(pods)), \"retrain_pods\": {}, \"scorer_pods\": {}}",
+   "replace": "           \"idle_storage\": idle_storage(1), \"retrain_pods\": {}, \"scorer_pods\": {}}"
+  },
+  {
+   "id": "K4-m-x-only-off",
+   "part": "K4a (PP16)",
+   "describes": "engine_allowed skips X_ONLY_KINDS",
+   "file": "rules_78b.py",
+   "find": "    if kind in X_ONLY_KINDS:\n        return engine_sha256 == ENGINE_X\n",
+   "replace": "    if False:\n        return engine_sha256 == ENGINE_X\n"
+  },
+  {
+   "id": "K4-m-x-only-any-engine",
+   "part": "K4a (PP16)",
+   "describes": "a wrapper kind passes on any engine",
+   "file": "rules_78b.py",
+   "find": "        return engine_sha256 == ENGINE_X\n    if engine_sha256 == ENGINE_X:\n",
+   "replace": "        return True\n    if engine_sha256 == ENGINE_X:\n"
+  },
+  {
+   "id": "K4-m-x-only-after-y",
+   "part": "K4a (PP16)",
+   "describes": "engine_allowed checks X_ONLY_KINDS after engine Y (not first)",
+   "file": "rules_78b.py",
+   "find": "    if kind in X_ONLY_KINDS:\n        return engine_sha256 == ENGINE_X\n    if engine_sha256 == ENGINE_X:\n        return True\n    if ENGINE_Y is not None and engine_sha256 == ENGINE_Y:      # R3 K3 (R-67): measured kinds need the record pin too\n        return kind in E_KINDS or (Y_MEASURED is True and Y_MEASURED_RECORD is not None)\n    return False\n",
+   "replace": "    if engine_sha256 == ENGINE_X:\n        return True\n    if ENGINE_Y is not None and engine_sha256 == ENGINE_Y:      # R3 K3 (R-67): measured kinds need the record pin too\n        return kind in E_KINDS or (Y_MEASURED is True and Y_MEASURED_RECORD is not None)\n    if kind in X_ONLY_KINDS:\n        return engine_sha256 == ENGINE_X\n    return False\n",
+   "note_r3": "R3 K3: re-targeted to the changed code (same mutation)"
+  },
+  {
+   "id": "K4-m-x-only-plus-retrain",
+   "part": "K4a (PP16)",
+   "describes": "the retrain is made an X-only kind (it runs on Y: ruling 10)",
+   "file": "rules_78b.py",
+   "find": "X_ONLY_KINDS = frozenset({\"untuned_answers\", \"o_only\", \"o_only_with_regenerate\", \"anchor\", \"rep_pass\", \"l1_scan\",\n                          \"classifier\", \"c0\", \"w1_18\"})",
+   "replace": "X_ONLY_KINDS = frozenset({\"untuned_answers\", \"o_only\", \"o_only_with_regenerate\", \"anchor\", \"rep_pass\", \"l1_scan\",\n                          \"classifier\", \"c0\", \"retrain\", \"w1_18\"})"
+  },
+  {
+   "id": "K4-m-x-only-drop-untuned-answers",
+   "part": "K4a (PP16)",
+   "describes": "untuned_answers dropped from X_ONLY_KINDS",
+   "file": "rules_78b.py",
+   "find": "X_ONLY_KINDS = frozenset({\"untuned_answers\", \"o_only\", \"o_only_with_regenerate\", \"anchor\", \"rep_pass\", \"l1_scan\",\n                          \"classifier\", \"c0\", \"w1_18\"})",
+   "replace": "X_ONLY_KINDS = frozenset({\"o_only\", \"o_only_with_regenerate\", \"anchor\", \"rep_pass\", \"l1_scan\", \"classifier\", \"c0\", \"w1_18\"})"
+  },
+  {
+   "id": "K4-m-x-only-drop-o-only",
+   "part": "K4a (PP16)",
+   "describes": "o_only dropped from X_ONLY_KINDS",
+   "file": "rules_78b.py",
+   "find": "X_ONLY_KINDS = frozenset({\"untuned_answers\", \"o_only\", \"o_only_with_regenerate\", \"anchor\", \"rep_pass\", \"l1_scan\",\n                          \"classifier\", \"c0\", \"w1_18\"})",
+   "replace": "X_ONLY_KINDS = frozenset({\"untuned_answers\", \"o_only_with_regenerate\", \"anchor\", \"rep_pass\", \"l1_scan\", \"classifier\", \"c0\", \"w1_18\"})"
+  },
+  {
+   "id": "K4-m-x-only-drop-o-only-with-regenerate",
+   "part": "K4a (PP16)",
+   "describes": "o_only_with_regenerate dropped from X_ONLY_KINDS (PP16 with PP17's kind; round 4b)",
+   "file": "rules_78b.py",
+   "find": "X_ONLY_KINDS = frozenset({\"untuned_answers\", \"o_only\", \"o_only_with_regenerate\", \"anchor\", \"rep_pass\", \"l1_scan\",\n                          \"classifier\", \"c0\", \"w1_18\"})",
+   "replace": "X_ONLY_KINDS = frozenset({\"untuned_answers\", \"o_only\", \"anchor\", \"rep_pass\", \"l1_scan\", \"classifier\", \"c0\", \"w1_18\"})"
+  },
+  {
+   "id": "K4-m-x-only-drop-anchor",
+   "part": "K4a (PP16)",
+   "describes": "anchor dropped from X_ONLY_KINDS",
+   "file": "rules_78b.py",
+   "find": "X_ONLY_KINDS = frozenset({\"untuned_answers\", \"o_only\", \"o_only_with_regenerate\", \"anchor\", \"rep_pass\", \"l1_scan\",\n                          \"classifier\", \"c0\", \"w1_18\"})",
+   "replace": "X_ONLY_KINDS = frozenset({\"untuned_answers\", \"o_only\", \"o_only_with_regenerate\", \"rep_pass\", \"l1_scan\", \"classifier\", \"c0\", \"w1_18\"})"
+  },
+  {
+   "id": "K4-m-x-only-drop-rep-pass",
+   "part": "K4a (PP16)",
+   "describes": "rep_pass dropped from X_ONLY_KINDS",
+   "file": "rules_78b.py",
+   "find": "X_ONLY_KINDS = frozenset({\"untuned_answers\", \"o_only\", \"o_only_with_regenerate\", \"anchor\", \"rep_pass\", \"l1_scan\",\n                          \"classifier\", \"c0\", \"w1_18\"})",
+   "replace": "X_ONLY_KINDS = frozenset({\"untuned_answers\", \"o_only\", \"o_only_with_regenerate\", \"anchor\", \"l1_scan\", \"classifier\", \"c0\", \"w1_18\"})"
+  },
+  {
+   "id": "K4-m-x-only-drop-l1-scan",
+   "part": "K4a (PP16)",
+   "describes": "l1_scan dropped from X_ONLY_KINDS",
+   "file": "rules_78b.py",
+   "find": "X_ONLY_KINDS = frozenset({\"untuned_answers\", \"o_only\", \"o_only_with_regenerate\", \"anchor\", \"rep_pass\", \"l1_scan\",\n                          \"classifier\", \"c0\", \"w1_18\"})",
+   "replace": "X_ONLY_KINDS = frozenset({\"untuned_answers\", \"o_only\", \"o_only_with_regenerate\", \"anchor\", \"rep_pass\", \"classifier\", \"c0\", \"w1_18\"})"
+  },
+  {
+   "id": "K4-m-x-only-drop-classifier",
+   "part": "K4a (PP16)",
+   "describes": "classifier dropped from X_ONLY_KINDS",
+   "file": "rules_78b.py",
+   "find": "X_ONLY_KINDS = frozenset({\"untuned_answers\", \"o_only\", \"o_only_with_regenerate\", \"anchor\", \"rep_pass\", \"l1_scan\",\n                          \"classifier\", \"c0\", \"w1_18\"})",
+   "replace": "X_ONLY_KINDS = frozenset({\"untuned_answers\", \"o_only\", \"o_only_with_regenerate\", \"anchor\", \"rep_pass\", \"l1_scan\", \"c0\", \"w1_18\"})"
+  },
+  {
+   "id": "K4-m-x-only-drop-c0",
+   "part": "K4a (PP16)",
+   "describes": "c0 dropped from X_ONLY_KINDS",
+   "file": "rules_78b.py",
+   "find": "X_ONLY_KINDS = frozenset({\"untuned_answers\", \"o_only\", \"o_only_with_regenerate\", \"anchor\", \"rep_pass\", \"l1_scan\",\n                          \"classifier\", \"c0\", \"w1_18\"})",
+   "replace": "X_ONLY_KINDS = frozenset({\"untuned_answers\", \"o_only\", \"o_only_with_regenerate\", \"anchor\", \"rep_pass\", \"l1_scan\", \"classifier\", \"w1_18\"})"
+  },
+  {
+   "id": "K4-m-unitless-no-rep-pass",
+   "part": "K4a (DK-3)",
+   "describes": "rep_pass dropped from the kit's stage1_rules.UNITLESS_KINDS",
+   "file": "stage1_rules.py",
+   "find": "UNITLESS_KINDS = frozenset({\"untuned_answers\", \"rep_pass\", \"l1_scan\", \"classifier\", \"anchor\", \"o_only\", \"c0\"})",
+   "replace": "UNITLESS_KINDS = frozenset({\"untuned_answers\", \"l1_scan\", \"classifier\", \"anchor\", \"o_only\", \"c0\"})"
+  },
+  {
+   "id": "K4-m-unitless-plus-a1-pass",
+   "part": "K4a (DK-3)",
+   "describes": "a1_pass made unitless again (round 4b, D8: it writes the engine's attributes unit)",
+   "file": "stage1_rules.py",
+   "find": "UNITLESS_KINDS = frozenset({\"untuned_answers\", \"rep_pass\", \"l1_scan\", \"classifier\", \"anchor\", \"o_only\", \"c0\"})",
+   "replace": "UNITLESS_KINDS = frozenset({\"untuned_answers\", \"rep_pass\", \"l1_scan\", \"classifier\", \"anchor\", \"o_only\", \"c0\", \"a1_pass\"})"
+  },
+  {
+   "id": "K4-m-unitless-no-classifier",
+   "part": "K4a (DK-3)",
+   "describes": "classifier dropped from the kit's stage1_rules.UNITLESS_KINDS",
+   "file": "stage1_rules.py",
+   "find": "UNITLESS_KINDS = frozenset({\"untuned_answers\", \"rep_pass\", \"l1_scan\", \"classifier\", \"anchor\", \"o_only\", \"c0\"})",
+   "replace": "UNITLESS_KINDS = frozenset({\"untuned_answers\", \"rep_pass\", \"l1_scan\", \"anchor\", \"o_only\", \"c0\"})"
+  },
+  {
+   "id": "K4-m-diag-no-rep-pass",
+   "part": "K4a (DK-3)",
+   "describes": "rep_pass dropped from the kit's stage1_rules.DIAG_KINDS",
+   "file": "stage1_rules.py",
+   "find": "DIAG_KINDS = (\"rep_pass\", \"a1_pass\", \"untuned_answers\", \"l1_scan\", \"classifier\")",
+   "replace": "DIAG_KINDS = (\"a1_pass\", \"untuned_answers\", \"l1_scan\", \"classifier\")"
+  },
+  {
+   "id": "K4-m-diag-no-a1-pass",
+   "part": "K4a (DK-3)",
+   "describes": "a1_pass dropped from the kit's stage1_rules.DIAG_KINDS",
+   "file": "stage1_rules.py",
+   "find": "DIAG_KINDS = (\"rep_pass\", \"a1_pass\", \"untuned_answers\", \"l1_scan\", \"classifier\")",
+   "replace": "DIAG_KINDS = (\"rep_pass\", \"untuned_answers\", \"l1_scan\", \"classifier\")"
+  },
+  {
+   "id": "K4-m-diag-no-classifier",
+   "part": "K4a (DK-3)",
+   "describes": "classifier dropped from the kit's stage1_rules.DIAG_KINDS",
+   "file": "stage1_rules.py",
+   "find": "DIAG_KINDS = (\"rep_pass\", \"a1_pass\", \"untuned_answers\", \"l1_scan\", \"classifier\")",
+   "replace": "DIAG_KINDS = (\"rep_pass\", \"a1_pass\", \"untuned_answers\", \"l1_scan\")"
+  },
+  {
+   "id": "K4-m-idle-no-retrain-pods",
+   "part": "K4a (PP14)",
+   "describes": "the retrain pods get no idle-storage entry (SC_STATE_KINDS loses the retrain; round 4b's one definition)",
+   "file": "rules_78b.py",
+   "find": "SC_STATE_KINDS = {\"retrain\": IDLE_RETRAIN_WHY,\n",
+   "replace": "SC_STATE_KINDS = {\n"
+  },
+  {
+   "id": "K4-m-idle-no-scorer-pods",
+   "part": "K4a (PP14)",
+   "describes": "no scorer pod keeps states (block 0's idle lines list N's and the retrain pods only)",
+   "file": "rules_78b.py",
+   "find": "        for kind, why in SC_STATE_KINDS.items():\n            for seed in sc_seeds(family, kind):\n",
+   "replace": "        for kind, why in list(SC_STATE_KINDS.items())[:1]:\n            for seed in sc_seeds(family, kind):\n"
+  },
+  {
+   "id": "K4-m-idle-all-n-only",
+   "part": "K4a (PP14)",
+   "describes": "the block's idle total counts N's pods only",
+   "file": "rules_78b.py",
+   "find": "    out[\"idle_storage_all\"] = idle_storage(len(kept))",
+   "replace": "    out[\"idle_storage_all\"] = idle_storage(len(pods))"
+  },
+  {
+   "id": "K4-m-idle-lines-scorer-only",
+   "part": "K4a (PP14)",
+   "describes": "the printout skips the retrain pods' idle lines",
+   "file": "rules_78b.py",
+   "find": "        if p[\"pod\"].startswith(\"N \"):\n            continue\n",
+   "replace": "        if not p[\"pod\"].startswith(\"scorer \"):\n            continue\n"
+  },
+  {
+   "id": "K4-m-idle-lines-no-total",
+   "part": "K4a (PP14)",
+   "describes": "the printout drops the block's idle total line",
+   "file": "rules_78b.py",
+   "find": "                 \"counted in no guard\")\n    return lines\n",
+   "replace": "                 \"counted in no guard\")\n    return lines[:-1]\n"
+  },
+  {
+   "id": "K4bf-m-state-no-c0",
+   "part": "round 4b (D4, PP14)",
+   "describes": "c0 leaves the one state-keeping definition",
+   "file": "rules_78b.py",
+   "find": "                  \"c0\": \"keeps its R_1 training unit's states (lean_eval_job.py's OUT/train; the light pull leaves them)\"}",
+   "replace": "                  }"
+  },
+  {
+   "id": "K4bf-m-state-no-regen",
+   "part": "round 4b (D4, PP17)",
+   "describes": "o_only_with_regenerate keeps no states",
+   "file": "rules_78b.py",
+   "find": "                  \"o_only_with_regenerate\": \"keeps the regenerated a0 unit's states (PP17; a train-only job like the \"\n                                            \"retrain)\",\n",
+   "replace": ""
+  },
+  {
+   "id": "K4bf-m-idle-one-pod-per-kind",
+   "part": "round 4b (D4, PP17)",
+   "describes": "block 0's idle lines name one o_only_with_regenerate pod per family, not one per reused seed",
+   "file": "rules_78b.py",
+   "find": "            for seed in sc_seeds(family, kind):\n",
+   "replace": "            for seed in sc_seeds(family, kind)[:1]:\n"
+  },
+  {
+   "id": "K4bf-m-scorer-kinds-no-regen",
+   "part": "round 4b (PP17, M3)",
+   "describes": "block 0's scorer table drops o_only_with_regenerate",
+   "file": "rules_78b.py",
+   "find": "SCORER_KINDS = (\"untuned_answers\", \"o_only\", \"o_only_with_regenerate\", \"anchor\", \"rep_pass\", \"a1_pass\", \"l1_scan\",\n",
+   "replace": "SCORER_KINDS = (\"untuned_answers\", \"o_only\", \"anchor\", \"rep_pass\", \"a1_pass\", \"l1_scan\",\n"
+  },
+  {
+   "id": "K4bf-m-regenerate-kind-back",
+   "part": "round 4b (PP17)",
+   "describes": "the standalone regenerate kind is back among the E kinds",
+   "file": "rules_78b.py",
+   "find": "E_KINDS = (\"untuned_answers\", \"o_only\", \"o_only_with_regenerate\", \"anchor\", \"rep_pass\", \"a1_pass\",\n",
+   "replace": "E_KINDS = (\"untuned_answers\", \"regenerate\", \"o_only\", \"o_only_with_regenerate\", \"anchor\", \"rep_pass\", \"a1_pass\",\n"
+  },
+  {
+   "id": "K4bf-m-unitless-no-c0",
+   "part": "round 4b (PP18)",
+   "describes": "c0 is no longer unitless in the kit's stage1_rules",
+   "file": "stage1_rules.py",
+   "find": "UNITLESS_KINDS = frozenset({\"untuned_answers\", \"rep_pass\", \"l1_scan\", \"classifier\", \"anchor\", \"o_only\", \"c0\"})",
+   "replace": "UNITLESS_KINDS = frozenset({\"untuned_answers\", \"rep_pass\", \"l1_scan\", \"classifier\", \"anchor\", \"o_only\"})"
+  },
+  {
+   "id": "K1R-m-block-a-no-r5",
+   "part": "item 1",
+   "describes": "block A without R_5 at 1105",
+   "file": "rules_78b.py",
+   "find": "BLOCK_A_R_SEEDS = (1104, 1105) ",
+   "replace": "BLOCK_A_R_SEEDS = (1104,) "
+  },
+  {
+   "id": "K1R-m-b9-seeds-1109",
+   "part": "item 1",
+   "describes": "plan B9's method seeds 1105-1109",
+   "file": "rules_78b.py",
+   "find": "\"B9\": tuple(range(1105, 1111))",
+   "replace": "\"B9\": tuple(range(1105, 1110))"
+  },
+  {
+   "id": "K1R-m-b-r-at-first-seed",
+   "part": "item 1",
+   "describes": "block B's R also at its first seed (R_5 again)",
+   "file": "rules_78b.py",
+   "find": "[(\"R\", s) for s in seeds if s != seeds[0]]",
+   "replace": "[(\"R\", s) for s in seeds]"
+  },
+  {
+   "id": "K1R-m-b-a0-two-seeds",
+   "part": "item 1",
+   "describes": "block B's a0 at 1105-1106 only",
+   "file": "rules_78b.py",
+   "find": "BLOCK_B_A0_SEEDS = (1105, 1106, 1107) ",
+   "replace": "BLOCK_B_A0_SEEDS = (1105, 1106) "
+  },
+  {
+   "id": "K1R-m-r-d6-from-seal",
+   "part": "item 1",
+   "describes": "R_d6 bound from SEAL, not stage 1's r-draws",
+   "file": "rules_78b.py",
+   "find": "(6, _R_OLMO_STAGE1,",
+   "replace": "(6, _R_OLMO_SEAL,"
+  },
+  {
+   "id": "K1R-m-null-method-edit-accepted",
+   "part": "item 1",
+   "describes": "a null method edit accepted",
+   "file": "rules_78b.py",
+   "find": "    if pin is None:\n        raise Refused(f\"{arm}'s edit for {family} is null",
+   "replace": "    if pin is None:\n        pin = {\"path\": \"tmp/null.json\", \"sha256\": \"0\" * 64, \"rows\": ARM_EDIT[arm][1] or 48}\n    if False:\n        raise Refused(f\"{arm}'s edit for {family} is null"
+  },
+  {
+   "id": "K1R-m-stopped-keeps-l1",
+   "part": "item 1, 14",
+   "describes": "a stopped family keeps L1",
+   "file": "rules_78b.py",
+   "find": "STOP_DROPPED_ARMS = (\"A1\", \"L1\", \"S3\")",
+   "replace": "STOP_DROPPED_ARMS = (\"A1\", \"S3\")"
+  },
+  {
+   "id": "K1R-m-stop-drop-off",
+   "part": "item 1, 14",
+   "describes": "a stopped family keeps A1, L1 and S3",
+   "file": "rules_78b.py",
+   "find": "    if family_stopped(family):\n        runs = [r for r in runs if r[0] not in STOP_DROPPED_ARMS]",
+   "replace": "    if False:\n        runs = [r for r in runs if r[0] not in STOP_DROPPED_ARMS]"
+  },
+  {
+   "id": "K1R-m-gate-hash-unchecked",
+   "part": "O14",
+   "describes": "a plan read from bytes that are not the pinned gate or plan-B record",
+   "file": "rules_78b.py",
+   "find": "hashlib.sha256(data).hexdigest() != pin[\"sha256\"]:",
+   "replace": "False:"
+  },
+  {
+   "id": "K1R-m-gate-null-passes",
+   "part": "O14",
+   "describes": "a null GATE_78B or PLAN_B_78B pin passes",
+   "file": "rules_78b.py",
+   "find": "    if pin is None:\n        raise Refused(f\"the pin {name} is null",
+   "replace": "    if pin is None:\n        return json.loads(data)\n        raise Refused(f\"the pin {name} is null"
+  },
+  {
+   "id": "K1R-m-gate-c-both-families",
+   "part": "O14",
+   "describes": "option C runs both families",
+   "file": "rules_78b.py",
+   "find": "GATE_OPTIONS = {\"B\": (\"olmo2-7b\", \"llama31-8b\"), \"C\": (\"olmo2-7b\",)}",
+   "replace": "GATE_OPTIONS = {\"B\": (\"olmo2-7b\", \"llama31-8b\"), \"C\": (\"olmo2-7b\", \"llama31-8b\")}"
+  },
+  {
+   "id": "K1R-m-gate-family-unchecked",
+   "part": "O14",
+   "describes": "block A's init ignores the gate's families",
+   "file": "rules_78b.py",
+   "find": "    if family not in doc[\"families\"]:\n        raise Refused(f\"the gate chose",
+   "replace": "    if False:\n        raise Refused(f\"the gate chose"
+  },
+  {
+   "id": "K1R-m-deal-p1",
+   "part": "item 2",
+   "describes": "P = 1 in the deal",
+   "file": "rules_78b.py",
+   "find": "    p = len(pod_sizes(len(ordered)))\n    pods = [ordered[i::p] for i in range(p)]",
+   "replace": "    p = 1\n    pods = [ordered[i::p] for i in range(p)]"
+  },
+  {
+   "id": "K1R-m-deal-seed-major",
+   "part": "item 2",
+   "describes": "seed-major order in the deal",
+   "file": "rules_78b.py",
+   "find": "key=lambda r: (AB_ARM_ORDER.index(r[0]), r[1]))\n    if len(set(ordered))",
+   "replace": "key=lambda r: (r[1], AB_ARM_ORDER.index(r[0])))\n    if len(set(ordered))"
+  },
+  {
+   "id": "K1R-m-deal-5-per-pod",
+   "part": "item 2",
+   "describes": "5 arms per pod",
+   "file": "rules_78b.py",
+   "find": "    p = len(pod_sizes(len(ordered)))\n",
+   "replace": "    p = -(-len(ordered) // 5)\n"
+  },
+  {
+   "id": "K1R-m-sr78-deal-n-for-ab",
+   "part": "item 2",
+   "describes": "the kit copy deals blocks A and B as N",
+   "file": "stage1_rules.py",
+   "find": "    if block in (\"A\", \"B\"):\n        try:\n            return r78.deal_ab(runs)",
+   "replace": "    if False:\n        try:\n            return r78.deal_ab(runs)"
+  },
+  {
+   "id": "K1R-m-dose-38",
+   "part": "item 3, O1",
+   "describes": "dose 38 steps",
+   "file": "rules_78b.py",
+   "find": "\"a0\": 38, \"dose\": 39}",
+   "replace": "\"a0\": 38, \"dose\": 38}"
+  },
+  {
+   "id": "K1R-m-rows-check-skipped",
+   "part": "item 3, O1",
+   "describes": "the rows check skipped (a named arm's derived steps not compared)",
+   "file": "rules_78b.py",
+   "find": "    if arm in ARM_STEPS and derived != ARM_STEPS[arm]:",
+   "replace": "    if False:"
+  },
+  {
+   "id": "K1R-m-steps-floor",
+   "part": "O1",
+   "describes": "steps = floor(rows / 128)",
+   "file": "rules_78b.py",
+   "find": "    return -(-rows // ROWS_PER_STEP)",
+   "replace": "    return rows // ROWS_PER_STEP"
+  },
+  {
+   "id": "K1R-m-s4-top-range-off",
+   "part": "O1",
+   "describes": "s4_top accepts any kept count",
+   "file": "rules_78b.py",
+   "find": "    if arm == \"s4_top\" and not s4_top_rows_ok(edit_rows):",
+   "replace": "    if False:"
+  },
+  {
+   "id": "K1R-m-sr78-dose-38",
+   "part": "item 3",
+   "describes": "the kit copy's DOSE_STEPS dose 38",
+   "file": "stage1_rules.py",
+   "find": "\"dose\": r78.STEPS[\"dose\"]}",
+   "replace": "\"dose\": r78.STEPS[\"add\"]}"
+  },
+  {
+   "id": "K1R-m-train-scale-missing-passes",
+   "part": "item 4",
+   "describes": "a missing padded-token count passes (train_scale 1)",
+   "file": "rules_78b.py",
+   "find": "        if padded_tokens_per_step is None:\n            raise Refused(f\"{arm} at {seed}: its padded tokens",
+   "replace": "        if False:\n            raise Refused(f\"{arm} at {seed}: its padded tokens"
+  },
+  {
+   "id": "K1R-m-requirements-drop-padded",
+   "part": "item 4",
+   "describes": "requirements() drops the job's padded tokens",
+   "file": "rules_78b.py",
+   "find": "s, 1.0, preflight,\n                                     job.get(\"padded_tokens_per_step\")",
+   "replace": "s, 1.0, preflight,\n                                     None"
+  },
+  {
+   "id": "K1R-m-sr78-job-record-drops-padded",
+   "part": "item 4",
+   "describes": "the kit copy's job_record drops the padded tokens",
+   "file": "stage1_rules.py",
+   "find": "arm, seed, padded_tokens_per_step, n_points=n,",
+   "replace": "arm, seed, None, n_points=n,"
+  },
+  {
+   "id": "K1R-m-oext-x1",
+   "part": "5b",
+   "describes": "the O-ext term x 1.0",
+   "file": "rules_78b.py",
+   "find": "OEXT_TERM_FACTOR = 1.5 ",
+   "replace": "OEXT_TERM_FACTOR = 1.0 "
+  },
+  {
+   "id": "K1R-m-oext-a0-arm-off",
+   "part": "5b",
+   "describes": "the a0_arm O-ext step dropped",
+   "file": "rules_78b.py",
+   "find": "OEXT_CAP_KINDS = frozenset({\"arm\", \"a0_arm\", \"ref_train\"})",
+   "replace": "OEXT_CAP_KINDS = frozenset({\"arm\", \"ref_train\"})"
+  },
+  {
+   "id": "K1R-m-oext-measured-ignored",
+   "part": "5b",
+   "describes": "the measured O-ext value ignored",
+   "file": "rules_78b.py",
+   "find": "    if measured is not None:\n        if finite(measured) <= 0:",
+   "replace": "    if False:\n        if finite(measured) <= 0:"
+  },
+  {
+   "id": "K1R-m-oext-measured-upper-no-term",
+   "part": "5b",
+   "describes": "the measured upper of an O-ext job without its term",
+   "file": "rules_78b.py",
+   "find": "        measured = measured_upper_s(family, kind) + (oext_term_s(family) if oext else 0.0)",
+   "replace": "        measured = measured_upper_s(family, kind)"
+  },
+  {
+   "id": "K1R-m-requirements-drop-oext",
+   "part": "5b",
+   "describes": "requirements() drops the O-ext term",
+   "file": "rules_78b.py",
+   "find": "job.get(\"padded_tokens_per_step\"), job.get(\"oext\", False) is True))\n",
+   "replace": "job.get(\"padded_tokens_per_step\"), False))\n"
+  },
+  {
+   "id": "K1R-m-decision-drop-oext",
+   "part": "5b",
+   "describes": "the runner's gate drops the O-ext term",
+   "file": "rules_78b.py",
+   "find": "job.get(\"padded_tokens_per_step\"), job.get(\"oext\", False) is True)\n    reason",
+   "replace": "job.get(\"padded_tokens_per_step\"), False)\n    reason"
+  },
+  {
+   "id": "K1R-m-oext-refs-off",
+   "part": "5b, O12",
+   "describes": "ref_eval's points without the O-ext term",
+   "file": "rules_78b.py",
+   "find": "                 + n_points * (evalonly_upper_s(family) + oext_term_s(family)))\n        basis = (\"E: the evaluation-only",
+   "replace": "                 + n_points * evalonly_upper_s(family))\n        basis = (\"E: the evaluation-only"
+  },
+  {
+   "id": "K1R-m-oext-batches-12",
+   "part": "5b",
+   "describes": "the PHTest pass in 12 batches",
+   "file": "rules_78b.py",
+   "find": "    batches = -(-OEXT_PHTEST_PROMPTS // GENERATION_BATCH)",
+   "replace": "    batches = OEXT_PHTEST_PROMPTS // GENERATION_BATCH"
+  },
+  {
+   "id": "K1R-m-block0-gets-oext",
+   "part": "5b",
+   "describes": "block 0's arms carry the O-ext term",
+   "file": "rules_78b.py",
+   "find": "STEPS[\"a0\"] if arm == \"a0\" else STEPS[\"remove\"], arm, seed))",
+   "replace": "STEPS[\"a0\"] if arm == \"a0\" else STEPS[\"remove\"], arm, seed, oext=True))"
+  },
+  {
+   "id": "K1R-m-block-job-no-oext",
+   "part": "5b",
+   "describes": "a block A/B edit arm without its O-ext step",
+   "file": "rules_78b.py",
+   "find": "job = job_record(family, \"arm\", edit[\"steps\"], arm, seed, padded_tokens_per_step, oext=True)",
+   "replace": "job = job_record(family, \"arm\", edit[\"steps\"], arm, seed, padded_tokens_per_step, oext=False)"
+  },
+  {
+   "id": "K1R-m-check-keys-oext-bank-any",
+   "part": "5b",
+   "describes": "check_keys accepts any O-ext bank",
+   "file": "rules_78b.py",
+   "find": "        if oext_bank != pin[\"inputs\"][\"oext_bank\"]:",
+   "replace": "        if False:"
+  },
+  {
+   "id": "K1R-m-check-keys-oext-kind-any",
+   "part": "5b",
+   "describes": "check_keys lets a kind without O-ext name an O-ext bank",
+   "file": "rules_78b.py",
+   "find": "        if kind not in OEXT_BANK_KINDS:\n            raise Refused(f\"{kind} has no O-ext step: it names",
+   "replace": "        if False:\n            raise Refused(f\"{kind} has no O-ext step: it names"
+  },
+  {
+   "id": "K1R-m-w1-18-not-first",
+   "part": "5c",
+   "describes": "W1-18 not first (planned after a 500-bank job)",
+   "file": "rules_78b.py",
+   "find": "    before = sorted({k for k in planned_kinds if k in BANK500_KINDS})",
+   "replace": "    before = []"
+  },
+  {
+   "id": "K1R-m-w1-18-c-both",
+   "part": "5c, O4",
+   "describes": "under [C] both families' W1-18 units",
+   "file": "rules_78b.py",
+   "find": "W1_18_FAMILIES = {\"B\": (\"olmo2-7b\", \"llama31-8b\"), \"C\": (\"olmo2-7b\",)}",
+   "replace": "W1_18_FAMILIES = {\"B\": (\"olmo2-7b\", \"llama31-8b\"), \"C\": (\"olmo2-7b\", \"llama31-8b\")}"
+  },
+  {
+   "id": "K1R-m-w1-18-one-record",
+   "part": "5c, O4",
+   "describes": "one W1-18 record for both families",
+   "file": "rules_78b.py",
+   "find": "\"records\": {f: W1_18_RECORD_NAME.format(family=f) for f in fams}",
+   "replace": "\"records\": {f: \"overrefusal_checks.json\" for f in fams}",
+   "note": "R2 K2 integration fix (GXB R-53): re-targeted to the renamed record (same mutation)"
+  },
+  {
+   "id": "K1R-m-w1-18-not-x-only",
+   "part": "5c",
+   "describes": "w1_18 allowed on engine Y",
+   "file": "rules_78b.py",
+   "find": "\"classifier\", \"c0\", \"w1_18\"})",
+   "replace": "\"classifier\", \"c0\"})"
+  },
+  {
+   "id": "K1R-m-w1-18-cap-no-factor",
+   "part": "5c",
+   "describes": "the W1-18 E cap without the 1.5 factor",
+   "file": "rules_78b.py",
+   "find": "        upper = WIDE_CAP_FACTOR * STAGE1_1B_ESTIMATES_S[\"w1_18\"]",
+   "replace": "        upper = STAGE1_1B_ESTIMATES_S[\"w1_18\"]"
+  },
+  {
+   "id": "K1R-m-branch-switch-allowed",
+   "part": "5c",
+   "describes": "a branch switch allowed",
+   "file": "rules_78b.py",
+   "find": "    if not same:\n        return (f\"{old_doc.get('family')}'s branch",
+   "replace": "    if False:\n        return (f\"{old_doc.get('family')}'s branch"
+  },
+  {
+   "id": "K1R-m-branch-128-by-default",
+   "part": "5c",
+   "describes": "the default record may name Branch 128",
+   "file": "rules_78b.py",
+   "find": "        if doc[\"branch\"] != BRANCH_DEFAULT or doc[\"w1_18_record_sha256\"] is not None:",
+   "replace": "        if False:"
+  },
+  {
+   "id": "K1R-m-bank500-block0-arms",
+   "part": "5c",
+   "describes": "block 0's arms read the 500 bank",
+   "file": "rules_78b.py",
+   "find": "kind in (\"arm\", \"a0_arm\") and block in BANK500_BLOCKS)",
+   "replace": "kind in (\"arm\", \"a0_arm\"))"
+  },
+  {
+   "id": "K1R-m-bank500-no-record-passes",
+   "part": "5c",
+   "describes": "a 500-bank job before the branch record",
+   "file": "rules_78b.py",
+   "find": "    if BRANCH_78B[family] is None:\n        return (f\"{kind} in block {block} reads the 500 bank",
+   "replace": "    if False:\n        return (f\"{kind} in block {block} reads the 500 bank"
+  },
+  {
+   "id": "K1R-m-flag-dropped-on-c0",
+   "part": "5f",
+   "describes": "--w1-18-record dropped on c0",
+   "file": "rules_78b.py",
+   "find": "    record = branch_doc[\"w1_18_record_sha256\"] if branch_doc[\"source\"] == \"w1_18\" else None\n",
+   "replace": "    record = None if kind == \"c0\" else (branch_doc[\"w1_18_record_sha256\"] if branch_doc[\"source\"] == \"w1_18\" else None)\n",
+   "note_r3": "R3 K3: re-targeted to the changed code (same mutation)"
+  },
+  {
+   "id": "K1R-m-dev100-on-theta0",
+   "part": "5f",
+   "describes": "--dev100-source on theta0 (every O-ext command)",
+   "file": "rules_78b.py",
+   "find": "\"dev100_source\": branch_doc[\"branch\"] == \"128\" and bool(regenerated)}",
+   "replace": "\"dev100_source\": True}",
+   "note_r3": "R3 K3: re-targeted to the changed code (same mutation)"
+  },
+  {
+   "id": "K1R-m-seed-key-seed-only",
+   "part": "seed key",
+   "describes": "a unit found by its seed alone",
+   "file": "rules_78b.py",
+   "find": "        if u[\"arm\"] == arm and u[\"seed\"] == seed:",
+   "replace": "        if u[\"seed\"] == seed:"
+  },
+  {
+   "id": "K1R-m-n-units-not-listed",
+   "part": "5e",
+   "describes": "N's units not among o_only_with_regenerate's",
+   "file": "rules_78b.py",
+   "find": "        out += [{\"arm\": a, \"seed\": s, \"source\": \"n\"} for a, s in block0_runs(family)]",
+   "replace": "        out += []"
+  },
+  {
+   "id": "K1R-m-n-regen-without-edit",
+   "part": "5e",
+   "describes": "N's R regenerated without its sealed edit",
+   "file": "stage1_rules.py",
+   "find": "((REGEN_EDIT.format(seed=seed),) if arm == \"R\" else ())",
+   "replace": "()"
+  },
+  {
+   "id": "K1R-m-acceptance-against-side",
+   "part": "5e",
+   "describes": "N's unit accepted against the side unit",
+   "file": "stage1_rules.py",
+   "find": "    if _unit_source(kind, seed, arm) == \"n\":\n        names",
+   "replace": "    if False:\n        names"
+  },
+  {
+   "id": "K1R-m-n-units-null-passes",
+   "part": "5e",
+   "describes": "N's regeneration without the N_UNITS pin",
+   "file": "rules_78b.py",
+   "find": "        pins = pins + (\"N_UNITS\",)",
+   "replace": "        pins = pins"
+  },
+  {
+   "id": "K1R-m-n-units-path-loose",
+   "part": "5e",
+   "describes": "an N unit's path outside block 0's copy",
+   "file": "rules_78b.py",
+   "find": "        if not _plain_rel(u[\"path\"], f\"tmp/{WORKING_COPY_PREFIX}{family}-0/\"):",
+   "replace": "        if not _plain_rel(u[\"path\"]):"
+  },
+  {
+   "id": "K1R-m-rejudged-no-theta0",
+   "part": "item 7",
+   "describes": "block A's re-judge list without theta0",
+   "file": "rules_78b.py",
+   "find": "    out.append({\"name\": \"theta0 (untuned)\", \"arm\": \"a0\", \"seed\": 1101, \"target\": \"init\", **units[\"untuned\"]})",
+   "replace": "    pass"
+  },
+  {
+   "id": "K1R-m-rejudged-null-passes",
+   "part": "item 7",
+   "describes": "a judge launch with N's entries null",
+   "file": "rules_78b.py",
+   "find": "    if null:\n        raise Refused(f\"block {block}'s re-judged",
+   "replace": "    if False:\n        raise Refused(f\"block {block}'s re-judged"
+  },
+  {
+   "id": "K1R-m-sr78-rejudged-a-empty",
+   "part": "item 7",
+   "describes": "the kit copy's REJUDGED_PINS['A'] empty",
+   "file": "stage1_rules.py",
+   "find": "\"A\": r78.rejudged_pins(FAMILY, \"A\") if _KIT else ()",
+   "replace": "\"A\": ()"
+  },
+  {
+   "id": "K1R-m-anchor-any-exit-1",
+   "part": "O6",
+   "describes": "any exit 1 is a harmful-pair stop",
+   "file": "rules_78b.py",
+   "find": "    if exit_code == ANCHOR_EXIT_ERROR and isinstance(message, str) and ANCHOR_HARMFUL_RE.match(message.strip()):",
+   "replace": "    if exit_code == ANCHOR_EXIT_ERROR:"
+  },
+  {
+   "id": "K1R-m-anchor-crash-is-stop",
+   "part": "O6",
+   "describes": "any other exit is a stop",
+   "file": "rules_78b.py",
+   "find": "    return \"crash\"\n\n\ndef anchor_stop_record",
+   "replace": "    return \"few_safe\"\n\n\ndef anchor_stop_record"
+  },
+  {
+   "id": "K1R-m-anchor-job-done-unchecked",
+   "part": "O6",
+   "describes": "the stop record need not name the anchor job's JOB-DONE.json",
+   "file": "rules_78b.py",
+   "find": "    if job_done_sha256 is not None and doc[\"job_done_sha256\"] != job_done_sha256:",
+   "replace": "    if False:"
+  },
+  {
+   "id": "K1R-m-stopped-plans-l1-scan",
+   "part": "item 14",
+   "describes": "a stopped family plans l1_scan",
+   "file": "rules_78b.py",
+   "find": "STOP_REFUSED_KINDS = frozenset({\"rep_pass\", \"l1_scan\", \"classifier\", \"a1_pass\", \"anchor\"})",
+   "replace": "STOP_REFUSED_KINDS = frozenset({\"rep_pass\", \"classifier\", \"a1_pass\", \"anchor\"})"
+  },
+  {
+   "id": "K1R-m-main-retrain-without-stop",
+   "part": "item 14",
+   "describes": "the retrain under MAIN_F without a stop record",
+   "file": "rules_78b.py",
+   "find": "    if kind == \"retrain\" and family_stopped(family):\n        if recipe_sha256",
+   "replace": "    if kind == \"retrain\":\n        if recipe_sha256"
+  },
+  {
+   "id": "K1R-m-stopped-retrain-any-recipe",
+   "part": "item 14",
+   "describes": "a stopped family's retrain under any recipe",
+   "file": "rules_78b.py",
+   "find": "        if recipe_sha256 != CONFIGS[family][\"main\"][1]:\n            raise Refused(f\"the retrain on {family}",
+   "replace": "        if False:\n            raise Refused(f\"the retrain on {family}"
+  },
+  {
+   "id": "K1R-m-stopped-retrain-needs-s",
+   "part": "item 14",
+   "describes": "a stopped family's retrain still waits on RECIPE_S",
+   "file": "rules_78b.py",
+   "find": "    if family is not None and kind == \"retrain\" and family_stopped(family):",
+   "replace": "    if False:"
+  },
+  {
+   "id": "K1R-m-stop-order-anchor-needed",
+   "part": "item 14",
+   "describes": "a stopped family's retrain still waits on a complete anchor job",
+   "file": "rules_78b.py",
+   "find": "        if kind == \"retrain\" and family_stopped(family):\n            return None",
+   "replace": "        if False:\n            return None"
+  },
+  {
+   "id": "K1R-m-decision-stopped-retrain-s",
+   "part": "item 14",
+   "describes": "the runner's gate demands S_78 for the stopped family's retrain",
+   "file": "rules_78b.py",
+   "find": "    if job[\"kind\"] in S78_KINDS and not (job[\"kind\"] == \"retrain\" and family_stopped(family)):",
+   "replace": "    if job[\"kind\"] in S78_KINDS:"
+  },
+  {
+   "id": "K1R-m-sc-recipe-stopped-s",
+   "part": "item 14",
+   "describes": "the stopped family's retrain carries recipe S",
+   "file": "rules_78b.py",
+   "find": "    if kind == \"retrain\" and family_stopped(family):\n        return \"B\"",
+   "replace": "    if kind == \"retrain\" and family_stopped(family):\n        return \"S\""
+  },
+  {
+   "id": "K1R-m-sr78-retrain-job-stopped-s",
+   "part": "item 14",
+   "describes": "the kit copy's retrain_job refuses on a stopped family",
+   "file": "stage1_rules.py",
+   "find": "    if r78.family_stopped(fam):",
+   "replace": "    if False:"
+  },
+  {
+   "id": "K1R-m-ref-train-any-recipe",
+   "part": "5b, item 6",
+   "describes": "ref_train accepts the main config",
+   "file": "rules_78b.py",
+   "find": "    elif kind in G_KINDS:\n        if recipe_sha256 != pin_or_refuse(\"RECIPE_G\", family):",
+   "replace": "    elif False:\n        if recipe_sha256 != pin_or_refuse(\"RECIPE_G\", family):"
+  },
+  {
+   "id": "K1R-m-ref-train-decision-unpinned",
+   "part": "5b, item 6",
+   "describes": "the runner's gate runs ref_train with RECIPE_G null",
+   "file": "rules_78b.py",
+   "find": "    if job[\"kind\"] in G_KINDS:\n        pin_or_refuse(\"RECIPE_G\", family)",
+   "replace": "    if False:\n        pin_or_refuse(\"RECIPE_G\", family)"
+  },
+  {
+   "id": "K1R-m-oext-script-1b",
+   "part": "5d",
+   "describes": "OEXT_UNIT_SCRIPT back to the 1B script",
+   "file": "rules_78b.py",
+   "find": "OEXT_UNIT_SCRIPT = OEXT_WRAPPER_78B ",
+   "replace": "OEXT_UNIT_SCRIPT = \"scripts/stage1_s1/oext_unit.py\" "
+  },
+  {
+   "id": "K1R-m-sr78-blocks-no-b",
+   "part": "item 1",
+   "describes": "the kit copy's BLOCKS without B",
+   "file": "stage1_rules.py",
+   "find": "BLOCKS = (\"0\", \"sc\", \"A\", \"B\") ",
+   "replace": "BLOCKS = (\"0\", \"sc\", \"A\") "
+  },
+  {
+   "id": "K1R-m-plan-b-from-gate",
+   "part": "O14 (corrected)",
+   "describes": "block B's plan read from the gate's provisional plan",
+   "file": "rules_78b.py",
+   "find": "out.update(plan=plan_b[\"plan\"], sr2_adopted",
+   "replace": "out.update(plan=doc[\"provisional_plan\"], sr2_adopted"
+  },
+  {
+   "id": "K1R-m-plan-b-review-plans",
+   "part": "O14 (corrected)",
+   "describes": "a 'review' plan plans block B",
+   "file": "rules_78b.py",
+   "find": "        if plan_b[\"plan\"] == \"review\":\n",
+   "replace": "        if False:\n"
+  },
+  {
+   "id": "K1R-m-plan-b-sr2-hashes-optional",
+   "part": "O14 (corrected)",
+   "describes": "SR-2 adopted without blinded_sigma's hashes",
+   "file": "rules_78b.py",
+   "find": "            if not _hex(doc[key]):\n                return f\"SR-2 is adopted, so {key} must be a SHA-256\"",
+   "replace": "            if False:\n                return f\"SR-2 is adopted, so {key} must be a SHA-256\""
+  },
+  {
+   "id": "K1R-m-plan-b-codes-no-review",
+   "part": "O14 (corrected)",
+   "describes": "the plan-B codes lack 'review'",
+   "file": "rules_78b.py",
+   "find": "PLAN_B_CODES = PLAN_CODES + (\"review\",)",
+   "replace": "PLAN_B_CODES = PLAN_CODES"
+  },
+  {
+   "id": "K1R-m-plan-b-ignores-gate-families",
+   "part": "O14 (corrected)",
+   "describes": "block B's init skips the gate record",
+   "file": "rules_78b.py",
+   "find": "    doc = gate_record_or_refuse(data)\n    if block == \"A\" and doc[\"provisional_plan\"] == \"review\":",
+   "replace": "    doc = {\"families\": FAMILIES, \"option\": \"B\", \"provisional_plan\": \"A\"} if block == \"B\" else gate_record_or_refuse(data)\n    if block == \"A\" and doc[\"provisional_plan\"] == \"review\":"
+  },
+  {
+   "id": "K1R-m-oext-y-null-passes",
+   "part": "T-O3",
+   "describes": "a null OEXT_78B_Y passes",
+   "file": "rules_78b.py",
+   "find": "    if value is None:\n        raise Refused(f\"OEXT_78B_Y[{family!r}] is null",
+   "replace": "    if value is None:\n        return {}\n        raise Refused(f\"OEXT_78B_Y[{family!r}] is null"
+  },
+  {
+   "id": "K1R-m-oext-y-before-engine-y",
+   "part": "T-O3",
+   "describes": "OEXT_78B_Y accepted before ENGINE_Y and RECIPE_BQI",
+   "file": "rules_78b.py",
+   "find": "    if ENGINE_Y is None or RECIPE_BQI[family] is None:\n        raise Refused(f\"OEXT_78B_Y",
+   "replace": "    if False:\n        raise Refused(f\"OEXT_78B_Y"
+  },
+  {
+   "id": "K1R-m-bqi-decision-no-oext-y",
+   "part": "T-O3",
+   "describes": "the runner's gate runs B+Qi without OEXT_78B_Y",
+   "file": "rules_78b.py",
+   "find": "        oext_y_or_refuse(family)                       # R1 K1",
+   "replace": "        pass                                           # R1 K1"
+  },
+  {
+   "id": "K1V-m-stop-kind-old",
+   "part": "K1V-1",
+   "describes": "the stop record's old kind string",
+   "file": "rules_78b.py",
+   "find": "ANCHOR_STOP_KIND = \"scale-78b anchor stop\"",
+   "replace": "ANCHOR_STOP_KIND = \"stage1-78b anchor stop\""
+  },
+  {
+   "id": "K1V-m-stop-value-old",
+   "part": "K1V-1",
+   "describes": "the exit-3 stop value of round 1",
+   "file": "rules_78b.py",
+   "find": "STOP_FEW_SAFE = \"safe_anchors_below_64\"",
+   "replace": "STOP_FEW_SAFE = \"few_safe\""
+  },
+  {
+   "id": "K1V-m-stop-field-old",
+   "part": "K1V-1",
+   "describes": "the field stop instead of stop_kind",
+   "file": "rules_78b.py",
+   "find": "ANCHOR_STOP_KEYS = (\"kind\", \"version\", \"family\", \"stop_kind\",",
+   "replace": "ANCHOR_STOP_KEYS = (\"kind\", \"version\", \"family\", \"stop\","
+  },
+  {
+   "id": "K1V-m-stop-unread-passes",
+   "part": "K1V-6",
+   "describes": "a pinned stop marks the family stopped unread",
+   "file": "rules_78b.py",
+   "find": "    if _ANCHOR_STOPS_READ.get(family) != pin[\"sha256\"]:\n        raise Refused(f\"ANCHOR_STOP",
+   "replace": "    if False:\n        raise Refused(f\"ANCHOR_STOP"
+  },
+  {
+   "id": "K1V-m-stop-read-unchecked",
+   "part": "K1V-6",
+   "describes": "the pinned stop record's form unchecked",
+   "file": "rules_78b.py",
+   "find": "lambda d: anchor_stop_problem(d, family, job_done_sha256))",
+   "replace": "lambda d: None)"
+  },
+  {
+   "id": "K1V-m-stop-exit-type",
+   "part": "K1V-7",
+   "describes": "the stop record's exit code not type-checked",
+   "file": "rules_78b.py",
+   "find": "    if doc[\"stop_kind\"] not in ANCHOR_STOPS or not _int(doc[\"exit_code\"]) \\",
+   "replace": "    if doc[\"stop_kind\"] not in ANCHOR_STOPS \\"
+  },
+  {
+   "id": "K1V-m-dose-192-adds-top",
+   "part": "K-5",
+   "describes": "n >= 192 also plans s4_top",
+   "file": "rules_78b.py",
+   "find": "    if kept >= S4_KEEP:\n        return (\"S4_96\", \"S4_192\")",
+   "replace": "    if kept >= S4_KEEP:\n        return (\"S4_96\", \"S4_192\", \"s4_top\")"
+  },
+  {
+   "id": "K1V-m-dose-97-191-192",
+   "part": "K-5",
+   "describes": "97-191 plans S4_192 instead of s4_top",
+   "file": "rules_78b.py",
+   "find": "    if kept > S4_DOSE_96:\n        return (\"S4_96\", \"s4_top\")",
+   "replace": "    if kept > S4_DOSE_96:\n        return (\"S4_96\", \"S4_192\")"
+  },
+  {
+   "id": "K1V-m-dose-96-adds-top",
+   "part": "K-5",
+   "describes": "n = 96 also plans s4_top",
+   "file": "rules_78b.py",
+   "find": "    if kept == S4_DOSE_96:\n        return (\"S4_96\",)",
+   "replace": "    if kept == S4_DOSE_96:\n        return (\"S4_96\", \"s4_top\")"
+  },
+  {
+   "id": "K1V-m-dose-48-top",
+   "part": "K-5",
+   "describes": "n = 48 plans s4_top",
+   "file": "rules_78b.py",
+   "find": "    if kept > S4_MIN_KEPT:\n        return (\"s4_top\",)",
+   "replace": "    if kept >= S4_MIN_KEPT:\n        return (\"s4_top\",)"
+  },
+  {
+   "id": "K1V-m-dose-below-48-passes",
+   "part": "K-5",
+   "describes": "fewer than 48 kept is no build stop",
+   "file": "rules_78b.py",
+   "find": "    if kept < S4_MIN_KEPT:\n        raise Refused(f\"{kept} kept S4 rows",
+   "replace": "    if False:\n        raise Refused(f\"{kept} kept S4 rows"
+  },
+  {
+   "id": "K1V-m-dose-top-pin-rows-unchecked",
+   "part": "K-5",
+   "describes": "a filled s4_top pin's rows not held to the kept count",
+   "file": "rules_78b.py",
+   "find": "            if \"s4_top\" in dose_arms and isinstance(top, dict) and top.get(\"rows\") != kept:",
+   "replace": "            if False:"
+  },
+  {
+   "id": "K1V-m-plan-b-reason-unchecked",
+   "part": "K-6",
+   "describes": "no reason needed without SR-2",
+   "file": "rules_78b.py",
+   "find": "        if doc[\"sr2_reason\"] not in SR2_REASONS:",
+   "replace": "        if False:"
+  },
+  {
+   "id": "K1V-m-plan-b-basis-any-option",
+   "part": "K-6",
+   "describes": "the plan's basis not held to the option",
+   "file": "rules_78b.py",
+   "find": "        if option is not None and doc[\"plan_basis\"] != PLAN_BASES.get(option):",
+   "replace": "        if False:"
+  },
+  {
+   "id": "K1V-m-plan-b-hashes-without-sr2",
+   "part": "K-6",
+   "describes": "blinded_sigma hashes allowed without SR-2",
+   "file": "rules_78b.py",
+   "find": "            if doc[key] is not None:\n                return f\"SR-2 is not adopted, so {key} must be null\"",
+   "replace": "            if False:\n                return f\"SR-2 is not adopted, so {key} must be null\""
+  },
+  {
+   "id": "K1V-m-plan-b-no-option",
+   "part": "K-6",
+   "describes": "block B's init passes no option",
+   "file": "rules_78b.py",
+   "find": "plan_b_record_or_refuse(plan_b_data, doc[\"option\"])",
+   "replace": "plan_b_record_or_refuse(plan_b_data)"
+  },
+  {
+   "id": "K1V-m-review-plans-a",
+   "part": "R-1",
+   "describes": "block A plans under a review provisional plan",
+   "file": "rules_78b.py",
+   "find": "    if block == \"A\" and doc[\"provisional_plan\"] == \"review\":",
+   "replace": "    if False:"
+  },
+  {
+   "id": "K1V-m-gate-version-type",
+   "part": "K1V-7",
+   "describes": "the gate's version not type-checked",
+   "file": "rules_78b.py",
+   "find": "    if doc[\"kind\"] != GATE_RECORD_KIND or doc[\"version\"] != 1 or type(doc[\"version\"]) is not int:",
+   "replace": "    if doc[\"kind\"] != GATE_RECORD_KIND or doc[\"version\"] != 1:"
+  },
+  {
+   "id": "K1V-m-bank500-unpinned-bytes",
+   "part": "K1V-5",
+   "describes": "a 500-bank job accepts bytes that are not the pinned branch record",
+   "file": "rules_78b.py",
+   "find": "    try:\n        branch_record_or_refuse(family, branch_bytes)\n    except Refused as exc:",
+   "replace": "    try:\n        pass\n    except Refused as exc:"
+  },
+  {
+   "id": "K1V-m-flags-unpinned",
+   "part": "K1V-5",
+   "describes": "the flags read an unpinned branch document",
+   "file": "rules_78b.py",
+   "find": "    branch_doc = branch_record_or_refuse(family, branch_bytes)",
+   "replace": "    branch_doc = json.loads(branch_bytes)"
+  },
+  {
+   "id": "K1V-m-branch-version-type",
+   "part": "K1V-7",
+   "describes": "the branch record's version not type-checked",
+   "file": "rules_78b.py",
+   "find": "    if doc[\"kind\"] != BRANCH_RECORD_KIND or doc[\"version\"] != 1 or not _int(doc[\"version\"]) or doc[\"family\"] != family:",
+   "replace": "    if doc[\"kind\"] != BRANCH_RECORD_KIND or doc[\"version\"] != 1 or doc[\"family\"] != family:"
+  },
+  {
+   "id": "K1V-m-branch-switch-branch-only",
+   "part": "K1V-7",
+   "describes": "the switch check compares family and branch only",
+   "file": "rules_78b.py",
+   "find": "for k in (\"family\", \"branch\", \"source\", \"w1_18_record_sha256\"))",
+   "replace": "for k in (\"family\", \"branch\"))"
+  },
+  {
+   "id": "K1V-m-oext-kinds-no-branch",
+   "part": "R-4",
+   "describes": "the scorer block's O-ext kinds do not wait on BRANCH_78B",
+   "file": "rules_78b.py",
+   "find": "    if kind in SC_BRANCH_KINDS:\n        pins = pins + (\"BRANCH_78B\",)",
+   "replace": "    if False:\n        pins = pins + (\"BRANCH_78B\",)"
+  },
+  {
+   "id": "K1V-m-n-units-import-raises",
+   "part": "K1V-8",
+   "describes": "a malformed N_UNITS pin raises at import",
+   "file": "rules_78b.py",
+   "find": "        n = None                                         # K1V-8",
+   "replace": "        raise Refused(str(n_units_problem(n, family)))  # K1V-8"
+  },
+  {
+   "id": "K1V-m-rejudged-malformed-unnamed",
+   "part": "K1V-8",
+   "describes": "the judge launch does not name a malformed N_UNITS",
+   "file": "rules_78b.py",
+   "find": "    if block == \"A\" and n is not None and n_units_problem(n, family):",
+   "replace": "    if False:"
+  },
+  {
+   "id": "K1V-m-missing-arm-passes",
+   "part": "K1V-9",
+   "describes": "a missing arm names the side unit by default",
+   "file": "stage1_rules.py",
+   "find": "    if arm is None:\n        raise ValueError(\"o_only_with_regenerate names its unit",
+   "replace": "    if False:\n        raise ValueError(\"o_only_with_regenerate names its unit",
+   "note_r3": "R3 K3: re-targeted to _unit_source, where the one check now lives (same mutation)"
+  },
+  {
+   "id": "K1V-m-block0-new-keys",
+   "part": "R-3",
+   "describes": "block 0's job records gain the two new keys",
+   "file": "rules_78b.py",
+   "find": "    if oext or padded_tokens_per_step is not None:",
+   "replace": "    if True:"
+  },
+  {
+   "id": "K1V-m-index-any-family",
+   "part": "R-5",
+   "describes": "an O-ext pin accepts another family's or engine's index",
+   "file": "rules_78b.py",
+   "find": "    if (fam, eng) != (family, engine):",
+   "replace": "    if False:"
+  },
+  {
+   "id": "K1V-m-index-count-any",
+   "part": "R-5",
+   "describes": "an O-ext pin may name two indexes",
+   "file": "rules_78b.py",
+   "find": "    if len(candidates) != 1 or len(indexes) != 1:",
+   "replace": "    if len(candidates) < 1 or len(indexes) < 1:",
+   "note": "R2 K2: find text re-targeted to the changed line (same mutation)"
+  },
+  {
+   "id": "K1V-m-index-no-wrapper",
+   "part": "R-5",
+   "describes": "an O-ext pin need not pin the wrapper",
+   "file": "rules_78b.py",
+   "find": "    if OEXT_WRAPPER_78B not in oext[\"files\"]:\n        return f\"its files do not pin",
+   "replace": "    if False:\n        return f\"its files do not pin"
+  },
+  {
+   "id": "K1V-m-index-not-checked",
+   "part": "R-5",
+   "describes": "OEXT_78B's index not checked at planning",
+   "file": "rules_78b.py",
+   "find": "    if oext is not None and oext_index_problem(oext, family, \"X\"):",
+   "replace": "    if False:"
+  },
+  {
+   "id": "K1V-m-y-pin-engine-x",
+   "part": "R-5",
+   "describes": "OEXT_78B_Y checked for engine X's index",
+   "file": "rules_78b.py",
+   "find": "    problem = oext_form_problem(value, family, \"Y\")",
+   "replace": "    problem = oext_form_problem(value, family, \"X\")"
+  },
+  {
+   "id": "K1V-m-check-keys-y-reads-x",
+   "part": "R-5",
+   "describes": "check_keys reads OEXT_78B for an engine-Y job",
+   "file": "rules_78b.py",
+   "find": "name, pin = (f\"OEXT_78B[{family!r}]\", OEXT_78B[family]) if engine == \"X\" else \\",
+   "replace": "name, pin = (f\"OEXT_78B[{family!r}]\", OEXT_78B[family]) if True else \\"
+  },
+  {
+   "id": "K1V-m-edit-pin-any-suffix",
+   "part": "K1V-7",
+   "describes": "an edit pin of any suffix",
+   "file": "rules_78b.py",
+   "find": "and pin[\"path\"].endswith(\".json\")):",
+   "replace": "):"
+  },
+  {
+   "id": "K1V-m-files-form-any-dir",
+   "part": "K1V-7",
+   "describes": "W1_18_78B files outside scripts/",
+   "file": "rules_78b.py",
+   "find": "        if not _plain_rel(path, \"scripts/\"):",
+   "replace": "        if not _plain_rel(path):"
+  },
+  {
+   "id": "K1V-m-n-units-keys-loose",
+   "part": "K1V-7",
+   "describes": "an N unit with extra keys",
+   "file": "rules_78b.py",
+   "find": "        if not isinstance(u, dict) or set(u) != keys:",
+   "replace": "        if not isinstance(u, dict) or not keys <= set(u):"
+  },
+  {
+   "id": "K1V-m-n-units-r-only",
+   "part": "K1V-7",
+   "describes": "N_UNITS needed for R units only (Llama's N a0-1103 not)",
+   "file": "rules_78b.py",
+   "find": "    if family is not None and arm is not None and sc_unit_source(family, kind, arm, seed) == \"n\":",
+   "replace": "    if family is not None and arm is not None and arm == \"R\":"
+  },
+  {
+   "id": "KF-m-sigma-a-plan-any",
+   "part": "R-24",
+   "describes": "basis sigma_A: any plan passes",
+   "file": "rules_78b.py",
+   "find": "        if doc[\"plan\"] != sigma_plan:\n",
+   "replace": "        if False:\n"
+  },
+  {
+   "id": "KF-m-sigma-a-threshold",
+   "part": "R-24",
+   "describes": "the seed rule's 4.5 pp threshold moved",
+   "file": "rules_78b.py",
+   "find": "    plan = \"A\" if sigma <= Fraction(\"4.5\") else \"B9\" if sigma <= Fraction(\"6.0\") else \"H\"",
+   "replace": "    plan = \"A\" if sigma < Fraction(\"4.5\") else \"B9\" if sigma <= Fraction(\"6.0\") else \"H\""
+  },
+  {
+   "id": "KF-m-sigma-a-unchecked-value",
+   "part": "R-24",
+   "describes": "sigma_A_pp's value not checked",
+   "file": "rules_78b.py",
+   "find": "        except Refused:\n            return \"SR-2 is adopted, so sigma_A_pp is",
+   "replace": "        except ZeroDivisionError:\n            return \"SR-2 is adopted, so sigma_A_pp is"
+  },
+  {
+   "id": "KF-m-sigma-a-null-without-sr2",
+   "part": "R-24",
+   "describes": "sigma_A_pp allowed without SR-2",
+   "file": "rules_78b.py",
+   "find": "        if doc[\"sigma_A_pp\"] is not None:\n            return \"SR-2 is not adopted, so sigma_A_pp is null\"",
+   "replace": "        if False:\n            return \"SR-2 is not adopted, so sigma_A_pp is null\""
+  },
+  {
+   "id": "KF-m-pool-plan-any",
+   "part": "R-24",
+   "describes": "basis sigma_pool_N: any plan passes",
+   "file": "rules_78b.py",
+   "find": "        if plan_b[\"plan_basis\"] == PLAN_BASES[\"B\"] and plan_b[\"plan\"] != doc[\"provisional_plan\"]:",
+   "replace": "        if False:"
+  },
+  {
+   "id": "KF-m-sigma-f-plan-any",
+   "part": "R-24",
+   "describes": "basis sigma_F: any plan passes",
+   "file": "rules_78b.py",
+   "find": "        if plan_b[\"plan_basis\"] == PLAN_BASES[\"C\"] and plan_b[\"plan\"] != doc[\"sigma_F_plan\"]:",
+   "replace": "        if False:"
+  },
+  {
+   "id": "KF-m-gate-c-no-sigma-f",
+   "part": "R-24",
+   "describes": "the [C] gate need not record sigma_F's plan",
+   "file": "rules_78b.py",
+   "find": "    if doc[\"option\"] == \"C\" and doc[\"sigma_F_plan\"] not in PLAN_B_CODES:",
+   "replace": "    if False:"
+  },
+  {
+   "id": "KF-m-gate-b-sigma-f-any",
+   "part": "R-24",
+   "describes": "the [B] gate may record a sigma_F plan",
+   "file": "rules_78b.py",
+   "find": "    if doc[\"option\"] == \"B\" and doc[\"sigma_F_plan\"] is not None:",
+   "replace": "    if False:"
+  },
+  {
+   "id": "KF-m-index-old-name",
+   "part": "R-22",
+   "describes": "the index regex takes K1's old name",
+   "file": "rules_78b.py",
+   "find": "OEXT_INDEX_RE = re.compile(r\"^scripts/scale78b/settings/OEXT-78B(-Y)?__(olmo2-7b|llama31-8b)\\.json$\")",
+   "replace": "OEXT_INDEX_RE = re.compile(r\"^scripts/scale78b/settings/(?:oext_index__|OEXT-78B(-Y)?__)(olmo2-7b|llama31-8b)(?:__[XY])?\\.json$\")"
+  },
+  {
+   "id": "KF-m-index-y-as-x",
+   "part": "R-22",
+   "describes": "a Y index read as engine X",
+   "file": "rules_78b.py",
+   "find": "    eng = \"Y\" if y else \"X\"",
+   "replace": "    eng = \"X\""
+  },
+  {
+   "id": "KF-m-w1-18-records-many",
+   "part": "R-21",
+   "describes": "several entries under the W1-18 folder",
+   "file": "rules_78b.py",
+   "find": "    if len(records) > 1:",
+   "replace": "    if len(records) > 9:"
+  },
+  {
+   "id": "KF-m-w1-18-record-any-form",
+   "part": "R-21",
+   "describes": "any entry under the W1-18 folder",
+   "file": "rules_78b.py",
+   "find": "            if not W1_18_RECORD_RE.match(path):",
+   "replace": "            if False:"
+  },
+  {
+   "id": "KF-m-w1-18-folder-any",
+   "part": "R-21",
+   "describes": "any .ai folder for the W1-18 record",
+   "file": "rules_78b.py",
+   "find": "W1_18_RECORD_DIR = \".ai/inputs/stage1-post-w1-20261023/78b/w1-18/\"",
+   "replace": "W1_18_RECORD_DIR = \".ai/inputs/\""
+  },
+  {
+   "id": "KF-m-stop-needed-unchecked",
+   "part": "KR2",
+   "describes": "the stop record's needed not checked",
+   "file": "rules_78b.py",
+   "find": "        if not (isinstance(line, dict) and set(line) == {\"kept\", \"needed\"} and line[\"needed\"] == ANCHOR_N_SAFE\n",
+   "replace": "        if not (isinstance(line, dict) and set(line) == {\"kept\", \"needed\"}\n"
+  },
+  {
+   "id": "KF-m-stop-of-unchecked",
+   "part": "KR2",
+   "describes": "the harmful counts' of not checked",
+   "file": "rules_78b.py",
+   "find": "              and all(_int(line[k]) for k in line) and line[\"of\"] == ANCHOR_N_HARMFUL\n",
+   "replace": "              and all(_int(line[k]) for k in line)\n"
+  },
+  {
+   "id": "KF-m-stop-index-range",
+   "part": "KR2",
+   "describes": "the prompt_index range not checked",
+   "file": "rules_78b.py",
+   "find": "              and 0 <= line[\"prompt_index\"] < ANCHOR_N_HARMFUL and line[\"position\"] == line[\"prompt_index\"] + 1):",
+   "replace": "              and line[\"position\"] == line[\"prompt_index\"] + 1):"
+  },
+  {
+   "id": "KF-m-stop-jobdone-form",
+   "part": "KR2",
+   "describes": "the stop record's job_done_sha256 form not checked",
+   "file": "rules_78b.py",
+   "find": "    if not _hex(doc[\"job_done_sha256\"]):\n        return \"job_done_sha256 is not a SHA-256\"",
+   "replace": "    if False:\n        return \"job_done_sha256 is not a SHA-256\""
+  },
+  {
+   "id": "KF-m-top-pin-any-arms",
+   "part": "KR7",
+   "describes": "a filled s4_top pin is checked even where no s4_top runs",
+   "file": "rules_78b.py",
+   "find": "            if \"s4_top\" in dose_arms and isinstance(top, dict) and top.get(\"rows\") != kept:",
+   "replace": "            if isinstance(top, dict) and top.get(\"rows\") != kept:"
+  },
+  {
+   "id": "KF-m-branch-texts",
+   "part": "KR7",
+   "describes": "the branch record's utc and recorded_by not checked",
+   "file": "rules_78b.py",
+   "find": "    if not all(isinstance(doc[k], str) and doc[k].strip() for k in (\"utc\", \"recorded_by\")):",
+   "replace": "    if False:"
+  },
+  {
+   "id": "KF-m-stop-read-jobdone-optional",
+   "part": "KR8",
+   "describes": "anchor_stop_or_refuse reads without the JOB-DONE hash",
+   "file": "rules_78b.py",
+   "find": "    if not _hex(job_done_sha256):\n        raise Refused(\"the anchor job's JOB-DONE.json SHA-256 is required",
+   "replace": "    if False:\n        raise Refused(\"the anchor job's JOB-DONE.json SHA-256 is required"
+  },
+  {
+   "id": "KF2-m-no-review-ceiling",
+   "part": "R-29",
+   "describes": "basis sigma_A never reaches review",
+   "file": "rules_78b.py",
+   "find": "    if Fraction(PLAN_MDE_FACTORS[plan]) * sigma > 2 * SESOI_PP:\n        return \"review\"",
+   "replace": "    if False:\n        return \"review\""
+  },
+  {
+   "id": "KF2-m-ceiling-factor-h",
+   "part": "R-29",
+   "describes": "H (b)'s MDE factor off noise_reading's pin",
+   "file": "rules_78b.py",
+   "find": "PLAN_MDE_FACTORS = {\"A\": \"1.4207\", \"B9\": \"1.0785\", \"H\": \"0.9340\"}",
+   "replace": "PLAN_MDE_FACTORS = {\"A\": \"1.4207\", \"B9\": \"1.0785\", \"H\": \"0.9341\"}"
+  },
+  {
+   "id": "KF2-m-ceiling-ge",
+   "part": "R-29",
+   "describes": "the ceiling compared with >= (review at the boundary)",
+   "file": "rules_78b.py",
+   "find": "    if Fraction(PLAN_MDE_FACTORS[plan]) * sigma > 2 * SESOI_PP:",
+   "replace": "    if Fraction(PLAN_MDE_FACTORS[plan]) * sigma >= 2 * SESOI_PP - Fraction(1, 10 ** 6):"
+  },
+  {
+   "id": "K3-m-r47-128-only",
+   "part": "R-47",
+   "describes": "--w1-18-record only under Branch 128 (a failing record's Branch full drops it)",
+   "file": "rules_78b.py",
+   "find": "    record = branch_doc[\"w1_18_record_sha256\"] if branch_doc[\"source\"] == \"w1_18\" else None\n",
+   "replace": "    record = branch_doc[\"w1_18_record_sha256\"] if branch_doc[\"branch\"] == \"128\" else None\n"
+  },
+  {
+   "id": "K3-m-dev100-under-full-rk",
+   "part": "5f",
+   "describes": "--dev100-source on a regenerated unit under Branch full",
+   "file": "rules_78b.py",
+   "find": "\"dev100_source\": branch_doc[\"branch\"] == \"128\" and bool(regenerated)}",
+   "replace": "\"dev100_source\": bool(regenerated)}"
+  },
+  {
+   "id": "K3-m-seed-only-back",
+   "part": "R-16, R-31",
+   "describes": "the seed-only form comes back (a missing arm is the side unit)",
+   "file": "stage1_rules.py",
+   "find": "    if arm is None:\n        raise ValueError(\"o_only_with_regenerate names its unit by (arm, seed): the arm is missing (GXB's seed key)\")\n    try:\n        return r78.sc_unit_source",
+   "replace": "    if arm is None:\n        return \"side\"\n    try:\n        return r78.sc_unit_source"
+  },
+  {
+   "id": "K3c-m-y-measured-no-record",
+   "part": "R-67",
+   "describes": "measured kinds run on Y on the bool alone",
+   "file": "rules_78b.py",
+   "find": "        return kind in E_KINDS or (Y_MEASURED is True and Y_MEASURED_RECORD is not None)",
+   "replace": "        return kind in E_KINDS or Y_MEASURED is True"
+  },
+  {
+   "id": "K3c-m-b10-not-bank500",
+   "part": "13b",
+   "describes": "b10_certify does not wait for the branch record",
+   "file": "rules_78b.py",
+   "find": "                           \"ref_train_bqi\", \"b10_certify\"})",
+   "replace": "                           \"ref_train_bqi\"})"
+  }
+ ]
+}

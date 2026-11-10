@@ -1,0 +1,20 @@
+{
+ "kind": "hand mutants",
+ "note": "fix-K-core copy of verify-K-core's hand spec: V-H14 unchanged; V-H17 re-targeted to the moved clause (same mutation).",
+ "mutants": [
+  {
+   "id": "V-H14",
+   "file": "plan_tool.py",
+   "find": "    if doc.get(\"recipe_sha256\") != rules.REC_CONFIG_SHA256 or doc.get(\"manifest_sha256\") != \\\n            rules.PREPARED_MANIFESTS[rules.PREPARED_NAME] or doc.get(\"training_identity\") != rules.TRAINING_IDENTITY:",
+   "replace": "    if False:",
+   "describes": "fixture() accepts the other family's verification.json"
+  },
+  {
+   "id": "V-H17",
+   "file": "rules_78b.py",
+   "find": "        if not sealed_edit_entry(e) or e.get(\"family\") != \"R\":\n",
+   "replace": "        if not sealed_edit_entry(e):\n",
+   "describes": "edit_sources takes any family's edit entry with a block-0 draw (re-targeted by fix-K-core: the family clause now lives in rules_78b.block0_r_edits, which edit_sources and pack_setup.sealed_set call; same mutation)"
+  }
+ ]
+}

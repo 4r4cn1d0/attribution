@@ -1,0 +1,12 @@
+            assert code == 2 and "REFUSED" in err and "exists and is not empty" in err
+>           assert scratch.is_dir() and keep.read_bytes() == b"{}" and sorted(p.name for p in scratch.iterdir()) == ["keep.json"]
+E           AssertionError: assert (False)
+scripts/scale78b/tests/test_s1_olmo2_7b_check.py:117: AssertionError
+        """F-1, the verifier's probe (a): a missing --edit refuses (OSError) before the check reaches the scratch folder; a
+            assert code == 2 and "REFUSED: FileNotFoundError" in capsys.readouterr().err
+>           assert scratch.is_dir() and (scratch / "precious.txt").read_bytes() == b"x"
+E           AssertionError: assert (False)
+scripts/scale78b/tests/test_s1_olmo2_7b_check.py:132: AssertionError
+FAILED scripts/scale78b/tests/test_s1_olmo2_7b_check.py::test_a_pre_existing_non_empty_scratch_tmp_is_refused_and_survives
+FAILED scripts/scale78b/tests/test_s1_olmo2_7b_check.py::test_a_pre_existing_scratch_tmp_survives_a_refusal_before_any_measurement
+2 failed, 1 passed, 7 deselected in 7.12s

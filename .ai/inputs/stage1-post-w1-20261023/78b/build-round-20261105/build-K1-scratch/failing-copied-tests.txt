@@ -1,0 +1,342 @@
+# Copied test files of runkit/stage1-78b/tests/ that fail in the 7-8B copy (K1 did not fix them: they test the runner, the launch path, the judge route and the 1B rounds; the next stages adapt them). Each line: file, verdict counts, then the FAILED/ERROR lines pytest printed. Produced 2026-11-05T16:37:46Z.
+
+## test_stage1_runner: 175 failed, 12 passed in 13.31s
+first cause: E   AttributeError: module 'stage1_rules' has no attribute 'MAN1_PATH'
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_the_dry_run_prints_exactly_the_brief_commands_and_writes_nothing
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_the_engine_y_pod_commands
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_every_jobs_argv_parses_with_its_targets_own_parser
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_every_steps_recipe_is_the_one_its_target_scripts_settings_pin
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_engine_x_refuses_y_only_arguments_so_c3_runs_on_y
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_a_missing_input_makes_the_job_unrunnable_and_k12_refuses
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_jobs_run_in_order_with_engine_records_and_cost_ledgers
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_a_job_that_does_not_fit_and_every_later_one_are_deferred_in_order
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_a_missing_or_unreadable_heartbeat_stops_the_host[missing]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_a_missing_or_unreadable_heartbeat_stops_the_host[unreadable]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_a_crash_stops_the_host_and_later_jobs_do_not_start
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_a_pod_requirement_uses_the_larger_of_the_plan_and_the_projections_o500
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_ln_15e_retrains_and_re_scores_run_as_linked_pairs_and_record_their_units
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_a_re_score_without_its_groups_or_after_a_crashed_retrain_never_runs
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_a_re_score_whose_groups_repeat_one_never_runs
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_a_changed_byte_in_any_input_refuses_its_job[inputs/anchor_bank/anchor_bank.json-l1_scan]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_a_changed_byte_in_any_input_refuses_its_job[inputs/reuse_spec/reuse_spec.json-regenerate]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_a_changed_byte_in_any_input_refuses_its_job[scripts/stage1/score_l1_larf.py-l1_scan]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_a_changed_byte_in_any_input_refuses_its_job[inputs/oext_bank/oext_bank.json-o_only]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_a_changed_byte_in_any_input_refuses_its_job[scripts/stage1_s1/oext_eval.py-o_only]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_a_changed_byte_in_any_input_refuses_its_job[inputs/gate_a_eval-1101/eval/summary.json-b10_certify]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_a_changed_byte_in_any_input_refuses_its_job[inputs/list-s4/s4.json-untuned_answers]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_a_changed_byte_in_any_input_refuses_its_job[data/units/u1/COMPLETE.json-w1_18]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_the_start_up_check_refuses_any_changed_sealed_file
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_an_edit_file_must_hash_to_its_jobs_sha256_and_arm
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_the_runner_refuses_a_token_a_second_run_and_a_wrong_engine
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_the_w1_18_and_branch_gates_on_the_pod
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_a_regeneration_is_accepted_on_every_listed_field_and_its_o_only_pass_runs
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_a_regeneration_that_differs_in_one_field_holds_its_o_only_pass_ls_04[e1_adapter_fingerprint]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_a_regeneration_that_differs_in_one_field_holds_its_o_only_pass_ls_04[training_identity]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_a_regeneration_that_differs_in_one_field_holds_its_o_only_pass_ls_04[manifest_sha256]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_a_regeneration_that_differs_in_one_field_holds_its_o_only_pass_ls_04[data_config_sha256]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_an_accept_field_listed_in_the_spec_is_always_compared
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_an_r_regeneration_runs_its_edit_and_matches_its_spec_entry_by_engine_arm
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_an_o_only_pass_without_its_regeneration_on_this_pod_does_not_run
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_record_done_accepts_a_complete_o_only_pass_by_its_outputs
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_the_safe_lora_job_checks_v_against_v_prime_before_the_projection
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_a_missing_v_check_stops_the_job_before_any_projection
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_a_transform_without_its_timing_file_is_a_crash
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_k12_never_runs_even_with_a_recorded_yes
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_the_base_model_downloads_at_its_commit_and_every_file_is_checked
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_a_base_file_that_differs_from_its_pin_refuses[git blob]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_a_base_file_that_differs_from_its_pin_refuses[lfs sha]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_a_base_file_that_differs_from_its_pin_refuses[size]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_a_base_file_that_differs_from_its_pin_refuses[extra file]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_a_base_file_that_differs_from_its_pin_refuses[folder]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_a_download_at_main_or_a_short_revision_refuses_before_any_request[main]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_a_download_at_main_or_a_short_revision_refuses_before_any_request[a1847dff]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_a_download_at_main_or_a_short_revision_refuses_before_any_request[None]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_a_download_at_main_or_a_short_revision_refuses_before_any_request[A1847DFF35000B4271FA70AFC5DB10FD29FEDBDF]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_the_preflight_projects_o500_from_the_pods_evaluation_speed[4360.619162873324-full-1517.0]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_the_preflight_projects_o500_from_the_pods_evaluation_speed[8721.238325746648-full-3034.0]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_the_preflight_projects_o500_from_the_pods_evaluation_speed[2180.309581436662-full-1517.0]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_the_preflight_projects_o500_from_the_pods_evaluation_speed[5232.7429954479885-128-1228.8]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_the_pack_takes_pool_s3_orig_only_at_the_sha256_j6s_record_names
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_the_x_pack_seals_every_input_and_edit_by_sha256
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_the_pack_refuses_before_writing_anything[changed input byte]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_the_pack_refuses_before_writing_anything[unknown name]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_the_pack_refuses_before_writing_anything[differs from MAN1]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_the_pack_refuses_before_writing_anything[engine identity]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_the_pack_refuses_before_writing_anything[constraints]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_the_pack_refuses_before_writing_anything[a second pack]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_a_named_input_that_man1_lists_with_another_sha256_refuses_by_that_check_alone[file]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_a_named_input_that_man1_lists_with_another_sha256_refuses_by_that_check_alone[folder]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_the_y_pack_comes_from_the_frozen_tree_checked_against_yhash
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_a_y_tree_that_fails_yhash_refuses
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_the_base_row_must_equal_the_pins_record
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_check_plan_refuses_a_job_whose_o_ext_script_is_not_packed
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_under_branch_128_check_plan_needs_w1_18s_record_packed[128-True]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_under_branch_128_check_plan_needs_w1_18s_record_packed[full-False]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_check_plan_refuses_a_packed_engine_that_is_not_the_hosts
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_the_w1_18_hold
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_reference_pods_compare_with_the_certification_pod_and_others_with_gate_b
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_the_preflight_plan_names_the_hosts_preflight_recipe
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_no_printed_line_or_runner_record_holds_a_sentinel_value
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_the_backup_stages_the_stage1_records_and_the_seal
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_the_runner_files_compile_hold_no_secret_and_gate_b_is_unchanged
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_every_b10_unit_of_a_multi_point_job_is_verified_and_recorded
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_a_multi_point_b10_job_missing_one_unit_is_a_crash
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_under_fallback_c_no_o_ext_step_runs
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_a_branch_128_o_only_pass_on_a_regenerated_unit_names_its_source_unit
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_the_pack_refuses_s1_settings_not_re_pinned_on_its_engine[472fc7f6d619bdee2c3aa38e444024626be8b66bfb74a5abf37f2ddb6dded892-True]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_the_pack_refuses_s1_settings_not_re_pinned_on_its_engine[0000000000000000000000000000000000000000000000000000000000000000-False]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_the_pack_refuses_s1_settings_not_re_pinned_on_its_engine[None-False]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_job_started_reads_exit_0_and_1_and_nothing_else[0-True]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_job_started_reads_exit_0_and_1_and_nothing_else[1-False]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_job_started_reads_exit_0_and_1_and_nothing_else[255-None]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_job_started_reads_exit_0_and_1_and_nothing_else[raise-None]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_a_failure_before_the_job_stops_the_pod_and_logs_its_step[1-pre-job-failed]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_a_failure_before_the_job_stops_the_pod_and_logs_its_step[255-job-start-unknown]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_j5_and_j8_run_through_d2_and_record_their_outputs
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_a_moved_j5_reads_j6s_pool_as_the_pinned_packed_input_through_d2
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_a_moved_j5_refuses_without_j6s_pinned_pool[other pin-packed s3_orig pool differs from the plan's pin]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_a_moved_j5_refuses_without_j6s_pinned_pool[not packed-'pool:s3_orig' is not packed]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_a_moved_j5_refuses_without_j6s_pinned_pool[no pin, no J6-no untuned_answers job earlier on this pod]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_check_plan_accepts_the_moved_diagnostics_host_with_the_pinned_pool
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_under_the_d2_fallback_j5_keeps_s3_safe_only_and_j8_runs_the_w1_script_with_no_pools
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_a_j5_or_j8_whose_packed_files_differ_from_the_plans_pins_is_unrunnable[pins file-packed d2_pool_pins differs]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_a_j5_or_j8_whose_packed_files_differ_from_the_plans_pins_is_unrunnable[req8 record-packed req8_record differs]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_a_j5_or_j8_whose_packed_files_differ_from_the_plans_pins_is_unrunnable[plant pool-packed plant pool differs]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_a_j5_or_j8_whose_packed_files_differ_from_the_plans_pins_is_unrunnable[s3_safe pool-packed s3_safe pool differs]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_a_j5_or_j8_whose_packed_files_differ_from_the_plans_pins_is_unrunnable[no d2 entry-no D-2 pins]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_a_j5_or_j8_whose_packed_files_differ_from_the_plans_pins_is_unrunnable[no j6-no untuned_answers job]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_every_d2_file_of_j5_is_checked_before_it_runs[scripts/stage1_s1/d2_pool_pins/d2_representation_pass.py]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_every_d2_file_of_j5_is_checked_before_it_runs[scripts/stage1_s1/d2_pool_pins/fill_pins.py]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_every_d2_file_of_j5_is_checked_before_it_runs[.ai/inputs/stage1-commitments-20261016/MANIFEST.json]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_every_d2_file_of_j5_is_checked_before_it_runs[inputs/d2_pool_pins/representation_pools.filled.json]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_every_d2_file_of_j5_is_checked_before_it_runs[inputs/req8_record/plant_record.json]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_every_d2_file_of_j5_is_checked_before_it_runs[inputs/pool-decoy/decoy.json]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_the_d2_commands_parse_with_the_wrappers_own_parsers_in_this_repository
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_c3_runs_only_with_the_plans_subsample_and_record_pins
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_the_x_pack_carries_the_d2_package_man1_and_pinned_d2_inputs
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_the_x_pack_carries_every_s1_package_file_by_its_pin
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_an_s1_package_file_whose_bytes_differ_refuses_the_pack[scripts/stage1_s1/__init__.py]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_an_s1_package_file_whose_bytes_differ_refuses_the_pack[scripts/stage1_s1/eval_adapter.py]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_an_s1_package_file_whose_bytes_differ_refuses_the_pack[scripts/stage1_s1/safe_lora.py]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_an_s1_package_file_whose_bytes_differ_refuses_the_pack[scripts/stage1_s1/lean_eval_job.py]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_an_s1_package_file_whose_bytes_differ_refuses_the_pack[scripts/stage1_s1/oext_eval.py]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_an_s1_package_file_whose_bytes_differ_refuses_the_pack[scripts/stage1_s1/settings/eval_adapter.json]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_an_s1_package_file_whose_bytes_differ_refuses_the_pack[scripts/stage1_s1/settings/lean_eval_job.json]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_an_s1_package_file_whose_bytes_differ_refuses_the_pack[scripts/stage1_s1/settings/oext_eval.json]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_an_s1_package_file_whose_bytes_differ_refuses_the_pack[scripts/stage1_s1/settings/safe_lora.json]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_an_s1_package_file_whose_bytes_differ_refuses_the_pack[scripts/stage1_s1/oext_unit.py]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_an_s1_package_file_whose_bytes_differ_refuses_the_pack[scripts/stage1_s1/settings/oext_unit.json]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_a_lead_code_entry_under_the_s1_package_must_be_its_pin[another sha256]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_a_lead_code_entry_under_the_s1_package_must_be_its_pin[an unpinned file]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_a_lead_code_entry_under_the_s1_package_must_be_its_pin[the O-ext unit runner, another sha256]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_a_lead_code_entry_under_the_s1_package_must_be_its_pin[its settings, another sha256]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_a_lead_code_entry_under_the_s1_package_must_be_its_pin[a D-2 file at its pin]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_a_lead_code_entry_under_the_s1_package_must_be_its_pin[an S1 file at its pin]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_a_lead_code_entry_under_the_s1_package_must_be_its_pin[the O-ext unit runner at its pin]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_a_path_not_in_normal_form_refuses_the_pack[code-scripts/./stage1_s1/extra.py]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_a_path_not_in_normal_form_refuses_the_pack[code-scripts//stage1_s1/extra.py]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_a_path_not_in_normal_form_refuses_the_pack[code-scripts/stage1_s1/./extra.py]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_a_path_not_in_normal_form_refuses_the_pack[code-scripts/./stage1_s1/settings/extra.json]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_a_path_not_in_normal_form_refuses_the_pack[code-scripts/stage1_s1//settings/extra.json]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_a_path_not_in_normal_form_refuses_the_pack[input-tmp/./anchors/anchor_bank.json]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_a_path_not_in_normal_form_refuses_the_pack[input-tmp//anchors/anchor_bank.json]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_a_path_not_in_normal_form_refuses_the_pack[folder-eval/./e1/summary.json]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_a_path_not_in_normal_form_refuses_the_pack[folder-eval//e1/summary.json]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_every_s1_package_file_the_runner_uses_is_pinned
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_a_y_tree_with_another_identity_refuses_even_when_yhash_passes
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_the_default_y_tree_passes_yhash_and_is_34bfd288
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_one_changed_byte_in_any_file_j5_or_j8_uses_is_named_on_both_routes[d2]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_one_changed_byte_in_any_file_j5_or_j8_uses_is_named_on_both_routes[fallback]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_every_o_ext_steps_commands_parse_under_the_real_runners_own_parser
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_every_o_ext_step_seals_the_runner_and_its_settings[J10-scripts/stage1_s1/settings/oext_unit.json]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_every_o_ext_step_seals_the_runner_and_its_settings[J10-scripts/stage1_s1/oext_unit.py]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_every_o_ext_step_seals_the_runner_and_its_settings[J18-scripts/stage1_s1/settings/oext_unit.json]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_every_o_ext_step_seals_the_runner_and_its_settings[J18-scripts/stage1_s1/oext_unit.py]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_every_o_ext_step_seals_the_runner_and_its_settings[J3 a0-scripts/stage1_s1/settings/oext_unit.json]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_every_o_ext_step_seals_the_runner_and_its_settings[J3 a0-scripts/stage1_s1/oext_unit.py]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_every_o_ext_step_seals_the_runner_and_its_settings[J3 theta0-scripts/stage1_s1/settings/oext_unit.json]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_every_o_ext_step_seals_the_runner_and_its_settings[J3 theta0-scripts/stage1_s1/oext_unit.py]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_every_o_ext_step_seals_the_runner_and_its_settings[J4-scripts/stage1_s1/settings/oext_unit.json]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_every_o_ext_step_seals_the_runner_and_its_settings[J4-scripts/stage1_s1/oext_unit.py]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_every_o_ext_step_seals_the_runner_and_its_settings[J9-scripts/stage1_s1/settings/oext_unit.json]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_every_o_ext_step_seals_the_runner_and_its_settings[J9-scripts/stage1_s1/oext_unit.py]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_the_x_pack_alone_carries_every_file_an_o_ext_step_seals
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_every_unit_and_record_path_the_runner_writes_lies_under_the_pull_list[x-unit_tops0-outside_gateb0]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_every_unit_and_record_path_the_runner_writes_lies_under_the_pull_list[y-unit_tops1-outside_gateb1]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_every_unit_and_record_path_the_runner_writes_lies_under_the_pull_list[x128-unit_tops2-outside_gateb2]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_every_unit_and_record_path_the_runner_writes_lies_under_the_pull_list[w1-unit_tops3-outside_gateb3]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_every_unit_and_record_path_the_runner_writes_lies_under_the_pull_list[sim-unit_tops4-outside_gateb4]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_the_backup_lists_jobs_complete_not_pulled_and_leaves_c0s_states_aside
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_k3_b10s_failed_gate_is_a_complete_job_with_the_certify_unit_and_its_comparison
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_k3_anything_but_b10s_own_failed_gate_is_still_a_crash[no-comparison-B10 wrote no readable certification comparison file]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_k3_anything_but_b10s_own_failed_gate_is_still_a_crash[exit-4-verdict-pass-B10 exited 4 but its comparison is not a failed verdict]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_k3_anything_but_b10s_own_failed_gate_is_still_a_crash[exit-0-verdict-fail-B10 exited 0 but its comparison is not a pass]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_k3_anything_but_b10s_own_failed_gate_is_still_a_crash[exit-3-exit 3 in job-0-b10-run]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_k3_anything_but_b10s_own_failed_gate_is_still_a_crash[second-unit-after a failed gate B10 leaves the certify unit only (2 unit(s) found)]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_k3_anything_but_b10s_own_failed_gate_is_still_a_crash[ref-eval-exit-4-exit 4 in job-0-b10-run]
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_k3_the_kits_failed_gate_exit_is_b10s_own_exit_code
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_k6_an_a0_arm_job_writes_its_readable_fingerprint_record_and_lists_it
+FAILED runkit/stage1-78b/tests/test_stage1_runner.py::test_k6_a_state_fingerprint_that_is_not_complete_jsons_writes_no_record_and_the_unit_stands
+
+## test_round30a: 28 failed, 25 passed, 2 errors in 3.40s
+first cause: E       AssertionError: engine Y's tree (STAGE1_ENGINE_Y_TREE)
+FAILED runkit/stage1-78b/tests/test_round30a.py::test_a_bad_record_crashes_c1_before_any_engine_step[change0-cert_spec's registry_line.key is not C1's trajectory key (fields ['seed'])]
+FAILED runkit/stage1-78b/tests/test_round30a.py::test_a_bad_record_crashes_c1_before_any_engine_step[change1-cert_spec's registry_line.run_dir is not its replicate_of]
+FAILED runkit/stage1-78b/tests/test_round30a.py::test_a_bad_record_crashes_c1_before_any_engine_step[change2-cert_spec holds no registry_line with a key and a run_dir]
+FAILED runkit/stage1-78b/tests/test_round30a.py::test_a_bad_record_crashes_c1_before_any_engine_step[change3-cert/registry-cert_c1.jsonl exists already; C1's registry must be fresh]
+FAILED runkit/stage1-78b/tests/test_round30a.py::test_every_check_of_the_seed_step_both_ways[good]
+FAILED runkit/stage1-78b/tests/test_round30a.py::test_every_check_of_the_seed_step_both_ways[not-packed]
+FAILED runkit/stage1-78b/tests/test_round30a.py::test_every_check_of_the_seed_step_both_ways[sha]
+FAILED runkit/stage1-78b/tests/test_round30a.py::test_every_check_of_the_seed_step_both_ways[not-json]
+FAILED runkit/stage1-78b/tests/test_round30a.py::test_every_check_of_the_seed_step_both_ways[no-replicate]
+FAILED runkit/stage1-78b/tests/test_round30a.py::test_every_check_of_the_seed_step_both_ways[empty-replicate]
+FAILED runkit/stage1-78b/tests/test_round30a.py::test_every_check_of_the_seed_step_both_ways[no-line]
+FAILED runkit/stage1-78b/tests/test_round30a.py::test_every_check_of_the_seed_step_both_ways[key-not-object]
+FAILED runkit/stage1-78b/tests/test_round30a.py::test_every_check_of_the_seed_step_both_ways[run-dir-not-text]
+FAILED runkit/stage1-78b/tests/test_round30a.py::test_every_check_of_the_seed_step_both_ways[run-dir]
+FAILED runkit/stage1-78b/tests/test_round30a.py::test_every_check_of_the_seed_step_both_ways[recipe]
+FAILED runkit/stage1-78b/tests/test_round30a.py::test_every_check_of_the_seed_step_both_ways[key-arm]
+FAILED runkit/stage1-78b/tests/test_round30a.py::test_every_check_of_the_seed_step_both_ways[key-seed]
+FAILED runkit/stage1-78b/tests/test_round30a.py::test_every_check_of_the_seed_step_both_ways[key-split]
+FAILED runkit/stage1-78b/tests/test_round30a.py::test_every_check_of_the_seed_step_both_ways[key-role]
+FAILED runkit/stage1-78b/tests/test_round30a.py::test_every_check_of_the_seed_step_both_ways[key-manifest]
+FAILED runkit/stage1-78b/tests/test_round30a.py::test_every_check_of_the_seed_step_both_ways[plan-manifest]
+FAILED runkit/stage1-78b/tests/test_round30a.py::test_every_check_of_the_seed_step_both_ways[key-training]
+FAILED runkit/stage1-78b/tests/test_round30a.py::test_every_check_of_the_seed_step_both_ways[key-extra]
+FAILED runkit/stage1-78b/tests/test_round30a.py::test_every_check_of_the_seed_step_both_ways[key-missing]
+FAILED runkit/stage1-78b/tests/test_round30a.py::test_every_check_of_the_seed_step_both_ways[exists-empty]
+FAILED runkit/stage1-78b/tests/test_round30a.py::test_every_check_of_the_seed_step_both_ways[exists-line]
+FAILED runkit/stage1-78b/tests/test_round30a.py::test_every_check_of_the_seed_step_both_ways[exists-link]
+FAILED runkit/stage1-78b/tests/test_round30a.py::test_the_seed_step_derives_c1s_key_from_the_job_not_from_cert_spec
+ERROR runkit/stage1-78b/tests/test_round30a.py::test_engine_y_refuses_c1s_replicate_on_an_empty_registry_and_accepts_it_once_seeded
+ERROR runkit/stage1-78b/tests/test_round30a.py::test_the_runners_seed_lets_c1s_claim_pass_and_without_it_c1_crashes
+
+## test_round31: 8 failed, 3 passed in 0.61s
+first cause: E       AttributeError: module 'test_stage1_runkit' has no attribute '_block_b_ready'
+FAILED runkit/stage1-78b/tests/test_round31.py::test_k1_a_released_block_b_judge_launch_named_not_run_completes_the_block_and_the_seal_lists_it
+FAILED runkit/stage1-78b/tests/test_round31.py::test_k1_record_judges_needs_only_the_judges_no_decision_names
+FAILED runkit/stage1-78b/tests/test_round31.py::test_k1_a_decision_after_the_blocks_seal_adds_a_record_and_changes_no_seal
+FAILED runkit/stage1-78b/tests/test_round31.py::test_k2_block_bs_rejudged_pins_are_empty_by_rule
+FAILED runkit/stage1-78b/tests/test_round31.py::test_k2_block_bs_required_units_hold_its_ref_train_units
+FAILED runkit/stage1-78b/tests/test_round31.py::test_k2_the_judged_units_a_blocks_jobs_produce_by_hand
+FAILED runkit/stage1-78b/tests/test_round31.py::test_k2_init_block_refuses_a_judge_launch_over_fewer_units_than_its_jobs_produce
+FAILED runkit/stage1-78b/tests/test_round31.py::test_k6_launch_exits_non_zero_when_a_host_it_should_create_has_no_pod
+
+## test_round33: 5 failed, 1 passed in 0.35s
+first cause: E       AttributeError: module 'test_stage1_runkit' has no attribute 'B_DEAL'
+FAILED runkit/stage1-78b/tests/test_round33.py::test_gb1_units_of_block_refuses_while_block_b_has_an_open_job_and_lists_it_once_decided
+FAILED runkit/stage1-78b/tests/test_round33.py::test_gb4_block_bs_seal_needs_harmbenchs_run_record_and_label_cache_copied_under_judges_pods
+FAILED runkit/stage1-78b/tests/test_round33.py::test_gb4_a_run_record_naming_no_cache_or_not_json_is_refused
+FAILED runkit/stage1-78b/tests/test_round33.py::test_gb4_no_copy_is_needed_when_harmbench_is_decided_not_run
+FAILED runkit/stage1-78b/tests/test_round33.py::test_gb5_record_judges_refuses_a_launch_whose_result_names_another_gpu_or_none
+
+## test_round34: 61 failed, 2 passed in 3.78s
+first cause: E       AttributeError: module 'test_stage1_runkit' has no attribute 'E1'
+FAILED runkit/stage1-78b/tests/test_round34.py::test_j22_numbers_and_block_sims_cap_guard_spend_and_need_by_hand
+FAILED runkit/stage1-78b/tests/test_round34.py::test_the_pins_are_this_repositorys_b14_files_settings_and_add_edit_records
+FAILED runkit/stage1-78b/tests/test_round34.py::test_the_output_check_names_every_field_off_the_pins[None-problems0]
+FAILED runkit/stage1-78b/tests/test_round34.py::test_the_output_check_names_every_field_off_the_pins[change-problems1]
+FAILED runkit/stage1-78b/tests/test_round34.py::test_the_output_check_names_every_field_off_the_pins[change-problems2]
+FAILED runkit/stage1-78b/tests/test_round34.py::test_the_output_check_names_every_field_off_the_pins[change-problems3]
+FAILED runkit/stage1-78b/tests/test_round34.py::test_the_output_check_names_every_field_off_the_pins[change-problems4]
+FAILED runkit/stage1-78b/tests/test_round34.py::test_the_output_check_names_every_field_off_the_pins[change-problems5]
+FAILED runkit/stage1-78b/tests/test_round34.py::test_the_output_check_names_every_field_off_the_pins[change-problems6]
+FAILED runkit/stage1-78b/tests/test_round34.py::test_the_output_check_names_every_field_off_the_pins[change-problems7]
+FAILED runkit/stage1-78b/tests/test_round34.py::test_the_output_check_names_every_field_off_the_pins[change-problems8]
+FAILED runkit/stage1-78b/tests/test_round34.py::test_the_output_check_names_every_field_off_the_pins[change-problems9]
+FAILED runkit/stage1-78b/tests/test_round34.py::test_the_output_check_names_every_field_off_the_pins[change-problems10]
+FAILED runkit/stage1-78b/tests/test_round34.py::test_the_output_check_names_every_field_off_the_pins[change-problems11]
+FAILED runkit/stage1-78b/tests/test_round34.py::test_the_output_check_names_every_field_off_the_pins[change-problems12]
+FAILED runkit/stage1-78b/tests/test_round34.py::test_the_output_check_names_every_field_off_the_pins[change-problems13]
+FAILED runkit/stage1-78b/tests/test_round34.py::test_the_output_check_names_every_field_off_the_pins[change-problems14]
+FAILED runkit/stage1-78b/tests/test_round34.py::test_the_output_check_names_every_field_off_the_pins[change-problems15]
+FAILED runkit/stage1-78b/tests/test_round34.py::test_the_output_check_names_every_field_off_the_pins[change-problems16]
+FAILED runkit/stage1-78b/tests/test_round34.py::test_the_record_by_hand_is_canonical_and_text_free
+FAILED runkit/stage1-78b/tests/test_round34.py::test_block_sim_plans_one_pod_with_the_pinned_inputs_from_the_balance
+FAILED runkit/stage1-78b/tests/test_round34.py::test_block_sim_refuses_another_shape_engine_recipe_arm_or_job[launches0-block sim: one launch of one pod]
+FAILED runkit/stage1-78b/tests/test_round34.py::test_block_sim_refuses_another_shape_engine_recipe_arm_or_job[launches1-block sim: one launch of one pod]
+FAILED runkit/stage1-78b/tests/test_round34.py::test_block_sim_refuses_another_shape_engine_recipe_arm_or_job[launches2-block sim: one launch of one pod]
+FAILED runkit/stage1-78b/tests/test_round34.py::test_block_sim_refuses_another_shape_engine_recipe_arm_or_job[launches3-block sim: one launch of one pod]
+FAILED runkit/stage1-78b/tests/test_round34.py::test_block_sim_refuses_another_shape_engine_recipe_arm_or_job[launches4-similarity pass runs on engine X]
+FAILED runkit/stage1-78b/tests/test_round34.py::test_block_sim_refuses_another_shape_engine_recipe_arm_or_job[launches5-a similarity job runs recipe B]
+FAILED runkit/stage1-78b/tests/test_round34.py::test_block_sim_refuses_another_shape_engine_recipe_arm_or_job[launches6-a similarity job has no arm or seed]
+FAILED runkit/stage1-78b/tests/test_round34.py::test_block_sim_refuses_another_shape_engine_recipe_arm_or_job[launches7-a similarity job has no arm or seed]
+FAILED runkit/stage1-78b/tests/test_round34.py::test_block_sim_refuses_another_shape_engine_recipe_arm_or_job[launches8-a w1_18 job does not belong to block sim]
+FAILED runkit/stage1-78b/tests/test_round34.py::test_block_sim_refuses_another_shape_engine_recipe_arm_or_job[launches9-a l1_scan job does not belong to block sim]
+FAILED runkit/stage1-78b/tests/test_round34.py::test_block_sim_refuses_another_shape_engine_recipe_arm_or_job[launches10-plan A has no block 'sim']
+FAILED runkit/stage1-78b/tests/test_round34.py::test_a_similarity_job_belongs_to_block_sim_only
+FAILED runkit/stage1-78b/tests/test_round34.py::test_the_add_sets_must_be_the_pinned_files_the_s_arm_runs_trained_on
+FAILED runkit/stage1-78b/tests/test_round34.py::test_release_refuses_inputs_that_differ_from_the_planned_ones
+FAILED runkit/stage1-78b/tests/test_round34.py::test_a_crashed_pass_is_re_run_once_from_block_sims_contingency_and_the_block_completes
+FAILED runkit/stage1-78b/tests/test_round34.py::test_the_runner_runs_b14_on_the_pins_and_returns_the_output_and_its_record
+FAILED runkit/stage1-78b/tests/test_round34.py::test_the_runner_never_starts_b14_without_its_pins[<lambda>-plan.json carries no B14 inputs for this job0]
+FAILED runkit/stage1-78b/tests/test_round34.py::test_the_runner_never_starts_b14_without_its_pins[<lambda>-plan.json carries no B14 inputs for this job1]
+FAILED runkit/stage1-78b/tests/test_round34.py::test_the_runner_never_starts_b14_without_its_pins[<lambda>-plan.json carries no B14 inputs for this job2]
+FAILED runkit/stage1-78b/tests/test_round34.py::test_the_runner_never_starts_b14_without_its_pins[<lambda>-plan.json carries no B14 inputs for this job3]
+FAILED runkit/stage1-78b/tests/test_round34.py::test_the_runner_never_starts_b14_without_its_pins[<lambda>-1 input\\(s\\) not packed at the plan's pins \\(pack engine X after kit round 34\\): \\['data/kt-prepared/prepared-kt-dolly-olmo2/banks/dev\\.jsonl'\\]]
+FAILED runkit/stage1-78b/tests/test_round34.py::test_the_runner_never_starts_b14_without_its_pins[<lambda>-not packed at the plan's pins .*\\['scripts/stage1_s1/settings/overlap_similarity\\.json'\\]]
+FAILED runkit/stage1-78b/tests/test_round34.py::test_the_runner_never_starts_b14_without_its_pins[<lambda>-not packed at the plan's pins .*\\['data/kt-prepared/prepared-kt-dolly-olmo2/manifest\\.json'\\]]
+FAILED runkit/stage1-78b/tests/test_round34.py::test_an_add_set_the_pack_lacks_stops_the_host_and_fails_check_plans_runner_check
+FAILED runkit/stage1-78b/tests/test_round34.py::test_a_changed_byte_in_any_file_the_pass_reads_stops_the_host_before_it[S3]
+FAILED runkit/stage1-78b/tests/test_round34.py::test_a_changed_byte_in_any_file_the_pass_reads_stops_the_host_before_it[dev bank]
+FAILED runkit/stage1-78b/tests/test_round34.py::test_a_changed_byte_in_any_file_the_pass_reads_stops_the_host_before_it[manifest]
+FAILED runkit/stage1-78b/tests/test_round34.py::test_a_changed_byte_in_any_file_the_pass_reads_stops_the_host_before_it[script]
+FAILED runkit/stage1-78b/tests/test_round34.py::test_a_changed_byte_in_any_file_the_pass_reads_stops_the_host_before_it[settings]
+FAILED runkit/stage1-78b/tests/test_round34.py::test_an_output_off_the_pins_or_without_its_printed_sha256_is_a_crash_its_record_explains[change-add_sets.S4]
+FAILED runkit/stage1-78b/tests/test_round34.py::test_an_output_off_the_pins_or_without_its_printed_sha256_is_a_crash_its_record_explains[change-provenance.inputs[add/S1]]
+FAILED runkit/stage1-78b/tests/test_round34.py::test_an_output_off_the_pins_or_without_its_printed_sha256_is_a_crash_its_record_explains[change-provenance.settings_sha256]
+FAILED runkit/stage1-78b/tests/test_round34.py::test_an_output_off_the_pins_or_without_its_printed_sha256_is_a_crash_its_record_explains[change-provenance.inputs[recipe]]
+FAILED runkit/stage1-78b/tests/test_round34.py::test_an_output_off_the_pins_or_without_its_printed_sha256_is_a_crash_its_record_explains[change-eval.prompts]
+FAILED runkit/stage1-78b/tests/test_round34.py::test_an_output_off_the_pins_or_without_its_printed_sha256_is_a_crash_its_record_explains[change-add_sets.S1]
+FAILED runkit/stage1-78b/tests/test_round34.py::test_an_output_off_the_pins_or_without_its_printed_sha256_is_a_crash_its_record_explains[change-not a version-1 'stage1 overlap similarity' record]
+FAILED runkit/stage1-78b/tests/test_round34.py::test_an_output_off_the_pins_or_without_its_printed_sha256_is_a_crash_its_record_explains[no printed line-the SHA-256 the script printed is missing or not the file's]
+FAILED runkit/stage1-78b/tests/test_round34.py::test_a_record_that_exists_already_is_never_written_over
+FAILED runkit/stage1-78b/tests/test_round34.py::test_check_plan_passes_only_on_a_pack_made_after_this_round
+FAILED runkit/stage1-78b/tests/test_round34.py::test_record_done_and_the_light_check_take_the_pulled_output_by_its_record
+
+## test_round35: 26 failed, 1 passed in 1.54s
+first cause: E       AssertionError: assert (('0',) == ('S1-0', 'cer...'B', 'C', ...)
+FAILED runkit/stage1-78b/tests/test_round35.py::test_block_ps_tables_dose_cap_guard_spend_and_need_by_hand
+FAILED runkit/stage1-78b/tests/test_round35.py::test_blocks_a_b_and_cs_tables_and_block_as_pins_are_those_of_0d25497
+FAILED runkit/stage1-78b/tests/test_round35.py::test_init_block_p_needs_g3_and_block_b_complete_and_sealed
+FAILED runkit/stage1-78b/tests/test_round35.py::test_block_p_plans_one_pod_of_the_three_a0_plant_runs_from_the_balance
+FAILED runkit/stage1-78b/tests/test_round35.py::test_block_p_refuses_another_shape_a_judge_launch_a_hosts_launch_or_a_reused_run[launches0-extra0-launch 1: block P has no judge launch]
+FAILED runkit/stage1-78b/tests/test_round35.py::test_block_p_refuses_another_shape_a_judge_launch_a_hosts_launch_or_a_reused_run[launches1-extra1-launch 0: block P has no judge launch]
+FAILED runkit/stage1-78b/tests/test_round35.py::test_block_p_refuses_another_shape_a_judge_launch_a_hosts_launch_or_a_reused_run[launches2-extra2-block P's jobs come from its deal only]
+FAILED runkit/stage1-78b/tests/test_round35.py::test_block_p_refuses_another_shape_a_judge_launch_a_hosts_launch_or_a_reused_run[launches3-extra3-block P's jobs come from its deal only]
+FAILED runkit/stage1-78b/tests/test_round35.py::test_block_p_refuses_another_shape_a_judge_launch_a_hosts_launch_or_a_reused_run[launches4-extra4-block P's jobs come from its deal only]
+FAILED runkit/stage1-78b/tests/test_round35.py::test_block_p_refuses_another_shape_a_judge_launch_a_hosts_launch_or_a_reused_run[launches5-extra5-block P's jobs come from its deal only]
+FAILED runkit/stage1-78b/tests/test_round35.py::test_block_p_refuses_another_shape_a_judge_launch_a_hosts_launch_or_a_reused_run[launches6-extra6-every dealt pod appears exactly once]
+FAILED runkit/stage1-78b/tests/test_round35.py::test_block_p_refuses_another_shape_a_judge_launch_a_hosts_launch_or_a_reused_run[launches7-extra7-every dealt pod appears exactly once]
+FAILED runkit/stage1-78b/tests/test_round35.py::test_block_p_refuses_another_shape_a_judge_launch_a_hosts_launch_or_a_reused_run[launches8-extra8-deal indices must name the block's dealt pods]
+FAILED runkit/stage1-78b/tests/test_round35.py::test_block_p_refuses_another_shape_a_judge_launch_a_hosts_launch_or_a_reused_run[launches9-extra9-deal indices must name the block's dealt pods]
+FAILED runkit/stage1-78b/tests/test_round35.py::test_block_p_refuses_another_shape_a_judge_launch_a_hosts_launch_or_a_reused_run[launches10-extra10-block P: nothing is reused]
+FAILED runkit/stage1-78b/tests/test_round35.py::test_block_p_refuses_another_shape_a_judge_launch_a_hosts_launch_or_a_reused_run[launches11-extra11-a arm job on engine Y before a recorded passing X -> Y certificate refuses]
+FAILED runkit/stage1-78b/tests/test_round35.py::test_a_p_job_other_than_a0_plant_at_the_pilot_seeds_refuses_at_init_and_at_release
+FAILED runkit/stage1-78b/tests/test_round35.py::test_block_p_needs_the_sealed_edit_record_and_refuses_a_changed_or_missing_edit_file
+FAILED runkit/stage1-78b/tests/test_round35.py::test_record_sealed_binds_a_plant_edit_to_req8s_record_by_key_and_prints_no_field
+FAILED runkit/stage1-78b/tests/test_round35.py::test_the_runner_writes_the_plant_arms_readable_fingerprint_record_with_no_edit_field
+FAILED runkit/stage1-78b/tests/test_round35.py::test_the_unit_stands_when_the_plant_record_cannot_be_written_and_a_record_is_never_written_over
+FAILED runkit/stage1-78b/tests/test_round35.py::test_check_plan_passes_for_a_block_p_host_only_with_the_edit_packed_by_sha256
+FAILED runkit/stage1-78b/tests/test_round35.py::test_record_done_prints_block_ps_units_and_fingerprint_records_by_path_and_sha256
+FAILED runkit/stage1-78b/tests/test_round35.py::test_block_p_completes_and_seals_with_no_judge_launch_and_no_judge_file
+FAILED runkit/stage1-78b/tests/test_round35.py::test_a_crashed_a0_plant_run_is_re_run_once_from_block_ps_contingency
+FAILED runkit/stage1-78b/tests/test_round35.py::test_blinding_the_edits_name_never_reaches_a_readable_kit_file_or_the_output
+
+## test_g1_yoext: 5 failed, 5 errors in 0.48s
+first cause: E   AttributeError: module 'stage1_rules' has no attribute 'MAN1_PATH'
+FAILED runkit/stage1-78b/tests/test_g1_yoext.py::test_check_plan_passes_a_bqi_host_on_the_y_pack_and_refused_it_without_the_o_ext_package
+FAILED runkit/stage1-78b/tests/test_g1_yoext.py::test_an_engine_y_o_ext_file_whose_bytes_differ_refuses_the_y_pack[scripts/stage1_s1/oext_unit.py]
+FAILED runkit/stage1-78b/tests/test_g1_yoext.py::test_an_engine_y_o_ext_file_whose_bytes_differ_refuses_the_y_pack[scripts/stage1_s1/settings/oext_eval.json]
+FAILED runkit/stage1-78b/tests/test_g1_yoext.py::test_an_engine_y_o_ext_file_whose_bytes_differ_refuses_the_y_pack[scripts/stage1_s1/settings/oext_unit.json]
+FAILED runkit/stage1-78b/tests/test_g1_yoext.py::test_an_engine_y_settings_file_that_pins_engine_x_refuses_the_y_pack
+ERROR runkit/stage1-78b/tests/test_g1_yoext.py::test_the_y_pins_name_this_repositorys_engine_y_files_at_the_runners_o_ext_paths
+ERROR runkit/stage1-78b/tests/test_g1_yoext.py::test_the_y_copy_and_settings_pin_each_other_and_engine_y
+ERROR runkit/stage1-78b/tests/test_g1_yoext.py::test_the_real_y_pack_code_holds_the_o_ext_package_whose_settings_pin_engine_y
+ERROR runkit/stage1-78b/tests/test_g1_yoext.py::test_on_engine_y_engine_xs_o_ext_files_refuse_the_pack
+ERROR runkit/stage1-78b/tests/test_g1_yoext.py::test_the_real_y_pack_code_runs_the_o_ext_runner_on_engine_y_and_the_x_files_did_not
+
+## test_stage1_judge_route: 2 failed, 9 passed in 2.70s
+first cause: E       assert (1, 3, 2) == (3, 3, 0)
+FAILED runkit/stage1-78b/tests/test_stage1_judge_route.py::test_k2_ref_train_units_are_judged_as_built_and_filed_under_their_recipe_label
+FAILED runkit/stage1-78b/tests/test_stage1_judge_route.py::test_k3_a_resumed_launch_covers_every_unit_and_record_judges_takes_its_final_tag

@@ -1,0 +1,257 @@
+.......FF..                                                              [100%]
+=================================== FAILURES ===================================
+_ test_k2_ref_train_units_are_judged_as_built_and_filed_under_their_recipe_label _
+
+route = <module 's1_route_wrapper' from '/private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-pensive-stonebraker-bf6d79/b609d8b8-9fca-458c-826f-4c781de96013/scratchpad/b78/ws-k/runkit/stage1-78b/judge_units_stage1.py'>
+tmp_path = PosixPath('/private/var/folders/mk/33rfxgzn32318ntchzzgtm680000gn/T/pytest-of-spiderishi/pytest-76/test_k2_ref_train_units_are_ju0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x1098f4d10>
+capsys = <_pytest.capture.CaptureFixture object at 0x109247550>
+kitcopy = namespace(root=PosixPath('/private/var/folders/mk/33rfxgzn32318ntchzzgtm680000gn/T/pytest-of-spiderishi/pytest-76/test...8ntchzzgtm680000gn/T/pytest-of-spiderishi/pytest-76/test_k2_ref_train_units_are_ju0/repo/runkit/stage1-olmo/judges/B'))
+
+    def test_k2_ref_train_units_are_judged_as_built_and_filed_under_their_recipe_label(route, tmp_path, monkeypatch, capsys,
+                                                                                       kitcopy):
+        """K2 (§32 point 1): block B's a0_arm run and its recipe-G and B+Qi references at seed 1105 are three engine a0
+        units (round1/1105-a0-e1-a1 on three pods; job.json kind run-one, bank dev, target e1, arm a0). One launch through
+        the wrapper judges them as built: its bundle ships Gate B's bundle.py only, and the bundle's own pod_job.py verify
+        accepts all three (exit 0, complete); with a B10 unit beside them the stage-1 bundle.py is shipped and hands them
+        to Gate B's _verify_unit, which accepts them (exit 0). Gate B's write_files keeps one file per (judge, arm, seed,
+        target) in a folder, so write-files without the plan refuses (exit 2, nothing written); with plan.json it labels
+        the two references ref-G and ref-bqi (the a0 run keeps a0), and the kit's judge-files check passes on block B's three
+        required units. Again without the plan the folder refuses (fail-closed); a plan naming a unit that is no engine
+        a0 unit, a ref_train without its COMPLETE.json SHA-256 and a missing plan file refuse."""
+        w = route
+        prepared, manifest = prepared_set(tmp_path, monkeypatch, 3)
+        retrieved = tmp_path / "kit" / "retrieved"
+        pids = tuple(pid(i) for i in range(1, 4))
+        made = {}
+        for i, (name, host) in enumerate((("a0", "b-1"), ("G", "b-7"), ("bqi", "b-8")), 1):
+            made[name] = synth.make_unit(retrieved, host, "1105-a0-e1-a1", seed=1105, manifest=manifest, pids=pids,
+                                         samples=1, tag=name, completed_utc=f"2026-10-28T0{i}:00:00+00:00",
+                                         job_extra={"recipe_sha256": hashlib.sha256(name.encode()).hexdigest()})
+        digest = {name: sha(u / "COMPLETE.json") for name, u in made.items()}
+        code, host, out = launch(w, tmp_path, monkeypatch, "s1b-hb-ref", list(made.values()), prepared, manifest)
+        capsys.readouterr()
+        assert code == 0, (host.verify_err[-500:], steps(out))
+        assert json.loads((host.remote / "pod-bundle.json").read_text()) == {"module": "bundle.py", "stage1": False}
+        result = json.loads((out / "judge-pod-result.json").read_text())
+        assert result["verification"]["complete"] is True and result["verification"]["judged"] == 3 * 6
+        assert sorted(u["complete_sha256"] for u in result["verification"]["units"]) == sorted(digest.values())
+        b10 = b10_unit(tmp_path / "mix" / "retrieved", manifest, 3)          # block B's real shape: B10 units too
+        code, host, mix = launch(w, tmp_path, monkeypatch, "s1b-hb-mix", [*made.values(), b10], prepared, manifest)
+        capsys.readouterr()
+        assert code == 0 and json.loads((host.remote / "pod-bundle.json").read_text()) == {"module": "bundle_gateb.py",
+                                                                                          "stage1": True}
+        assert json.loads((mix / "judge-pod-result.json").read_text())["verification"]["judged"] == 4 * 6
+        cache = out / "fetched" / "out" / "harmbench-pod.jsonl"
+        base = ["write-files", "--judge", "harmbench", "--cache", str(cache), "--out", str(kitcopy.judges),
+                "--run-root", str(retrieved)]
+        assert w.main(base) == 2
+        assert "harmbench: arm a0 seed 1105 target e1 has 3 attempts" in capsys.readouterr().err
+        assert list(kitcopy.judges.glob("harmbench--*")) == []
+        plan = block_b_plan({"b-1": [done_job("a0_arm", "a0", 1105, digest["a0"])],
+                             "b-7": [done_job("ref_train", "G", 1105, digest["G"], recipe="G")],
+                             "b-8": [done_job("ref_train", "bqi", 1105, digest["bqi"], recipe="bqi")]}, arms=3)
+        kitcopy.plan.write_text(json.dumps(plan))
+        assert w.main(base + ["--plan", str(kitcopy.plan)]) == 0
+        lines = [json.loads(x) for x in capsys.readouterr().out.splitlines()]
+        assert [x["status"] for x in lines[:3]] == ["written"] * 3 and lines[3]["files"] == 3
+        docs = {p.name.split("--")[1]: json.loads(p.read_text()) for p in kitcopy.judges.glob("harmbench--*.json")}
+        assert {h: (d["arm"], d["seed"], d["complete_sha256"]) for h, d in docs.items()} == {
+            "b-1": ("a0", 1105, digest["a0"]), "b-7": ("ref-G", 1105, digest["G"]), "b-8": ("ref-bqi", 1105, digest["bqi"])}
+        index = json.loads((kitcopy.judges / "judge-files-index.json").read_text())
+        assert sorted(e["arm"] for e in index["files"]) == ["a0", "ref-G", "ref-bqi"]
+        check = kitcopy.tool.judge_files_check(json.loads(kitcopy.plan.read_text()), "B", {"harmbench"})
+>       assert (check["units"], check["files"], check["other_files"]) == (3, 3, 0)
+E       assert (1, 3, 2) == (3, 3, 0)
+E         
+E         At index 0 diff: 1 != 3
+E         Use -v to get more diff
+
+runkit/stage1-78b/tests/test_stage1_judge_route.py:530: AssertionError
+_ test_k3_a_resumed_launch_covers_every_unit_and_record_judges_takes_its_final_tag _
+
+family = None
+
+    def family_or_fail(family: str | None = None) -> str:
+        """K1: this working copy's family (stage1_rules.family_or_refuse), or a clean refusal (SystemExit) when the folder
+        names no family, its identity is inconsistent, or ``family`` is the other family (KD7)."""
+        try:
+>           return rules.family_or_refuse(family)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+/private/var/folders/mk/33rfxgzn32318ntchzzgtm680000gn/T/pytest-of-spiderishi/pytest-76/test_k3_a_resumed_launch_cover0/repo/runkit/stage1-olmo/plan_tool.py:305: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+family = None
+
+    def family_or_refuse(family: str | None = None) -> str:
+        """The copy's family (or ``family`` when given, which must be the copy's). Raises ValueError when this folder names
+        no family (not a KD7 working copy), when its name and kit-family.json disagree, or when ``family`` is another."""
+        if KIT_PROBLEM:
+            raise ValueError(f"this kit folder's identity is inconsistent: {KIT_PROBLEM}")
+        if FAMILY is None:
+>           raise ValueError(f"{HERE.name} names no family: a 7-8B working copy is tmp/{WORKING_COPY_PREFIX}<family>-<block>/ "
+                             f"(KD7; families {', '.join(FAMILIES)}); the committed kit plans, packs and launches nothing")
+E           ValueError: stage1-olmo names no family: a 7-8B working copy is tmp/family-probe-s78-<family>-<block>/ (KD7; families olmo2-7b, llama31-8b); the committed kit plans, packs and launches nothing
+
+/private/var/folders/mk/33rfxgzn32318ntchzzgtm680000gn/T/pytest-of-spiderishi/pytest-76/test_k3_a_resumed_launch_cover0/repo/runkit/stage1-olmo/stage1_rules.py:121: ValueError
+
+During handling of the above exception, another exception occurred:
+
+route = <module 's1_route_wrapper' from '/private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-pensive-stonebraker-bf6d79/b609d8b8-9fca-458c-826f-4c781de96013/scratchpad/b78/ws-k/runkit/stage1-78b/judge_units_stage1.py'>
+tmp_path = PosixPath('/private/var/folders/mk/33rfxgzn32318ntchzzgtm680000gn/T/pytest-of-spiderishi/pytest-76/test_k3_a_resumed_launch_cover0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10920bb50>
+capsys = <_pytest.capture.CaptureFixture object at 0x109208350>
+kitcopy = namespace(root=PosixPath('/private/var/folders/mk/33rfxgzn32318ntchzzgtm680000gn/T/pytest-of-spiderishi/pytest-76/test...8ntchzzgtm680000gn/T/pytest-of-spiderishi/pytest-76/test_k3_a_resumed_launch_cover0/repo/runkit/stage1-olmo/judges/B'))
+
+    def test_k3_a_resumed_launch_covers_every_unit_and_record_judges_takes_its_final_tag(route, tmp_path, monkeypatch,
+                                                                                         capsys, kitcopy):
+        """K3: a launch stopped at its cap (Gate B's fake pod: SIGTERM after 2 answers; exit 5, 2 of 18 answers) and its
+        resume with a new tag (--resume-from tmp/judge-pod/<old tag>; exit 0). The resumed launch's own result, run record
+        and fetched cache cover every unit by themselves (the pod seeds its cache from the old one: 18 records, 2 resumed;
+        complete): write-files from that cache alone writes both files, from the old cache alone refuses both. So
+        record-judges B takes the final tag as it is: a record naming the old tag refuses (exit 5; typed as exit 0, its
+        own result differs), the final tag's record is recorded over block B's 2 required units. Gate B's fake pod names
+        its GPU "FAKE GPU", so the kit copy's JUDGE_GPU (round 33, GB5) is that name here."""
+        w = route
+        monkeypatch.setattr(kitcopy.tool.rules, "JUDGE_GPU", "FAKE GPU")
+        prepared, manifest = prepared_set(tmp_path, monkeypatch, 3)
+        retrieved = tmp_path / "kit" / "retrieved"
+        pids = tuple(pid(i) for i in range(1, 4))
+        units = [synth.make_unit(retrieved, "b-1", "1105-a0-e1-a1", seed=1105, manifest=manifest, pids=pids, samples=2),
+                 synth.make_unit(retrieved, "b-2", "1105-edit-x-e1-a1", arm="edit-x", seed=1105, manifest=manifest,
+                                 pids=pids, samples=2, tag="x")]
+        n = 2 * (3 + 3 * 2)
+        module = w.load_judge_pod()
+        root = tmp_path / "judge-pod"
+        monkeypatch.setattr(module, "JUDGE_POD_ROOT", root)
+    
+        def run(tag, host, *extra):
+            clock = T.Clock()
+            argv = ["launch", "--tag", tag, "--run-root", str(retrieved), "--prepared", str(prepared), "--expect-greedy",
+                    "0", "--expect-sampled", "0", *extra]
+            code = w.run_launcher(module, argv, host=host, clock=clock, sleep=clock.sleep, signals=False)
+            return code, json.loads((root / tag / "judge-pod-result.json").read_text())
+    
+        code1, r1 = run("s1b-hb-1", T.FakeHost(tmp_path / "remote-1", mode="hang"))
+        assert code1 == 5 and r1["verification"]["records"] == 2 and r1["verification"]["complete"] is False
+        code2, r2 = run("s1b-hb-2", T.FakeHost(tmp_path / "remote-2"), "--resume-from", str(root / "s1b-hb-1"))
+        assert code2 == 0 and r2["verification"]["complete"] is True
+        assert r2["verification"]["records"] == r2["verification"]["judged"] == n
+        assert json.loads((root / "s1b-hb-2" / "fetched" / "out" / "run-record.json").read_text())["resumed_records"] == 2
+        bundle_record = json.loads((root / "s1b-hb-2" / "bundle-record.json").read_text())
+        assert bundle_record["resume"]["from_tag"] == "s1b-hb-1" and bundle_record["todo"] == n - 2
+        capsys.readouterr()
+        digest = [sha(u / "COMPLETE.json") for u in units]
+        kitcopy.plan.write_text(json.dumps(block_b_plan({"b-1": [done_job("a0_arm", "a0", 1105, digest[0])],
+                                                         "b-2": [done_job("arm", "edit-x", 1105, digest[1])]}, arms=2)))
+        files = ["write-files", "--judge", "harmbench", "--run-root", str(retrieved), "--plan", str(kitcopy.plan)]
+        assert w.main(files + ["--cache", str(root / "s1b-hb-1/fetched/out/harmbench-pod.jsonl"),
+                               "--out", str(tmp_path / "judges-old")]) == 1
+        assert w.main(files + ["--cache", str(root / "s1b-hb-2/fetched/out/harmbench-pod.jsonl"),
+                               "--out", str(kitcopy.judges)]) == 0
+        assert len(list(kitcopy.judges.glob("harmbench--*.json"))) == 2
+        capsys.readouterr()
+        entry = {tag: w.result_fields(tag, root, tmp_path / "jh")["record_entry"] for tag in ("s1b-hb-1", "s1b-hb-2")}
+        assert (entry["s1b-hb-1"]["exit"], entry["s1b-hb-2"]["exit"], entry["s1b-hb-2"]["judged"]) == (5, 0, n)
+    
+        def record(e):
+            return kitcopy.record({"kind": JUDGE_RECORD_KIND, "block": "B", "judges": {"harmbench": e},
+                                   "index_sha256": sha(kitcopy.judges / "judge-files-index.json"),
+                                   "utc": "2026-10-27T12:00:00Z", "recorded_by": "test"})
+        with pytest.raises(SystemExit, match="exit 0 only"):
+>           kitcopy.tool.record_judges("B", *record(entry["s1b-hb-1"]))
+
+runkit/stage1-78b/tests/test_stage1_judge_route.py:604: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/private/var/folders/mk/33rfxgzn32318ntchzzgtm680000gn/T/pytest-of-spiderishi/pytest-76/test_k3_a_resumed_launch_cover0/repo/runkit/stage1-olmo/plan_tool.py:2546: in record_judges
+    plan = load()
+           ^^^^^^
+/private/var/folders/mk/33rfxgzn32318ntchzzgtm680000gn/T/pytest-of-spiderishi/pytest-76/test_k3_a_resumed_launch_cover0/repo/runkit/stage1-olmo/plan_tool.py:1305: in load
+    family = family_or_fail()
+             ^^^^^^^^^^^^^^^^
+/private/var/folders/mk/33rfxgzn32318ntchzzgtm680000gn/T/pytest-of-spiderishi/pytest-76/test_k3_a_resumed_launch_cover0/repo/runkit/stage1-olmo/plan_tool.py:307: in family_or_fail
+    fail(str(exc))
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+message = 'stage1-olmo names no family: a 7-8B working copy is tmp/family-probe-s78-<family>-<block>/ (KD7; families olmo2-7b, llama31-8b); the committed kit plans, packs and launches nothing'
+
+    def fail(message: str):
+>       raise SystemExit(message)
+E       SystemExit: stage1-olmo names no family: a 7-8B working copy is tmp/family-probe-s78-<family>-<block>/ (KD7; families olmo2-7b, llama31-8b); the committed kit plans, packs and launches nothing
+
+/private/var/folders/mk/33rfxgzn32318ntchzzgtm680000gn/T/pytest-of-spiderishi/pytest-76/test_k3_a_resumed_launch_cover0/repo/runkit/stage1-olmo/plan_tool.py:298: SystemExit
+
+During handling of the above exception, another exception occurred:
+
+route = <module 's1_route_wrapper' from '/private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-pensive-stonebraker-bf6d79/b609d8b8-9fca-458c-826f-4c781de96013/scratchpad/b78/ws-k/runkit/stage1-78b/judge_units_stage1.py'>
+tmp_path = PosixPath('/private/var/folders/mk/33rfxgzn32318ntchzzgtm680000gn/T/pytest-of-spiderishi/pytest-76/test_k3_a_resumed_launch_cover0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10920bb50>
+capsys = <_pytest.capture.CaptureFixture object at 0x109208350>
+kitcopy = namespace(root=PosixPath('/private/var/folders/mk/33rfxgzn32318ntchzzgtm680000gn/T/pytest-of-spiderishi/pytest-76/test...8ntchzzgtm680000gn/T/pytest-of-spiderishi/pytest-76/test_k3_a_resumed_launch_cover0/repo/runkit/stage1-olmo/judges/B'))
+
+    def test_k3_a_resumed_launch_covers_every_unit_and_record_judges_takes_its_final_tag(route, tmp_path, monkeypatch,
+                                                                                         capsys, kitcopy):
+        """K3: a launch stopped at its cap (Gate B's fake pod: SIGTERM after 2 answers; exit 5, 2 of 18 answers) and its
+        resume with a new tag (--resume-from tmp/judge-pod/<old tag>; exit 0). The resumed launch's own result, run record
+        and fetched cache cover every unit by themselves (the pod seeds its cache from the old one: 18 records, 2 resumed;
+        complete): write-files from that cache alone writes both files, from the old cache alone refuses both. So
+        record-judges B takes the final tag as it is: a record naming the old tag refuses (exit 5; typed as exit 0, its
+        own result differs), the final tag's record is recorded over block B's 2 required units. Gate B's fake pod names
+        its GPU "FAKE GPU", so the kit copy's JUDGE_GPU (round 33, GB5) is that name here."""
+        w = route
+        monkeypatch.setattr(kitcopy.tool.rules, "JUDGE_GPU", "FAKE GPU")
+        prepared, manifest = prepared_set(tmp_path, monkeypatch, 3)
+        retrieved = tmp_path / "kit" / "retrieved"
+        pids = tuple(pid(i) for i in range(1, 4))
+        units = [synth.make_unit(retrieved, "b-1", "1105-a0-e1-a1", seed=1105, manifest=manifest, pids=pids, samples=2),
+                 synth.make_unit(retrieved, "b-2", "1105-edit-x-e1-a1", arm="edit-x", seed=1105, manifest=manifest,
+                                 pids=pids, samples=2, tag="x")]
+        n = 2 * (3 + 3 * 2)
+        module = w.load_judge_pod()
+        root = tmp_path / "judge-pod"
+        monkeypatch.setattr(module, "JUDGE_POD_ROOT", root)
+    
+        def run(tag, host, *extra):
+            clock = T.Clock()
+            argv = ["launch", "--tag", tag, "--run-root", str(retrieved), "--prepared", str(prepared), "--expect-greedy",
+                    "0", "--expect-sampled", "0", *extra]
+            code = w.run_launcher(module, argv, host=host, clock=clock, sleep=clock.sleep, signals=False)
+            return code, json.loads((root / tag / "judge-pod-result.json").read_text())
+    
+        code1, r1 = run("s1b-hb-1", T.FakeHost(tmp_path / "remote-1", mode="hang"))
+        assert code1 == 5 and r1["verification"]["records"] == 2 and r1["verification"]["complete"] is False
+        code2, r2 = run("s1b-hb-2", T.FakeHost(tmp_path / "remote-2"), "--resume-from", str(root / "s1b-hb-1"))
+        assert code2 == 0 and r2["verification"]["complete"] is True
+        assert r2["verification"]["records"] == r2["verification"]["judged"] == n
+        assert json.loads((root / "s1b-hb-2" / "fetched" / "out" / "run-record.json").read_text())["resumed_records"] == 2
+        bundle_record = json.loads((root / "s1b-hb-2" / "bundle-record.json").read_text())
+        assert bundle_record["resume"]["from_tag"] == "s1b-hb-1" and bundle_record["todo"] == n - 2
+        capsys.readouterr()
+        digest = [sha(u / "COMPLETE.json") for u in units]
+        kitcopy.plan.write_text(json.dumps(block_b_plan({"b-1": [done_job("a0_arm", "a0", 1105, digest[0])],
+                                                         "b-2": [done_job("arm", "edit-x", 1105, digest[1])]}, arms=2)))
+        files = ["write-files", "--judge", "harmbench", "--run-root", str(retrieved), "--plan", str(kitcopy.plan)]
+        assert w.main(files + ["--cache", str(root / "s1b-hb-1/fetched/out/harmbench-pod.jsonl"),
+                               "--out", str(tmp_path / "judges-old")]) == 1
+        assert w.main(files + ["--cache", str(root / "s1b-hb-2/fetched/out/harmbench-pod.jsonl"),
+                               "--out", str(kitcopy.judges)]) == 0
+        assert len(list(kitcopy.judges.glob("harmbench--*.json"))) == 2
+        capsys.readouterr()
+        entry = {tag: w.result_fields(tag, root, tmp_path / "jh")["record_entry"] for tag in ("s1b-hb-1", "s1b-hb-2")}
+        assert (entry["s1b-hb-1"]["exit"], entry["s1b-hb-2"]["exit"], entry["s1b-hb-2"]["judged"]) == (5, 0, n)
+    
+        def record(e):
+            return kitcopy.record({"kind": JUDGE_RECORD_KIND, "block": "B", "judges": {"harmbench": e},
+                                   "index_sha256": sha(kitcopy.judges / "judge-files-index.json"),
+                                   "utc": "2026-10-27T12:00:00Z", "recorded_by": "test"})
+>       with pytest.raises(SystemExit, match="exit 0 only"):
+E       AssertionError: Regex pattern did not match.
+E        Regex: 'exit 0 only'
+E        Input: 'stage1-olmo names no family: a 7-8B working copy is tmp/family-probe-s78-<family>-<block>/ (KD7; families olmo2-7b, llama31-8b); the committed kit plans, packs and launches nothing'
+
+runkit/stage1-78b/tests/test_stage1_judge_route.py:603: AssertionError
+=========================== short test summary info ============================
+FAILED runkit/stage1-78b/tests/test_stage1_judge_route.py::test_k2_ref_train_units_are_judged_as_built_and_filed_under_their_recipe_label
+FAILED runkit/stage1-78b/tests/test_stage1_judge_route.py::test_k3_a_resumed_launch_covers_every_unit_and_record_judges_takes_its_final_tag
+2 failed, 9 passed in 5.08s

@@ -1,0 +1,531 @@
+--- /private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-epic-ritchie-cc4188/1a199637-2a19-4fac-9cf2-8b00c9c1b5ff/scratchpad/b78/reports/r1-c-scratch/prefix/scripts/scale78b/encode_count_78b.py	2026-11-08 20:28:37
++++ /private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-epic-ritchie-cc4188/1a199637-2a19-4fac-9cf2-8b00c9c1b5ff/scratchpad/b78/ws-c/scripts/scale78b/encode_count_78b.py	2026-11-08 21:04:43
+@@ -37,7 +37,7 @@
+ Every input is named PATH:SHA256 and must hash to this module's literal pin for it (an off-pin input refuses). A refusal
+ of one item is counted under its exception's class name (``TooLong``, ``ControlTokenError``, ``NoTargets``, ...), as the
+ frozen callers count it; any other exception refuses the run. Output: one text-free canonical JSON record at --out
+-(created once, never beside an input file or inside the prepared folder) with counts by reason, the refused ids (ids or
++(created once and complete or not at all; never inside any input's folder, at any depth, nor inside P_F) with counts by reason, the refused ids (ids or
+ list indices only), the input SHA-256s, the recipe's SHA-256 and the tokenizer's revision prefix. No prompt or response
+ text reaches stdout, stderr, the record or a message: every output and message is scanned against every text read, and
+ a message that could hold text is replaced by its exception's class name.
+@@ -491,8 +491,8 @@
+ 
+ 
+ def out_ok(out: Path, folders: Iterable[Path]) -> Path:
+-    """--out is a new file whose folder exists and is none of the given folders nor inside one (by path and by
+-    directory identity)."""
++    """--out is a new file whose folder exists and lies inside none of the given folders, at any depth (by path and by
++    directory identity of every ancestor)."""
+     out = Path(out).resolve()
+     if out.exists() or out.is_symlink():
+         raise Refusal(f"--out {out.name} exists: the record is created once")
+@@ -505,16 +505,35 @@
+             continue
+         for anchor in (parent, *parent.parents):
+             if anchor == folder or os.path.samefile(anchor, folder):
+-                raise Refusal("--out must not lie beside an input file or inside the prepared folder")
++                raise Refusal("--out must not lie inside an input's folder (at any depth) or inside the prepared folder")
+     return out
+ 
+ 
+ def write_once(out: Path, data: bytes) -> str:
++    """The record, created once and complete or not at all: the bytes go to a new temporary file in --out's folder,
++    which is hard-linked to --out (no overwrite) only after every byte is written and synced; the temporary file is
++    removed in every case, so a failed write leaves no partial file."""
++    out = Path(out)
++    partial = out.with_name(f".{out.name}.{os.getpid()}.partial")
++    created = False
+     try:
+-        with open(out, "xb") as handle:
++        with open(partial, "xb") as handle:
++            created = True
+             handle.write(data)
++            handle.flush()
++            os.fsync(handle.fileno())
++        os.link(partial, out)
+     except FileExistsError:
+-        raise Refusal(f"--out {out.name} exists: the record is created once") from None
++        what = f"--out {out.name} exists: the record is created once" if created else "a partial file of --out exists"
++        raise Refusal(what) from None
++    except OSError as exc:
++        raise Refusal(f"--out cannot be written ({type(exc).__name__})") from None
++    finally:
++        if created:
++            try:
++                os.unlink(partial)
++            except FileNotFoundError:
++                pass
+     return sha256_bytes(data)
+ 
+ 
+@@ -592,7 +611,7 @@
+         if guard.hits(data) or any(guard.hits(line) for line in lines):
+             raise Refusal("the record or the printout would hold text: nothing written")
+         digest = write_once(out, data)
+-    except Exception as exc:          # every refusal and every other error: no traceback, no text
++    except (Exception, SystemExit) as exc:     # every refusal and every other error, a SystemExit included: no text
+         print(f"REFUSED: {guard.message(exc)} (nothing written)", file=sys.stderr)
+         return EXIT_REFUSED
+     for line in lines:
+--- /private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-epic-ritchie-cc4188/1a199637-2a19-4fac-9cf2-8b00c9c1b5ff/scratchpad/b78/reports/r1-c-scratch/prefix/scripts/scale78b/tau_l_78b.py	2026-11-08 20:28:37
++++ /private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-epic-ritchie-cc4188/1a199637-2a19-4fac-9cf2-8b00c9c1b5ff/scratchpad/b78/ws-c/scripts/scale78b/tau_l_78b.py	2026-11-08 21:04:43
+@@ -28,7 +28,7 @@
+ 
+ **Output.** Printed and written: s, n (the number of units), ddof, τ_L and the input hashes (each unit's COMPLETE.json
+ and query_loss.jsonl SHA-256, the query bank's SHA-256); no per-unit loss. --out writes a text-free canonical JSON
+-record, created once, never inside a unit. Exit 0: computed (and written); 2: refused, nothing written.
++record, created once and complete or not at all, never inside a unit. Exit 0: computed (and written); 2: refused, nothing written.
+ """
+ 
+ from __future__ import annotations
+@@ -239,6 +239,34 @@
+             if anchor == unit or os.path.samefile(anchor, unit):
+                 raise Refusal("--out must not lie inside a unit")
+     return out
++
++
++def write_once(out: Path, data: bytes) -> str:
++    """The record, created once and complete or not at all: the bytes go to a new temporary file in --out's folder,
++    which is hard-linked to --out (no overwrite) only after every byte is written and synced; the temporary file is
++    removed in every case, so a failed write leaves no partial file."""
++    out = Path(out)
++    partial = out.with_name(f".{out.name}.{os.getpid()}.partial")
++    created = False
++    try:
++        with open(partial, "xb") as handle:
++            created = True
++            handle.write(data)
++            handle.flush()
++            os.fsync(handle.fileno())
++        os.link(partial, out)
++    except FileExistsError:
++        what = f"--out {out.name} exists: the record is created once" if created else "a partial file of --out exists"
++        raise Refusal(what) from None
++    except OSError as exc:
++        raise Refusal(f"--out cannot be written ({type(exc).__name__})") from None
++    finally:
++        if created:
++            try:
++                os.unlink(partial)
++            except FileNotFoundError:
++                pass
++    return sha256_bytes(data)
+ 
+ 
+ def main(argv: list[str] | None = None, *, unit_pins: Mapping[int, str | None] | None = None) -> int:
+@@ -257,15 +285,11 @@
+         doc = tau_l(args.family, units, unit_pins)
+         data = canonical_json(doc)
+         if out is not None:
+-            try:
+-                with open(out, "xb") as handle:
+-                    handle.write(data)
+-            except FileExistsError:
+-                raise Refusal(f"--out {out.name} exists: the record is created once") from None
++            write_once(out, data)
+     except Refusal as exc:
+         print(f"REFUSED: {exc} (nothing written)", file=sys.stderr)
+         return 2
+-    except Exception as exc:          # no traceback: the class name only
++    except (Exception, SystemExit) as exc:     # no traceback, no message: the class name only
+         print(f"REFUSED: {type(exc).__name__} (nothing written)", file=sys.stderr)
+         return 2
+     print(f"{doc['family']}: n {doc['n']} a0 units (seeds {', '.join(map(str, SEEDS))}) at {CHECKPOINT}, "
+--- /private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-epic-ritchie-cc4188/1a199637-2a19-4fac-9cf2-8b00c9c1b5ff/scratchpad/b78/reports/r1-c-scratch/prefix/scripts/scale78b/tests/test_encode_count_78b.py	2026-11-08 20:28:37
++++ /private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-epic-ritchie-cc4188/1a199637-2a19-4fac-9cf2-8b00c9c1b5ff/scratchpad/b78/ws-c/scripts/scale78b/tests/test_encode_count_78b.py	2026-11-08 21:05:55
+@@ -405,7 +405,7 @@
+     paths, rec, pins = lists_fixture(tmp_path)
+     argv, out = lists_argv(tmp_path, paths, rec, pins, out=paths["s1"].parent / "sub" / "rec.json")
+     code, so, se = run_main(argv, capsys, context=fake_context(), run_options=pins)
+-    assert code == ec.EXIT_REFUSED and "must not lie beside an input file" in se and not out.exists()
++    assert code == ec.EXIT_REFUSED and "must not lie inside an input's folder (at any depth)" in se and not out.exists()
+     argv, out = lists_argv(tmp_path, paths, rec, pins, out=paths["s1"].parent / "rec.json")
+     code, so, se = run_main(argv, capsys, context=fake_context(), run_options=pins)
+     assert code == ec.EXIT_REFUSED and not out.exists()
+@@ -521,32 +521,6 @@
+     assert "withheld" in guard.message(ec.Refusal(f"bad row {SENT} some prompt"))
+     assert guard.message(ec.Refusal("list s1 hashes to abc")) == "list s1 hashes to abc"
+     assert "withheld" in guard.message(KeyError("x"))
+-
+-
+-def test_a_record_holding_text_is_not_written(tmp_path, capsys, monkeypatch):
+-    """If a record ever held a text read (a planted fault), nothing is written and nothing is printed but the refusal."""
+-    paths, rec, pins = lists_fixture(tmp_path)
+-    argv, out = lists_argv(tmp_path, paths, rec, pins)
+-    real = ec.doc_of
+-
+-    def leaky(*a, **k):
+-        doc = real(*a, **k)
+-        doc["leak"] = text(4)
+-        return doc
+-    monkeypatch.setattr(ec, "doc_of", leaky)
+-    code, so, se = run_main(argv, capsys, context=fake_context(), run_options=pins)
+-    assert code == ec.EXIT_REFUSED and not out.exists() and so == ""
+-    assert "would hold text" in se
+-    no_text(so, se)
+-
+-
+-def test_a_printout_holding_text_is_not_written(tmp_path, capsys, monkeypatch):
+-    paths, rec, pins = lists_fixture(tmp_path)
+-    argv, out = lists_argv(tmp_path, paths, rec, pins)
+-    monkeypatch.setattr(ec, "summary_lines", lambda doc: [text(4)])
+-    code, so, se = run_main(argv, capsys, context=fake_context(), run_options=pins)
+-    assert code == ec.EXIT_REFUSED and not out.exists() and so == ""
+-    no_text(so, se)
+ 
+ 
+ # ----- the bank mode -----------------------------------------------------------------------------------------------
+@@ -876,3 +850,152 @@
+     assert seen["manifest"] == (tmp_path, ec.MANIFESTS["olmo2-7b"])
+     assert seen["codec"] == (tmp_path, {"inputs": {"prepared_manifest_sha256": ec.MANIFESTS["olmo2-7b"]}})
+     assert ctx.tokenizer == TOKENIZERS["olmo2-7b"]
++
++
++# ----- the fix round (verifier C1-C3, C5, C9) ----------------------------------------------------------------------
++
++
++def mode_case(tmp, mode):
++    """(argv, out, run_options, {kind: a text read in this mode}) for one mode's fixture."""
++    if mode == "lists":
++        paths, rec, pins = lists_fixture(tmp)
++        argv, out = lists_argv(tmp, paths, rec, pins)
++        return argv, out, pins, {"prompt": text(4), "response": f"{SENT} safe response 4"}
++    if mode == "bank":
++        bank_path, rec_path, options = bank_fixture(tmp, n=6, bad=())
++        argv, out = bank_argv(tmp, bank_path, rec_path)
++        return argv, out, options, {"prompt": text(101)}
++    path, options = anchor_fixture(tmp)
++    argv, out = anchor_argv(tmp, path)
++    return argv, out, options, {"prompt": text(201), "response": f"{SENT} unsafe response 1"}
++
++
++LEAK_CASES = [("lists", "prompt"), ("lists", "response"), ("bank", "prompt"), ("anchor", "prompt"),
++              ("anchor", "response")]
++
++
++@pytest.mark.parametrize("mode,kind", LEAK_CASES)
++def test_a_record_holding_text_is_not_written(tmp_path, capsys, monkeypatch, mode, kind):
++    """C2: in every mode, a record that held a prompt or a response read (a planted fault) is not written, and nothing
++    but the refusal is printed."""
++    argv, out, options, leaks = mode_case(tmp_path, mode)
++    real = ec.doc_of
++
++    def leaky(*a, **k):
++        doc = real(*a, **k)
++        doc["leak"] = leaks[kind]
++        return doc
++    monkeypatch.setattr(ec, "doc_of", leaky)
++    code, so, se = run_main(argv, capsys, context=fake_context(), run_options=options)
++    assert code == ec.EXIT_REFUSED and not out.exists() and so == ""
++    assert "would hold text" in se
++    assert list(out.parent.iterdir()) == []
++    no_text(so, se)
++
++
++@pytest.mark.parametrize("mode,kind", LEAK_CASES)
++def test_a_printout_holding_text_is_not_written(tmp_path, capsys, monkeypatch, mode, kind):
++    argv, out, options, leaks = mode_case(tmp_path, mode)
++    monkeypatch.setattr(ec, "summary_lines", lambda doc: ["counts", leaks[kind]])
++    code, so, se = run_main(argv, capsys, context=fake_context(), run_options=options)
++    assert code == ec.EXIT_REFUSED and not out.exists() and so == ""
++    assert "would hold text" in se
++    no_text(so, se)
++
++
++class ResponseCrashCodec(FakeCodec):
++    """ENGINEERING FIXTURE (C3): encode raises a non-ValueError, holding the text, on one response only (responses
++    reach encode only through encode_train)."""
++
++    def encode(self, text):
++        if text == f"{SENT} safe response 16":
++            raise RuntimeError(f"tokenizer crash on {text!r}")
++        return super().encode(text)
++
++
++def test_an_encode_train_crash_refuses_the_run(tmp_path, capsys):
++    paths, rec, pins = lists_fixture(tmp_path, bad=False)
++    argv, out = lists_argv(tmp_path, paths, rec, pins)
++    code, so, se = run_main(argv, capsys, context=fake_context(codec=ResponseCrashCodec()), run_options=pins)
++    assert code == ec.EXIT_REFUSED and not out.exists() and so == ""
++    assert "RuntimeError" in se and "withheld" in se
++    no_text(so, se)
++
++
++class ExitCodec(FakeCodec):
++    """ENGINEERING FIXTURE (C5): a SystemExit that carries the text it was given."""
++
++    def prompt_ids(self, text):
++        raise SystemExit(f"stop at {text!r}")
++
++
++@pytest.mark.parametrize("mode", ["lists", "bank", "anchor"])
++def test_a_systemexit_with_text_is_caught(tmp_path, capsys, mode):
++    argv, out, options, _ = mode_case(tmp_path, mode)
++    code, so, se = run_main(argv, capsys, context=fake_context(codec=ExitCodec()), run_options=options)
++    assert code == ec.EXIT_REFUSED and not out.exists() and so == ""
++    assert "SystemExit" in se and "withheld" in se
++    no_text(so, se)
++
++
++class FailingHandle:
++    """ENGINEERING FIXTURE (C1): writes half the bytes, then raises ENOSPC (the verifier's probe)."""
++
++    def __init__(self, handle):
++        self.handle = handle
++
++    def write(self, data):
++        import errno
++
++        self.handle.write(data[: len(data) // 2])
++        self.handle.flush()
++        raise OSError(errno.ENOSPC, "No space left on device")
++
++    def __getattr__(self, name):
++        return getattr(self.handle, name)
++
++    def __enter__(self):
++        return self
++
++    def __exit__(self, *exc):
++        self.handle.close()
++        return False
++
++
++def enospc_open(monkeypatch, folder):
++    import builtins
++
++    real_open = builtins.open
++
++    def failing_open(file, mode="r", *a, **k):
++        handle = real_open(file, mode, *a, **k)
++        if "x" in mode and Path(file).resolve().parent == Path(folder).resolve():
++            return FailingHandle(handle)
++        return handle
++    monkeypatch.setattr(builtins, "open", failing_open)
++
++
++@pytest.mark.parametrize("mode", ["lists", "bank", "anchor"])
++def test_a_failed_write_leaves_no_file(tmp_path, capsys, monkeypatch, mode):
++    """C1: a write that fails partway (ENOSPC after half the bytes) leaves neither --out nor a partial file."""
++    argv, out, options, _ = mode_case(tmp_path, mode)
++    enospc_open(monkeypatch, out.parent)
++    code, so, se = run_main(argv, capsys, context=fake_context(), run_options=options)
++    monkeypatch.undo()
++    assert code == ec.EXIT_REFUSED and "cannot be written (OSError)" in se
++    assert not out.exists() and list(out.parent.iterdir()) == []
++
++
++def test_write_once_leaves_only_the_complete_record(tmp_path):
++    out = tmp_path / "rec.json"
++    assert ec.write_once(out, b"abc") == sha256_bytes(b"abc")
++    assert out.read_bytes() == b"abc" and [p.name for p in tmp_path.iterdir()] == ["rec.json"]
++
++
++def test_record_command_line_hash_must_be_the_pin(tmp_path, capsys):
++    """C9: the bytes are the pinned record, but the command line names another hash."""
++    paths, rec, pins = lists_fixture(tmp_path)
++    argv, out = lists_argv(tmp_path, paths, rec, pins)
++    argv[argv.index("--s-pool-record") + 1] = f"{rec}:{'a' * 64}"
++    code, so, se = run_main(argv, capsys, context=fake_context(), run_options=pins)
++    assert code == ec.EXIT_REFUSED and "the s-pool record: the command line names" in se
+--- /private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-epic-ritchie-cc4188/1a199637-2a19-4fac-9cf2-8b00c9c1b5ff/scratchpad/b78/reports/r1-c-scratch/prefix/scripts/scale78b/tests/test_tau_l_78b.py	2026-11-08 20:33:50
++++ /private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-epic-ritchie-cc4188/1a199637-2a19-4fac-9cf2-8b00c9c1b5ff/scratchpad/b78/ws-c/scripts/scale78b/tests/test_tau_l_78b.py	2026-11-08 21:05:43
+@@ -358,3 +358,77 @@
+         assert tl.TRAINING_IDENTITY[family] == rk.KIT[family]["training_identity"]
+         assert tl.MANIFESTS[family] == rk.MANIFESTS[family]
+     assert set(tl.UNIT_PINS["llama31-8b"]) - set(rk.KIT["llama31-8b"]["a0_units"]) == {1103}
++
++
++# ----- the fix round (verifier C1, C5, C9) -------------------------------------------------------------------------
++
++
++def test_a_failed_write_leaves_no_file(tmp_path, capsys, monkeypatch):
++    """C1: ENOSPC after half the bytes leaves neither --out nor a partial file."""
++    import errno
++
++    units, pins = three_units(tmp_path)
++    folder = tmp_path / "out"
++    folder.mkdir()
++    out = folder / "rec.json"
++    real_open = builtins.open
++
++    class Half:
++        def __init__(self, handle):
++            self.handle = handle
++
++        def write(self, data):
++            self.handle.write(data[: len(data) // 2])
++            self.handle.flush()
++            raise OSError(errno.ENOSPC, "No space left on device")
++
++        def __getattr__(self, name):
++            return getattr(self.handle, name)
++
++        def __enter__(self):
++            return self
++
++        def __exit__(self, *exc):
++            self.handle.close()
++            return False
++
++    def failing_open(file, mode="r", *a, **k):
++        handle = real_open(file, mode, *a, **k)
++        return Half(handle) if "x" in mode and Path(file).resolve().parent == folder.resolve() else handle
++    monkeypatch.setattr(builtins, "open", failing_open)
++    code, so, se = run(argv_of("olmo2-7b", units, pins, out), capsys, pins)
++    monkeypatch.undo()
++    assert code == 2 and "cannot be written (OSError)" in se and so == ""
++    assert not out.exists() and list(folder.iterdir()) == []
++
++
++def test_write_once_leaves_only_the_complete_record(tmp_path):
++    out = tmp_path / "rec.json"
++    tl.write_once(out, b"abc")
++    assert out.read_bytes() == b"abc" and [p.name for p in tmp_path.iterdir()] == ["rec.json"]
++    with pytest.raises(tl.Refusal, match="created once"):
++        tl.write_once(out, b"xyz")
++    assert out.read_bytes() == b"abc" and [p.name for p in tmp_path.iterdir()] == ["rec.json"]
++
++
++def test_a_systemexit_with_text_is_caught(tmp_path, capsys, monkeypatch):
++    """C5: a SystemExit carrying text inside main is reported by its class only, exit 2."""
++    units, pins = three_units(tmp_path)
++
++    def stop(*a, **k):
++        raise SystemExit(f"stop {SENT}")
++    monkeypatch.setattr(tl, "read_unit", stop)
++    code, so, se = run(argv_of("olmo2-7b", units, pins, tmp_path / "rec.json"), capsys, pins)
++    assert code == 2 and "SystemExit" in se and SENT not in se and so == ""
++    assert not (tmp_path / "rec.json").exists()
++
++
++def test_the_same_rows_in_another_order_pass(tmp_path, capsys):
++    """C9: the units hold the same 200 ids; one file lists them in reverse order."""
++    units, pins = three_units(tmp_path)
++    m = KNOWN_MEANS[1103]
++    lines = b"".join(json.dumps({"query_id": f"q-{k:03d}", "loss": m}).encode() + b"\n" for k in reversed(range(200)))
++    folder, digest = make_unit(tmp_path / "x", "olmo2-7b", 1103, [m] * 200, loss_lines=lines)
++    units[1103], pins[1103] = folder, digest
++    code, so, se = run(argv_of("olmo2-7b", units, pins), capsys, pins)
++    assert code == 0, se
+--- /private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-epic-ritchie-cc4188/1a199637-2a19-4fac-9cf2-8b00c9c1b5ff/scratchpad/b78/reports/r1-c-scratch/prefix/scripts/scale78b/tests/mutation_spec_c_78b.json	2026-11-08 20:30:14
++++ /private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-epic-ritchie-cc4188/1a199637-2a19-4fac-9cf2-8b00c9c1b5ff/scratchpad/b78/ws-c/scripts/scale78b/tests/mutation_spec_c_78b.json	2026-11-08 21:06:32
+@@ -179,14 +179,62 @@
+    "replace": "            if False:"
+   },
+   {
+-   "id": "C-ec-write-wb",
++   "id": "C-ec-write-direct",
+    "part": "R1 Track C",
+-   "describes": "the record may overwrite an existing file",
++   "describes": "the record is opened at --out itself, not at a temporary name",
+    "file": "encode_count_78b.py",
+-   "find": "        with open(out, \"xb\") as handle:",
+-   "replace": "        with open(out, \"wb\") as handle:"
++   "find": "        with open(partial, \"xb\") as handle:",
++   "replace": "        with open(out, \"xb\") as handle:"
++  },
++  {
++   "id": "C-ec-partial-kept",
++   "part": "R1 Track C",
++   "describes": "the temporary file is not removed (a partial or stray file survives)",
++   "file": "encode_count_78b.py",
++   "find": "                os.unlink(partial)",
++   "replace": "                pass"
++  },
++  {
++   "id": "C-ec-systemexit",
++   "part": "R1 Track C",
++   "describes": "a SystemExit escapes main with its message",
++   "file": "encode_count_78b.py",
++   "find": "    except (Exception, SystemExit) as exc:     # every refusal",
++   "replace": "    except Exception as exc:     # every refusal"
++  },
++  {
++   "id": "V-bank-guard-add",
++   "part": "R1 Track C",
++   "describes": "bank mode: bank prompts never enter the text guard",
++   "file": "encode_count_78b.py",
++   "find": "    for _, prompt in loaded.rows:\n        guard.add(prompt)\n",
++   "replace": "    for _, prompt in loaded.rows:\n        pass\n"
++  },
++  {
++   "id": "V-anchor-guard-add",
++   "part": "R1 Track C",
++   "describes": "anchor mode: anchor texts never enter the text guard",
++   "file": "encode_count_78b.py",
++   "find": "        guard.add(p[\"prompt\"], p[\"unsafe_response\"])\n",
++   "replace": "        pass\n"
++  },
++  {
++   "id": "V-guard-no-responses",
++   "part": "R1 Track C",
++   "describes": "lists mode: responses never enter the text guard",
++   "file": "encode_count_78b.py",
++   "find": "        guard.add(item.get(\"prompt\"), item.get(\"response\"))\n",
++   "replace": "        guard.add(item.get(\"prompt\"))\n"
+   },
+   {
++   "id": "V-train-catch-all",
++   "part": "R1 Track C",
++   "describes": "encode_train: any exception counted as a refusal",
++   "file": "encode_count_78b.py",
++   "find": "            encode_train(codec, row_id, prompt, response, max_tokens)\n        except ValueError as exc:",
++   "replace": "            encode_train(codec, row_id, prompt, response, max_tokens)\n        except Exception as exc:"
++  },
++  {
+    "id": "C-ec-guard-record",
+    "part": "R1 Track C",
+    "describes": "a record or printout holding text is written",
+@@ -491,6 +539,30 @@
+    "replace": "    missing = []"
+   },
+   {
++   "id": "C-tl-partial-kept",
++   "part": "R1 Track C",
++   "describes": "the temporary file is not removed (a partial or stray file survives)",
++   "file": "tau_l_78b.py",
++   "find": "                os.unlink(partial)",
++   "replace": "                pass"
++  },
++  {
++   "id": "C-tl-write-direct",
++   "part": "R1 Track C",
++   "describes": "the record is opened at --out itself, not at a temporary name",
++   "file": "tau_l_78b.py",
++   "find": "        with open(partial, \"xb\") as handle:",
++   "replace": "        with open(out, \"xb\") as handle:"
++  },
++  {
++   "id": "C-tl-systemexit",
++   "part": "R1 Track C",
++   "describes": "a SystemExit escapes main with its message",
++   "file": "tau_l_78b.py",
++   "find": "    except (Exception, SystemExit) as exc:     # no traceback",
++   "replace": "    except Exception as exc:     # no traceback"
++  },
++  {
+    "id": "C-tl-twice",
+    "part": "R1 Track C",
+    "describes": "a repeated seed is accepted",
+--- /private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-epic-ritchie-cc4188/1a199637-2a19-4fac-9cf2-8b00c9c1b5ff/scratchpad/b78/reports/r1-c-scratch/prefix/scripts/scale78b/tests/run_mutants_c_78b.py	2026-11-08 20:29:20
++++ /private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-epic-ritchie-cc4188/1a199637-2a19-4fac-9cf2-8b00c9c1b5ff/scratchpad/b78/ws-c/scripts/scale78b/tests/run_mutants_c_78b.py	2026-11-08 21:04:59
+@@ -8,7 +8,7 @@
+ SOURCE_ROOT is a repository root holding scripts/scale78b (never written). SCRATCH is a new folder outside it: the
+ runner copies scripts/scale78b into SCRATCH/repo/scripts/ and links every other top-level entry of SOURCE_ROOT and every
+ other scripts/ entry (read only). Mutations are applied to the copy only, one at a time; the copy's bytes are restored
+-and re-hashed after each.
++and re-hashed after each. OUT.json must not exist: it is never overwritten.
+ 
+ Each run is the same command: PY -B -m pytest -p no:cacheprovider -q -x -rfE --basetemp SCRATCH/pt-<n>
+ scripts/scale78b/tests/test_encode_count_78b.py scripts/scale78b/tests/test_tau_l_78b.py, cwd SCRATCH/repo,
+@@ -110,6 +110,8 @@
+     ap.add_argument("select")
+     ap.add_argument("--timeout", type=int, default=300)
+     args = ap.parse_args(argv)
++    if args.out.exists() or args.out.is_symlink():
++        raise SystemExit(f"{args.out} exists; give a new report path")
+     spec = json.loads((args.source / SPEC).read_text(encoding="utf-8"))
+     mutants = spec["mutants"]
+     if args.select not in ("BASELINE", "ALL"):

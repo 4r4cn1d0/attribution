@@ -1,0 +1,89 @@
+{
+ "kind": "verify-K-gated hand mutants (the verifier's, not the builders'): each weakens a token protection",
+ "mutants": [
+  {
+   "id": "V-m-http-get-no-redirect-handler",
+   "describes": "http_get builds its opener without SameHostAuthRedirect: the Authorization header follows a redirect off the Hub",
+   "file": "launch.py",
+   "find": "    opener = urllib.request.build_opener(SameHostAuthRedirect)\n",
+   "replace": "    opener = urllib.request.build_opener()\n"
+  },
+  {
+   "id": "V-m-range-url-other-host",
+   "describes": "the Range requests (with the token) go to another host than the Hub",
+   "file": "launch.py",
+   "find": "            url = f\"{HUB}/{entry['repo_id']}/resolve/{entry['revision']}/{name}\"\n",
+   "replace": "            url = f\"https://hub.example.net/{entry['repo_id']}/resolve/{entry['revision']}/{name}\"\n"
+  },
+  {
+   "id": "V-m-reconcile-child-keeps-env",
+   "describes": "host.py reconcile inherits the token variable",
+   "file": "launch.py",
+   "find": "                checked = run([sys.executable, \"host.py\", \"reconcile\", host], cwd=HERE, capture_output=True, text=True,\n                              env=clean_env())\n",
+   "replace": "                checked = run([sys.executable, \"host.py\", \"reconcile\", host], cwd=HERE, capture_output=True, text=True,\n                              env=dict(os.environ))\n"
+  },
+  {
+   "id": "V-m-precheck-reads-other-name",
+   "describes": "the precheck also reads HUGGING_FACE_HUB_TOKEN (a second name the scrub list covers but the docs say is never read)",
+   "file": "launch.py",
+   "find": "    token = (env if env is not None else os.environ).get(HF_TOKEN_ENV, \"\").strip()\n",
+   "replace": "    _e = env if env is not None else os.environ\n    token = (_e.get(HF_TOKEN_ENV, \"\") or _e.get(\"HUGGING_FACE_HUB_TOKEN\", \"\")).strip()\n"
+  },
+  {
+   "id": "V-m-orch-tool-keeps-env",
+   "describes": "every host.py child of orchestrate (the gated-download one included) inherits the token variable",
+   "file": "orchestrate.py",
+   "find": "    return subprocess.run([*HOST_TOOL, *args], capture_output=True, text=True, env=clean_env(), input=stdin_text)\n",
+   "replace": "    return subprocess.run([*HOST_TOOL, *args], capture_output=True, text=True, env=dict(os.environ), input=stdin_text)\n"
+  },
+  {
+   "id": "V-m-orch-stale-record-trusted",
+   "describes": "an earlier gated-download.json is not archived: a stale ok true record passes when host.py writes nothing",
+   "file": "orchestrate.py",
+   "find": "    if record_file.exists():                                              # never trust a stale record\n        stamp = dt.datetime.now(dt.timezone.utc).strftime(\"%Y%m%dT%H%M%SZ\")\n        record_file.rename(record_file.with_name(f\"gated-download-earlier-{stamp}.json\"))\n",
+   "replace": "    pass\n"
+  },
+  {
+   "id": "V-m-orch-logs-token",
+   "describes": "orchestrate logs the token into hosts/HOST/orchestrate.jsonl before the hand-over",
+   "file": "orchestrate.py",
+   "find": "    done = tool(\"gated-download\", host, stdin_text=token + \"\\n\")\n",
+   "replace": "    log(host, \"gated-download-started\", token=token)\n    done = tool(\"gated-download\", host, stdin_text=token + \"\\n\")\n"
+  },
+  {
+   "id": "V-m-dl-endpoint-unchecked",
+   "describes": "HF_ENDPOINT pointing elsewhere is accepted (the library would send the token there)",
+   "file": "setup/download_models_stage1.py",
+   "find": "    if value not in (None, \"\", ENDPOINT):\n",
+   "replace": "    if False:\n"
+  },
+  {
+   "id": "V-m-dl-endpoint-kwarg-dropped",
+   "describes": "snapshot_download is called without endpoint= (the library falls back to HF_ENDPOINT)",
+   "file": "setup/download_models_stage1.py",
+   "find": "                                                allow_patterns=list(entry[\"patterns\"]), endpoint=ENDPOINT,\n",
+   "replace": "                                                allow_patterns=list(entry[\"patterns\"]),\n"
+  },
+  {
+   "id": "V-m-dl-post-check-dropped",
+   "describes": "the after-download no_token_left() is dropped: a token file or variable left by the download is not detected",
+   "file": "setup/download_models_stage1.py",
+   "find": "        token = None                                          # nothing below sees it\n        no_token_left()\n",
+   "replace": "        token = None                                          # nothing below sees it\n"
+  },
+  {
+   "id": "V-m-dl-implicit-token-allowed",
+   "describes": "HF_HUB_DISABLE_IMPLICIT_TOKEN is not set (the library may read a stored login)",
+   "file": "setup/download_models_stage1.py",
+   "find": "os.environ[\"HF_HUB_DISABLE_IMPLICIT_TOKEN\"] = \"1\"\n",
+   "replace": "os.environ.pop(\"HF_HUB_DISABLE_IMPLICIT_TOKEN\", None)\n"
+  },
+  {
+   "id": "V-m-scrub-value-pattern-off",
+   "describes": "secret_scan.scrubbed drops the named variables only: a renamed variable holding the token reaches every child",
+   "file": "secret_scan.py",
+   "find": "    return {k: v for k, v in environ.items() if k not in names and not PATTERNS[\"hf_token\"].search(v or \"\")}\n",
+   "replace": "    return {k: v for k, v in environ.items() if k not in names}\n"
+  }
+ ]
+}

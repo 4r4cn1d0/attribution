@@ -1,0 +1,123 @@
+{
+ "start": "2026-11-06T17:30:12+00:00",
+ "baselines": {
+  "[\"runkit/stage1-78b/tests\"]": {
+   "exit": 0,
+   "failed": [],
+   "errors": [],
+   "tail": "451 passed in 26.78s",
+   "pid": 43412
+  }
+ },
+ "results": [
+  {
+   "id": "H-d5-nested-inputs-unscanned",
+   "file": "pack_setup.py",
+   "describes": "the input scan reads inputs/<name>/<file> only, not a unit folder's nested files",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_scorer_block_78b.py::test_the_pack_refuses_a_token_shaped_string_in_a_named_scorer_input"
+    ],
+    "errors": [],
+    "tail": "1 failed, 450 passed in 32.34s",
+    "pid": 43452
+   },
+   "verdict": "killed"
+  },
+  {
+   "id": "H-d5-input-scan-off",
+   "file": "pack_setup.py",
+   "describes": "the input scan never refuses",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_scorer_block_78b.py::test_the_pack_refuses_a_token_shaped_string_in_a_named_scorer_input"
+    ],
+    "errors": [],
+    "tail": "1 failed, 450 passed in 32.93s",
+    "pid": 43497
+   },
+   "verdict": "killed"
+  },
+  {
+   "id": "H-pack-setup-tar-scan-dropped",
+   "file": "pack_setup.py",
+   "describes": "the setup tar's members are not scanned",
+   "result": {
+    "exit": 0,
+    "failed": [],
+    "errors": [],
+    "tail": "451 passed in 33.92s",
+    "pid": 43572
+   },
+   "verdict": "survived"
+  },
+  {
+   "id": "H-pack-payload-scan-dropped",
+   "file": "pack_setup.py",
+   "describes": "the generated payloads (bundle-manifest, sealed-files, probe, kit-family) are not scanned",
+   "result": {
+    "exit": 0,
+    "failed": [],
+    "errors": [],
+    "tail": "451 passed in 31.23s",
+    "pid": 43645
+   },
+   "verdict": "survived"
+  },
+  {
+   "id": "H-pack-bootstrap-scan-dropped",
+   "file": "pack_setup.py",
+   "describes": "the generated worker bootstrap is not scanned",
+   "result": {
+    "exit": 0,
+    "failed": [],
+    "errors": [],
+    "tail": "451 passed in 30.19s",
+    "pid": 43695
+   },
+   "verdict": "survived"
+  },
+  {
+   "id": "H-pack-engine-files-unscanned",
+   "file": "pack_setup.py",
+   "describes": "the engine's files (experiments/) are not scanned",
+   "result": {
+    "exit": 0,
+    "failed": [],
+    "errors": [],
+    "tail": "451 passed in 30.16s",
+    "pid": 43755
+   },
+   "verdict": "survived"
+  },
+  {
+   "id": "H-pack-scripts-unscanned",
+   "file": "pack_setup.py",
+   "describes": "the scorer code and preflight scripts (scripts/) are not scanned",
+   "result": {
+    "exit": 0,
+    "failed": [],
+    "errors": [],
+    "tail": "451 passed in 30.59s",
+    "pid": 43807
+   },
+   "verdict": "survived"
+  },
+  {
+   "id": "H-d3-instance-https-open-unverified",
+   "file": "launch.py",
+   "describes": "http_get overrides its opener's HTTPSHandler instance's https_open with an unverified context (no class, no global changes)",
+   "result": {
+    "exit": 0,
+    "failed": [],
+    "errors": [],
+    "tail": "451 passed in 29.79s",
+    "pid": 43863
+   },
+   "verdict": "survived"
+  }
+ ],
+ "end": "2026-11-06T17:35:12+00:00"
+}

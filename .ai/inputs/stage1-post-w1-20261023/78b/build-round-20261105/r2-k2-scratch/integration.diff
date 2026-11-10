@@ -1,0 +1,198 @@
+--- a/runkit/stage1-78b/rules_78b.py
++++ b/runkit/stage1-78b/rules_78b.py
+@@ -1428,8 +1428,10 @@
+ # GXB R-21: the family's W1-18 record is committed under this folder; an O-ext pin's files may name it there (that one
+ # entry only, a plain .json file directly in the folder); every other entry stays under scripts/.
+ W1_18_RECORD_DIR = ".ai/inputs/stage1-post-w1-20261023/78b/w1-18/"
+-W1_18_RECORD_RE = re.compile(r"^\.ai/inputs/stage1-post-w1-20261023/78b/w1-18/w1_18_record__(olmo2-7b|llama31-8b)\.json$")
+-#                                           GXB R-33: exactly the standard name w1_18_record__<F>.json (w1_18_plan's)
++# GXB R-53: the record's standard file name is Track O's maker's, overrefusal_checks__<F>.json (after the 1B
++# record kind, "stage1 over-refusal checks"); R-33: exactly that name, directly in the folder (w1_18_plan's too).
++W1_18_RECORD_NAME = "overrefusal_checks__{family}.json"
++W1_18_RECORD_RE = re.compile(r"^\.ai/inputs/stage1-post-w1-20261023/78b/w1-18/overrefusal_checks__(olmo2-7b|llama31-8b)\.json$")
+ 
+ 
+ def oext_index_problem(oext: dict, family: str, engine: str) -> str | None:
+@@ -1466,8 +1468,8 @@
+     for path, digest in files.items():
+         if path in records:
+             if not W1_18_RECORD_RE.match(path):
+-                return (f"files names {path!r}, not the standard w1_18_record__<family>.json W1-18 record directly "
+-                        f"under {W1_18_RECORD_DIR} (GXB R-21, R-33)")
++                return (f"files names {path!r}, not the standard overrefusal_checks__<family>.json W1-18 record "
++                        f"directly under {W1_18_RECORD_DIR} (GXB R-21, R-33, R-53)")
+             if family is not None and W1_18_RECORD_RE.match(path).group(1) != family:
+                 return f"files names {path!r}, another family's W1-18 record (GXB R-33)"
+         elif not (isinstance(path, str) and path.startswith("scripts/") and "\\" not in path
+@@ -1487,10 +1489,10 @@
+ def oext_w1_18_record_problem(oext: dict, family: str, branch_doc: dict) -> str | None:
+     """GXB R-33 (KR2-4): the family's O-ext pin and its branch record agree on W1-18's record. A branch read from
+     W1-18 (source "w1_18", Branch 128 or a failing record's Branch full) needs the pin's files to name exactly the
+-    family's standard record .ai/inputs/stage1-post-w1-20261023/78b/w1-18/w1_18_record__<F>.json at the branch
++    family's standard record .ai/inputs/stage1-post-w1-20261023/78b/w1-18/overrefusal_checks__<F>.json at the branch
+     record's w1_18_record_sha256 (the O-ext eval settings pin it; T-O3: it joins the job's files); "Branch full by
+     default" (source "default") names none. None when they agree."""
+-    want = f"{W1_18_RECORD_DIR}w1_18_record__{family}.json"
++    want = W1_18_RECORD_DIR + W1_18_RECORD_NAME.format(family=family)
+     records = {p: d for p, d in oext["files"].items() if isinstance(p, str) and p.startswith(W1_18_RECORD_DIR)}
+     if branch_doc.get("source") == "w1_18":
+         if set(records) != {want}:
+@@ -2531,13 +2533,13 @@
+ 
+ def w1_18_plan(option: str) -> dict:
+     """The one W1-18 pod (DESO2 item 37; GXB O4): one check per family of the option, each with its own settings and
+-    its own record (w1_18_record__<family>.json), so each family's branch is read from its own record; under [C]
+-    OLMo-2-7B's units only. 7 units under [B], 4 under [C]."""
++    its own record (overrefusal_checks__<family>.json, GXB R-53), so each family's branch is read from its own record;
++    under [C] OLMo-2-7B's units only. 7 units under [B], 4 under [C]."""
+     if option not in W1_18_FAMILIES:
+         raise Refused(f"option {option!r} is not B or C")
+     fams = W1_18_FAMILIES[option]
+     return {"option": option, "host_family": W1_18_HOST_FAMILY, "families": fams,
+-            "records": {f: f"w1_18_record__{f}.json" for f in fams},
++            "records": {f: W1_18_RECORD_NAME.format(family=f) for f in fams},
+             "units": {f: w1_18_units(f) for f in fams}, "n_units": sum(len(w1_18_units(f)) for f in fams)}
+ 
+ 
+--- a/runkit/stage1-78b/plan_tool.py
++++ b/runkit/stage1-78b/plan_tool.py
+@@ -4536,15 +4536,15 @@
+ def record_branch_78b(record_path: str | None, record_sha256: str | None, default: bool, recorded_by: str,
+                       out: str) -> dict:
+     """record-branch-78b: the family's BRANCH_78B record (rules_78b.BRANCH_KEYS; K-8, R-21, K1V-5) from its W1-18 record
+-    committed at .ai/inputs/stage1-post-w1-20261023/78b/w1-18/w1_18_record__<F>.json, by path and SHA-256: an over-
+-    refusal checks record (W1-18's kind, version 1) made under the family's W1-18 settings as W1_18_78B pins them, over
+-    the family's W1-18 units, with a truncation verdict: pass -> Branch 128, fail -> Branch full (Part 2 §4.2). Or,
++    committed at .ai/inputs/stage1-post-w1-20261023/78b/w1-18/overrefusal_checks__<F>.json (GXB R-53), by path and
++    SHA-256: an over-refusal checks record (W1-18's kind, version 1) made under the family's W1-18 settings as
++    W1_18_78B pins them, over the family's W1-18 units, with a truncation verdict: pass -> Branch 128, fail -> Branch full (Part 2 §4.2). Or,
+     with --default, "Branch full by default" (no W1-18 record; DESO2 item 37), refused while the family's W1-18 record
+     file exists at its place. A branch is never switched: once BRANCH_78B is pinned, only the same record is accepted."""
+     family = family_or_fail()
+     if default == bool(record_path):
+         fail("record-branch-78b takes either --w1-18-record FILE --sha256 H or --default")
+-    where = f"{r78.W1_18_RECORD_DIR}w1_18_record__{family}.json"
++    where = r78.W1_18_RECORD_DIR + r78.W1_18_RECORD_NAME.format(family=family)
+     if default:
+         if (ROOT / where).exists():
+             fail(f"{where} exists: the branch comes from that W1-18 record, not by default (DESO2 item 37)")
+--- a/runkit/stage1-78b/tests/test_planning_ab_78b.py
++++ b/runkit/stage1-78b/tests/test_planning_ab_78b.py
+@@ -382,7 +382,7 @@
+     with pytest.raises(SystemExit, match="carries the O-ext step: OEXT_78B\\['olmo2-7b'\\] is null"):
+         w.init(dry_run=True)
+     w.fill(edits=False, branch=False, padded=None)
+-    rec = f"{w.r78.W1_18_RECORD_DIR}w1_18_record__{w.family}.json"
++    rec = f"{w.r78.W1_18_RECORD_DIR}overrefusal_checks__{w.family}.json"
+     b = w.record({"kind": "stage1-78b branch record", "version": 1, "family": w.family, "branch": "128",
+                   "source": "w1_18", "w1_18_record_sha256": hx("the w1-18 record"), "utc": "2026-11-20T12:00:00+00:00",
+                   "recorded_by": "test"}, "branch-128.json")
+@@ -802,13 +802,13 @@
+     doc = {"kind": "stage1 over-refusal checks", "version": 1,
+            "provenance": {"settings_sha256": settings or hx(f"w1-{w.family}")},
+            "truncation_check": {"pass": passed}, "units": {f"u{i}": {"truncation": {"cap_tokens": 128}} for i in range(n)}}
+-    rel = where or f"{w.r78.W1_18_RECORD_DIR}w1_18_record__{w.family}.json"
++    rel = where or f"{w.r78.W1_18_RECORD_DIR}overrefusal_checks__{w.family}.json"
+     return write(w.repo / rel, doc)
+ 
+ 
+ def test_record_branch_78b_reads_the_familys_w1_18_record_at_its_r21_place(waf):
+     """K-8, R-21: the branch record comes from the family's W1-18 record committed at
+-    .ai/inputs/stage1-post-w1-20261023/78b/w1-18/w1_18_record__<F>.json (pass -> 128, fail -> full), made under the
++    .ai/inputs/stage1-post-w1-20261023/78b/w1-18/overrefusal_checks__<F>.json (pass -> 128, fail -> full), made under the
+     family's W1-18 settings as W1_18_78B pins them, over the family's units; written in BRANCH_78B's form; the
+     default record only while no W1-18 record exists; a pinned branch is never switched."""
+     w = waf
+@@ -838,7 +838,7 @@
+         w.tool.record_branch_78b(str(rec), sha(rec), False, "test", out())
+     w.mp.setattr(w.r78, "W1_18_78B", w1_18_route(w.r78))
+     default = Path(w.repo / "records" / "default.json")
+-    (w.repo / f"{w.r78.W1_18_RECORD_DIR}w1_18_record__{w.family}.json").unlink()
++    (w.repo / f"{w.r78.W1_18_RECORD_DIR}overrefusal_checks__{w.family}.json").unlink()
+     got = w.tool.record_branch_78b(None, None, True, "test", str(default))
+     assert json.loads(default.read_text())["source"] == "default" and got["branch"] == "full"
+     w.pin("BRANCH_78B", default, w.family)
+@@ -1283,8 +1283,8 @@
+     assert got["named"][0]["fields"] == [{"file": "round1/1103-a0-e1-a1/COMPLETE.json", "keys": ["evaluation.query_loss"]}]
+     assert seal.named_exceptions({**llama, "family": "olmo2-7b"}, "0") == {"files": set(), "named": []}
+     sc = {"family": "olmo2-7b", "hosts": {"olmo2-7b-sc-1": {"block": "sc", "jobs": [
+-        {"kind": "w1_18", "status": "complete", "outputs": {"job-0/w1_18/w1_18_record__olmo2-7b.json": hx("r")}}]}}}
+-    assert seal.named_exceptions(sc, "sc")["files"] == {("olmo2-7b-sc-1", "job-0/w1_18/w1_18_record__olmo2-7b.json")}
++        {"kind": "w1_18", "status": "complete", "outputs": {"job-0/w1_18/overrefusal_checks__olmo2-7b.json": hx("r")}}]}}}
++    assert seal.named_exceptions(sc, "sc")["files"] == {("olmo2-7b-sc-1", "job-0/w1_18/overrefusal_checks__olmo2-7b.json")}
+ 
+ 
+ def test_the_state_rule_keeps_a0_1104_until_its_references_and_the_list_names_every_stopped_pod(wa):
+@@ -1429,7 +1429,7 @@
+ def test_r33_the_index_and_w1_18_record_names_are_exactly_the_standard_ones_and_plan_for_sigma_refuses(wa):
+     """GXB R-33 (KR2-4, KR2-5): an O-ext pin holds exactly one index, at its standard path, its own family's and
+     engine's: a look-alike in another folder or case, or the W1 index, refuses; its one W1-18 record is
+-    w1_18_record__<its family>.json, at the branch record's w1_18_record_sha256 when the branch comes from W1-18, none
++    overrefusal_checks__<its family>.json, at the branch record's w1_18_record_sha256 when the branch comes from W1-18, none
+     under Branch full by default; plan_for_sigma refuses (not raises) an int too large for a float."""
+     r78, fam = wa.r78, "olmo2-7b"
+     base = {"files": {r78.OEXT_WRAPPER_78B: hx("w"), f"scripts/scale78b/settings/OEXT-78B__{fam}.json": hx("i")},
+@@ -1439,12 +1439,12 @@
+                   f"scripts/scale78b/settings/OEXT-78B-W1__{fam}.json"):
+         bad = {**base, "files": {**base["files"], extra: hx("x")}}
+         assert "2 O-ext index file(s)" in r78.oext_form_problem(bad, fam, "X"), extra
+-    rec = f"{r78.W1_18_RECORD_DIR}w1_18_record__{fam}.json"
+-    other = f"{r78.W1_18_RECORD_DIR}w1_18_record__llama31-8b.json"
++    rec = f"{r78.W1_18_RECORD_DIR}overrefusal_checks__{fam}.json"
++    other = f"{r78.W1_18_RECORD_DIR}overrefusal_checks__llama31-8b.json"
+     assert "another family's W1-18 record" in r78.oext_form_problem({**base, "files": {**base["files"], other: hx("r")}},
+                                                                      fam, "X")
+     loose = {**base, "files": {**base["files"], f"{r78.W1_18_RECORD_DIR}record.json": hx("r")}}
+-    assert "not the standard w1_18_record__<family>.json" in r78.oext_form_problem(loose)
++    assert "not the standard overrefusal_checks__<family>.json" in r78.oext_form_problem(loose)
+     with_rec = {**base, "files": {**base["files"], rec: hx("the record")}}
+     w118 = {"source": "w1_18", "w1_18_record_sha256": hx("the record")}
+     assert r78.oext_w1_18_record_problem(with_rec, fam, w118) is None
+--- a/runkit/stage1-78b/tests/test_rules_78b.py
++++ b/runkit/stage1-78b/tests/test_rules_78b.py
+@@ -1814,7 +1814,7 @@
+         assert not R.engine_allowed("w1_18", "d3" * 32)
+     b, c = R.w1_18_plan("B"), R.w1_18_plan("C")
+     assert b["families"] == ("olmo2-7b", "llama31-8b") and c["families"] == ("olmo2-7b",)
+-    assert b["records"] == {"olmo2-7b": "w1_18_record__olmo2-7b.json", "llama31-8b": "w1_18_record__llama31-8b.json"}
++    assert b["records"] == {"olmo2-7b": "overrefusal_checks__olmo2-7b.json", "llama31-8b": "overrefusal_checks__llama31-8b.json"}
+     assert b["n_units"] == 7 and c["n_units"] == 4 and set(c["records"]) == {"olmo2-7b"}
+     assert [u["unit"] for u in b["units"]["olmo2-7b"]] == ["untuned", 1101, 1102, 1103]
+     assert [u["unit"] for u in b["units"]["llama31-8b"]] == ["untuned", 1101, 1102]
+@@ -2751,7 +2751,7 @@
+         near = {"files": {R.OEXT_WRAPPER_78B: hx("w"), f"scripts/scale78b/settings/OEXT-78B__{family}__X.json": hx("i")},
+                 "inputs": x["inputs"]}                   # R2 K2 (R-33): a candidate off the standard name is no index
+         assert "1 O-ext index file(s)" in R.oext_form_problem(near, family, "X")
+-        rec = f"{R.W1_18_RECORD_DIR}w1_18_record__{family}.json"
++        rec = f"{R.W1_18_RECORD_DIR}overrefusal_checks__{family}.json"
+         with_rec = {"files": {**x["files"], rec: hx("rec")}, "inputs": x["inputs"]}
+         assert R.oext_form_problem(with_rec, family, "X") is None and R.oext_form_problem(with_rec) is None
+         two = {"files": {**with_rec["files"], f"{R.W1_18_RECORD_DIR}other.json": hx("rec2")}, "inputs": x["inputs"]}
+--- a/runkit/stage1-78b/tests/mutation_spec_scorer_78b.json
++++ b/runkit/stage1-78b/tests/mutation_spec_scorer_78b.json
+@@ -1794,8 +1794,9 @@
+    "part": "R-33",
+    "describes": "any .json name under the W1-18 folder passes",
+    "file": "rules_78b.py",
+-   "find": "W1_18_RECORD_RE = re.compile(r\"^\\.ai/inputs/stage1-post-w1-20261023/78b/w1-18/w1_18_record__(olmo2-7b|llama31-8b)\\.json$\")",
+-   "replace": "W1_18_RECORD_RE = re.compile(r\"^\\.ai/inputs/stage1-post-w1-20261023/78b/w1-18/(?:w1_18_record__)?(olmo2-7b|llama31-8b|[A-Za-z0-9_.-]+)\\.json$\")"
++   "find": "W1_18_RECORD_RE = re.compile(r\"^\\.ai/inputs/stage1-post-w1-20261023/78b/w1-18/overrefusal_checks__(olmo2-7b|llama31-8b)\\.json$\")",
++   "replace": "W1_18_RECORD_RE = re.compile(r\"^\\.ai/inputs/stage1-post-w1-20261023/78b/w1-18/(?:overrefusal_checks__)?(olmo2-7b|llama31-8b|[A-Za-z0-9_.-]+)\\.json$\")",
++   "note": "R2 K2 integration fix (GXB R-53): re-targeted to the renamed record (same mutation)"
+   },
+   {
+    "id": "K2-m-rk-record-sha-free",
+--- a/runkit/stage1-78b/tests/mutation_spec_rules_78b.json
++++ b/runkit/stage1-78b/tests/mutation_spec_rules_78b.json
+@@ -1184,8 +1184,9 @@
+    "part": "5c, O4",
+    "describes": "one W1-18 record for both families",
+    "file": "rules_78b.py",
+-   "find": "\"records\": {f: f\"w1_18_record__{f}.json\" for f in fams}",
+-   "replace": "\"records\": {f: \"w1_18_record.json\" for f in fams}"
++   "find": "\"records\": {f: W1_18_RECORD_NAME.format(family=f) for f in fams}",
++   "replace": "\"records\": {f: \"overrefusal_checks.json\" for f in fams}",
++   "note": "R2 K2 integration fix (GXB R-53): re-targeted to the renamed record (same mutation)"
+   },
+   {
+    "id": "K1R-m-w1-18-not-x-only",

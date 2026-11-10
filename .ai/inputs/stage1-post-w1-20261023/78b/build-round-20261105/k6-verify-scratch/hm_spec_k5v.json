@@ -1,0 +1,61 @@
+{
+ "kind": "the K5v survivors from the kit specs, whole suite",
+ "mutants": [
+  {
+   "id": "K5v-D1c-link-accepted",
+   "file": "setup/job_runner_stage1.py",
+   "describes": "c0_fingerprint accepts a symbolic link (the hash is still checked)",
+   "find": "    if not path.is_file() or path.is_symlink() or sha(path) != pin:\n",
+   "replace": "    if not path.is_file() or sha(path) != pin:\n",
+   "from": "mutation_spec_scorer_78b.json"
+  },
+  {
+   "id": "K5v-R21-no-e1-checkpoint-accepted",
+   "file": "setup/job_runner_stage1.py",
+   "describes": "acceptance: the e1 adapter check runs only when the side lists an e1 checkpoint",
+   "find": "if rules.hex64((side_points.get(\"e1\") or {}).get(\"adapter_fingerprint\")) is None:",
+   "replace": "if \"e1\" in side_points and rules.hex64((side_points.get(\"e1\") or {}).get(\"adapter_fingerprint\")) is None:",
+   "from": "mutation_spec_scorer_78b.json"
+  },
+  {
+   "id": "K5v-R4-call-site-skips-edits",
+   "file": "pack_setup.py",
+   "describes": "the bundle's scan is called with edits/ among the skipped prefixes (the constant DATA_PREFIXES unchanged)",
+   "find": "    refuse_secrets(files, {**payload, \"probe.json\": probe_json, rules.KIT_FAMILY_FILE: family_json}, DATA_PREFIXES,\n                   frozenset(f\"{data_base}/{rel}\" for rel in data_scan))\n",
+   "replace": "    refuse_secrets(files, {**payload, \"probe.json\": probe_json, rules.KIT_FAMILY_FILE: family_json}, (*DATA_PREFIXES, \"edits/\"),\n                   frozenset(f\"{data_base}/{rel}\" for rel in data_scan))\n",
+   "from": "mutation_spec_scorer_78b.json"
+  },
+  {
+   "id": "K5v-G1-wrapper-skips-explicit-proto",
+   "file": "tests/conftest.py",
+   "describes": "the wrapper lets a socket with a nonzero proto (e.g. IPPROTO_UDP given explicitly) through to C",
+   "find": "    def call(self, *args, **kwargs):\n        if name in (\"connect\", \"connect_ex\"):\n",
+   "replace": "    def call(self, *args, **kwargs):\n        if getattr(self, \"proto\", 0):\n            return real(self, *args, **kwargs)\n        if name in (\"connect\", \"connect_ex\"):\n",
+   "from": "mutation_spec_gated_78b.json"
+  },
+  {
+   "id": "K5v-G2-hook-default-named-threads-free",
+   "file": "tests/conftest.py",
+   "describes": "the hook ignores threads with a default name (Thread-N: any library thread started without a name)",
+   "find": "    if event not in _AUDITED:\n        return\n    kind = _AUDITED[event]\n",
+   "replace": "    if event not in _AUDITED or __import__(\"threading\").current_thread().name.startswith(\"Thread-\"):\n        return\n    kind = _AUDITED[event]\n",
+   "from": "mutation_spec_gated_78b.json"
+  },
+  {
+   "id": "K5v-G2-hook-dummy-threads-free",
+   "file": "tests/conftest.py",
+   "describes": "the hook ignores threads not started by threading (_thread.start_new_thread: a _DummyThread)",
+   "find": "    if event not in _AUDITED:\n        return\n    kind = _AUDITED[event]\n",
+   "replace": "    if event not in _AUDITED or isinstance(__import__(\"threading\").current_thread(), __import__(\"threading\")._DummyThread):\n        return\n    kind = _AUDITED[event]\n",
+   "from": "mutation_spec_gated_78b.json"
+  },
+  {
+   "id": "K5v-G3-redirect-keeps-token",
+   "file": "launch.py",
+   "describes": "SameHostAuthRedirect's http_error_30x calls the PARENT's redirect_request (the header is kept on a real redirect)",
+   "find": "    def redirect_request(self, req, fp, code, msg, headers, newurl):\n        new = super().redirect_request(req, fp, code, msg, headers, newurl)\n",
+   "replace": "    def http_error_302(self, req, fp, code, msg, headers):\n        newurl = urllib.parse.urljoin(req.full_url, headers.get(\"location\") or headers.get(\"uri\") or \"\")\n        new = urllib.request.HTTPRedirectHandler.redirect_request(self, req, fp, code, msg, headers, newurl)\n        return None if new is None else self.parent.open(new, timeout=req.timeout)\n\n    http_error_301 = http_error_303 = http_error_307 = http_error_308 = http_error_302\n\n    def redirect_request(self, req, fp, code, msg, headers, newurl):\n        new = super().redirect_request(req, fp, code, msg, headers, newurl)\n",
+   "from": "mutation_spec_gated_78b.json"
+  }
+ ]
+}

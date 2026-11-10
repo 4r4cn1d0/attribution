@@ -1,0 +1,43 @@
+{
+  "engine_x": "472fc7f6d619bdee2c3aa38e444024626be8b66bfb74a5abf37f2ddb6dded892",
+  "family_78b": {
+    "derived_from": {
+      "path": "scripts/stage1/settings/representation_pools.json",
+      "sha256": "1451ba5ec435ecaafebd7749f44b6729e45f2157a69a62c55f35e2bbdbae826b"
+    },
+    "engine_rule": "PP4 (the lead's ruling, 5 Nov 2026): every wrapper kind runs on engine X (engine_x above): untuned_answers, rep_pass, l1_scan and classifier on the pod; l1_score, s3_score, score_edit, add_edit and s_pool on the Mac. Every derived settings file carries engine_x unchanged from the 1B file, and the frozen check_settings refuses another engine identity (R: scripts/stage1/s1common.py:590-592). A run on engine Y needs the settings re-derived for Y (engine_x = Y's identity, a new PINS-78B.json, a new PINS_FILE_SHA256) by a recorded step; none exists. The engine's own jobs (the a0-1101 retrain, a1_pass) follow ruling 10 and addendum A13, not this rule. The kit packs scorer pods with engine X.",
+    "family": "llama31-8b",
+    "main_recipe": {
+      "config_sha256": "74758af1791d9f7a8ce616adce7549b5b7b0619e55310158d7e21197ed129893",
+      "path": "experiments/safety_selection/configs/study-kt-llama31-8b-r64-b5e5-mb2-20261010.json"
+    },
+    "maker": "scripts/scale78b/make_scorer_settings_78b.py",
+    "manifest_sha256": "c52a50afddcfcfa818512ac7f1536c34c959774e815095bd30f69320b083d55a",
+    "model": "Llama-3.1-8B",
+    "owner_78b": "scripts/scale78b/scorers_78b.py",
+    "pins_file": "scripts/scale78b/settings/pins_78b.json",
+    "rule": "the 1B file's schema and name, so scripts/stage1's unchanged check_settings accepts it; every value that differs from the 1B file is per family (pins_78b.json) or a documented 7-8B rule; a null is a pin that waits for the event named in waits; scorers_78b.py refuses a command while a pin it needs is null",
+    "waits": {}
+  },
+  "fill": "7-8B: no plant or decoy pool is passed (no selector runs at 7-8B, Part 1 section 11 EM-4), so both pins stay null and any pool named plant or decoy refuses; the S3 pools (s3_safe, s3_orig) are named on the command line by SHA-256 through their own records; scorers_78b.py gives this file to representation_pass.py and score_classifier.py as the pool pins for the family",
+  "kind": "stage1 settings",
+  "label_entries": {},
+  "labels_sha256": "260389f3fbfd8e7ff11ee06b5d5aba48e7d56b34140d9c9a634682125a86d570",
+  "name": "representation_pools",
+  "owner": "scripts/stage1/representation_pass.py",
+  "pools": {
+    "decoy": {
+      "items": 37,
+      "sha256": null,
+      "source": "REQ-8 build_plant.py with settings/build_plant_extra.json (W1-09): the 37-row scored-only refusal decoy, if built; never trained"
+    },
+    "plant": {
+      "items": 75,
+      "sha256": null,
+      "source": "REQ-8 build_plant.py: the 75-row plant pool (add ids add-plant-001..075, settings/build_plant.json 06f70d98); only this pool is passed: the 37-row plant rows are its first 37 rows, so a second pool would repeat ids, and REQ-29 takes the 37-row subset by id (add-plant-001..037)"
+    }
+  },
+  "requirement": "W1-08 (1), the lead's ruling option (a): a separate hash-pinned pool-pins file that REQ-3 (scripts/stage1/representation_pass.py) loads; REQ-3's own settings (representation_pass.json) and SETTINGS_SHA256 do not change",
+  "rule": "each pool given to REQ-3 is checked against this file: a listed name needs a filled sha256 equal to the pool file's SHA-256 and the same item count; a listed name whose sha256 is null is refused (not filled yet); an unlisted name whose SHA-256 equals a listed sha256 is refused (the name and hash do not match); the name dev is refused; any other unlisted pool (the S3 pools) is named on the command line by SHA-256, through its own sealed record",
+  "version": 1
+}

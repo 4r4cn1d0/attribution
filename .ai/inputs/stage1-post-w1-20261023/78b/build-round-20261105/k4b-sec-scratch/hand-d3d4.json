@@ -1,0 +1,108 @@
+{
+ "start": "2026-11-06T17:26:42+00:00",
+ "baselines": {
+  "[\"runkit/stage1-78b/tests\"]": {
+   "exit": 0,
+   "failed": [],
+   "errors": [],
+   "tail": "451 passed in 23.89s",
+   "pid": 42842
+  },
+  "[\"runkit/stage1-78b/tests/test_kit_78b_runner.py\"]": {
+   "exit": 0,
+   "failed": [],
+   "errors": [],
+   "tail": "30 passed in 2.69s",
+   "pid": 42929
+  }
+ },
+ "results": [
+  {
+   "id": "H-d3-default-open-mixin",
+   "file": "launch.py",
+   "describes": "SameHostAuthRedirect inherits a default_open that opens https with an unverified context",
+   "result": {
+    "exit": 0,
+    "failed": [],
+    "errors": [],
+    "tail": "451 passed in 26.69s",
+    "pid": 42941
+   },
+   "verdict": "survived"
+  },
+  {
+   "id": "H-d3-https-request-downgrade",
+   "file": "launch.py",
+   "describes": "SameHostAuthRedirect's https_request rewrites the request to plain http (token in clear)",
+   "result": {
+    "exit": 0,
+    "failed": [],
+    "errors": [],
+    "tail": "451 passed in 26.97s",
+    "pid": 43059
+   },
+   "verdict": "survived"
+  },
+  {
+   "id": "H-d3-connection-class-unverified",
+   "file": "launch.py",
+   "describes": "http_get replaces http.client.HTTPSConnection with an unverified-context factory at the call",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_pp10_guard.py::test_g1_g4_the_kits_http_libraries_stop_in_the_guard_before_any_lookup"
+    ],
+    "errors": [],
+    "tail": "1 failed, 450 passed in 26.57s",
+    "pid": 43148
+   },
+   "verdict": "killed"
+  },
+  {
+   "id": "H-d3-global-unverified-at-call",
+   "file": "launch.py",
+   "describes": "http_get makes ssl's default HTTPS context unverified at the call",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_gated_78b.py::test_rv2_1_http_get_verifies_the_hubs_tls_certificate_and_host_name"
+    ],
+    "errors": [],
+    "tail": "1 failed, 450 passed in 21.30s",
+    "pid": 43206
+   },
+   "verdict": "killed"
+  },
+  {
+   "id": "H-d3-calib-redirect-https-open",
+   "file": "launch.py",
+   "describes": "calibration: the round-4 verifier's handler_order 100 https_open (unverified)",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_gated_78b.py::test_rv2_1_http_get_verifies_the_hubs_tls_certificate_and_host_name"
+    ],
+    "errors": [],
+    "tail": "1 failed, 450 passed in 24.93s",
+    "pid": 43270
+   },
+   "verdict": "killed"
+  },
+  {
+   "id": "H-d4-test-old-line",
+   "file": "tests/test_kit_78b_runner.py",
+   "describes": "the preflight test removes the token variables only (round 4's line)",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_kit_78b_runner.py::test_the_preflight_writes_the_speed_and_bank_fields_and_refuses_a_slow_pod[shell-with-a-stored-login]"
+    ],
+    "errors": [],
+    "tail": "1 failed, 29 passed in 2.81s",
+    "pid": 43313
+   },
+   "verdict": "killed"
+  }
+ ],
+ "end": "2026-11-06T17:29:31+00:00"
+}

@@ -1,0 +1,35 @@
+{
+ "kind": "user decision: an S4 dose arm in the stage-2 and 7-8B pre-registrations",
+ "version": 1,
+ "question": "Add an S4 dose arm (more self-distilled refusals) to the stage-2 and 7–8B pre-registrations?",
+ "asked_by": "General Implementation IX (the lead), in the GI IX chat's next-step box, after its answer to the user's question about further gates (2026-11-01, about 23:00 UTC)",
+ "options_offered": [
+  "Yes, add it",
+  "Not now"
+ ],
+ "user_words": "Yes, add it",
+ "answered_utc": "2026-11-01, about 23:05 UTC (the chat's message time; clock read 23:05:38 UTC while recording)",
+ "recorded_by": "General Implementation IX (the lead)",
+ "recorded_utc": "2026-11-01T23:06Z (clock read)",
+ "what_it_is": "A design addition for two stages that have not started: stage 2 (Llama-3.2-1B; its pre-registration is not yet written) and the 7-8B tier (its Part 1 is frozen before block 0's first pod). It authorizes no spend and no run: each arm runs only when its stage is funded, under the frozen money rules (addendum §36; the $6 reserve; the $10/h limit).",
+ "why": "On OLMo-2-1B, S4 (48 refusals the untuned model gave to S-pool prompts) was the best feasible repair (P6 better, +18.28 pp against S1; restoration against a0 15.97 pp, about a third of the erosion), but Safe LoRA, B+Qi and the safety prefix reached a lower U than S4, with more over-refusal (FOCUS 2026-11-01T21:38 UTC). A dose arm asks whether more self-distilled refusals close that gap within the O and L limits.",
+ "integrity": [
+  "The arm is motivated by the stage-1 reading's result. On OLMo-2-1B it could only be exploratory (chosen after the result), so it is not added there.",
+  "On Llama-3.2-1B and the 7-8B models it is written into the pre-registration before any repair-arm outcome of that model exists, so it can be confirmatory there. Llama-3.2-1B's Gate A (a0 only; recorded PASS on 10 Oct, README.md) is the only Llama outcome that exists; no Llama repair arm has run.",
+  "Each pre-registration states that the arm was added after the OLMo-2-1B stage-1 reading, and why."
+ ],
+ "lead_design_draft": {
+  "status": "a draft for the pre-registrations; nothing here is frozen",
+  "construction": "as S4 (REV4 §1.2: the untuned model's greedy answers to the S-pool minus S1, in S4's sealed order, kept only if ended, refusal-opening by LEX, non-empty and accepted by encode_train), continuing the same order to the first 96 and the first 192 kept rows (S4_96, S4_192; nested in S4's 48, to be confirmed in the pre-registration)",
+  "comparators": "S4 (48) at the same seeds (does more of the same help?), and the model-level references within the O and L limits (does it close the gap?), read by the frozen dominance rule's form",
+  "seeds": "3 at Llama-3.2-1B (the secondary-arm default); at 7-8B by that tier's money rule",
+  "limits": "over-refusal O and task loss L as for every arm; a dose that breaks a limit is reported infeasible",
+  "pre_set_fallbacks": [
+   "fewer than 192 rows kept from the S4 candidate list: the top dose is all kept rows, counted",
+   "7-8B: the first secondary item cut if money is short",
+   "Llama-3.2-1B: dropped only if stage 2's primary family cannot be funded"
+  ],
+  "cost_estimate": "the lead's estimate from stage 1's measured cost per new cell (about $4-6): two doses x 3 seeds at 1B about $25-35; at 7-8B, priced in that tier's $0 preparation"
+ },
+ "next": "The 7-8B tier's $0 preparation (plan item 4) adds the arm to the Part 1 draft with its cost; stage 2's pre-registration carries it when it is written."
+}

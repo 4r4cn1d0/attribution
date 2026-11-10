@@ -1,0 +1,193 @@
+"""Builds scripts/scale78b/tests/mutation_spec_c_78b.json and checks each find text occurs once."""
+import json, sys
+from pathlib import Path
+WS = Path(sys.argv[1])
+E, T = "encode_count_78b.py", "tau_l_78b.py"
+M = [
+ # ---- encode_count_78b.py
+ ("C-ec-gen-limit-train", "lists: generation prompts checked at max_train_tokens", E,
+  '''        found = {"generation_prompt": refusals_generation(ctx.codec, [(r["id"], r["prompt"]) for r in rows],
+                                                          limits["max_prompt_tokens"])}''',
+  '''        found = {"generation_prompt": refusals_generation(ctx.codec, [(r["id"], r["prompt"]) for r in rows],
+                                                          limits["max_train_tokens"])}'''),
+ ("C-ec-train-limit-prompt", "lists: encode_train checked at max_prompt_tokens", E,
+  '''            found["encode_train"] = refusals_train(ctx.codec, [(r["id"], r["prompt"], r["response"]) for r in rows],
+                                                   limits["max_train_tokens"])''',
+  '''            found["encode_train"] = refusals_train(ctx.codec, [(r["id"], r["prompt"], r["response"]) for r in rows],
+                                                   limits["max_prompt_tokens"])'''),
+ ("C-ec-train-prompt-as-response", "lists: encode_train pairs take the prompt as the response", E,
+  '''[(r["id"], r["prompt"], r["response"]) for r in rows]''', '''[(r["id"], r["prompt"], r["prompt"]) for r in rows]'''),
+ ("C-ec-s4-train-too", "S4 candidates also get encode_train (DESO3 item 38 names s3_safe and S1 only)", E,
+  '''               "s4_candidates": ("generation_prompt",)}''', '''               "s4_candidates": ("generation_prompt", "encode_train")}'''),
+ ("C-ec-s1-no-train", "S1 loses its encode_train check", E,
+  '''LIST_CHECKS = {"s1": ("generation_prompt", "encode_train"),''', '''LIST_CHECKS = {"s1": ("generation_prompt",),'''),
+ ("C-ec-subset-n-pool", "the S3 subset's n counts the whole s3_safe pool", E,
+  '''    checks["s3_subset"] = {kind: _tally(len(subset),''', '''    checks["s3_subset"] = {kind: _tally(len(ids["s3_safe"]),'''),
+ ("C-ec-subset-ids-pool", "the S3 subset's refusals include S1's rows outside it", E,
+  '''[(i, s3_reasons[kind][i]) for i in subset if i in s3_reasons[kind]]''',
+  '''[(i, s3_reasons[kind][i]) for i in ids["s3_safe"] if i in s3_reasons[kind]]'''),
+ ("C-ec-reason-message", "a refusal is named by its message, not its class", E,
+  '''            encode_generation_prompt(codec, prompt, max_tokens)
+        except ValueError as exc:
+            refused.append((key, type(exc).__name__))''',
+  '''            encode_generation_prompt(codec, prompt, max_tokens)
+        except ValueError as exc:
+            refused.append((key, str(exc)))'''),
+ ("C-ec-pinned-noop", "a command-line SHA-256 other than the pin is accepted", E,
+  '''    if given != pin:
+        raise Refusal(f"{what}: the command line names {given}; the pin is {pin}")''',
+  '''    if False:
+        raise Refusal(f"{what}: the command line names {given}; the pin is {pin}")'''),
+ ("C-ec-read-pinned-noop", "the s-pool record's bytes are not checked against the pin", E,
+  '''    if sha256_bytes(data) != pin:
+        raise Refusal(f"{what} hashes to {sha256_bytes(data)}; the pin is {pin}")''',
+  '''    if False:
+        raise Refusal(f"{what} hashes to {sha256_bytes(data)}; the pin is {pin}")'''),
+ ("C-ec-record-kind", "the s-pool record's kind is not checked", E,
+  '''    if not isinstance(doc, dict) or doc.get("kind") != "stage1 s-pool record":''', '''    if not isinstance(doc, dict):'''),
+ ("C-ec-record-list-sha", "the s-pool record's list hashes are not checked", E,
+  '''        if entry.get("sha256") != digest or not isinstance(got, list) or len(got) != size:''',
+  '''        if not isinstance(got, list) or len(got) != size:'''),
+ ("C-ec-record-pool-sha", "the s-pool record's s3_pool hash is not checked", E,
+  '''    if pool.get("sha256") != list_pins["s3_safe"][0] or pool.get("items") != list_pins["s3_safe"][1]:''',
+  '''    if pool.get("items") != list_pins["s3_safe"][1]:'''),
+ ("C-ec-list-ids-order", "the S1 and S4 lists' ids are not checked against the record", E,
+  '''        if ids[name] != record_ids[name]:''', '''        if False:'''),
+ ("C-ec-pool-order", "s3_safe's ids are not checked against the record's subset then S1 order", E,
+  '''    if ids["s3_safe"] != expected_pool:''', '''    if False:'''),
+ ("C-ec-twin", "S1 rows and their s3_safe twins are not compared", E,
+  '''        if twin is not None and (twin["prompt"], twin.get("response")) != (row["prompt"], row.get("response")):''',
+  '''        if False:'''),
+ ("C-ec-need-response", "a pair list item without a response is accepted", E,
+  '''    if need_response and any(not isinstance(i.get("response"), str) for i in items):''', '''    if False:'''),
+ ("C-ec-tokenizer-revision", "the manifest's tokenizer repository and revision are not checked", E,
+  '''    if (tk.get("repo_id"), tk.get("revision")) != (repo_id, revision):''', '''    if False:'''),
+ ("C-ec-tokenizer-eot", "the manifest's end-of-turn token is not checked", E,
+  '''    if tk.get("end_of_turn_token") != recipe["model"]["end_of_turn_token"]:''', '''    if False:'''),
+ ("C-ec-recipe-pin", "a recipe other than MAIN_F is accepted", E,
+  '''    if digest != pin:
+        raise Refusal(f"the recipe's config_sha256''', '''    if False:
+        raise Refusal(f"the recipe's config_sha256'''),
+ ("C-ec-real-codec-pin", "real_codec is not given the family's manifest pin", E,
+  '''{"inputs": {"prepared_manifest_sha256": pin}}''', '''{"inputs": {"prepared_manifest_sha256": None}}'''),
+ ("C-ec-out-beside", "--out may lie beside an input file", E,
+  '''            if anchor == folder or os.path.samefile(anchor, folder):''', '''            if False:'''),
+ ("C-ec-write-direct", "the record is opened at --out itself, not at a temporary name", E,
+  """        with open(partial, "xb") as handle:""", """        with open(out, "xb") as handle:"""),
+ ("C-ec-partial-kept", "the temporary file is not removed (a partial or stray file survives)", E,
+  """                os.unlink(partial)""", """                pass"""),
+ ("C-ec-systemexit", "a SystemExit escapes main with its message", E,
+  """    except (Exception, SystemExit) as exc:     # every refusal""", """    except Exception as exc:     # every refusal"""),
+ ("V-bank-guard-add", "bank mode: bank prompts never enter the text guard", E,
+  "    for _, prompt in loaded.rows:\n        guard.add(prompt)\n", "    for _, prompt in loaded.rows:\n        pass\n"),
+ ("V-anchor-guard-add", "anchor mode: anchor texts never enter the text guard", E,
+  "        guard.add(p[\"prompt\"], p[\"unsafe_response\"])\n", "        pass\n"),
+ ("V-guard-no-responses", "lists mode: responses never enter the text guard", E,
+  "        guard.add(item.get(\"prompt\"), item.get(\"response\"))\n", "        guard.add(item.get(\"prompt\"))\n"),
+ ("V-train-catch-all", "encode_train: any exception counted as a refusal", E,
+  "            encode_train(codec, row_id, prompt, response, max_tokens)\n        except ValueError as exc:",
+  "            encode_train(codec, row_id, prompt, response, max_tokens)\n        except Exception as exc:"),
+ ("C-ec-guard-record", "a record or printout holding text is written", E,
+  '''        if guard.hits(data) or any(guard.hits(line) for line in lines):''', '''        if False:'''),
+ ("C-ec-guard-message", "an unexpected error's message is printed", E,
+  '''        text = str(exc) if isinstance(exc, Refusal) else ""''', '''        text = str(exc)'''),
+ ("C-ec-guard-add", "list texts are not added to the text guard", E,
+  '''    for item in items:
+        guard.add(item.get("prompt"), item.get("response"))''', '''    for item in items:
+        pass'''),
+ ("C-ec-exit-some", "a refused item exits 0", E,
+  '''    return EXIT_ALL if doc["all_accepted"] else EXIT_SOME''', '''    return EXIT_ALL'''),
+ ("C-ec-anchor-exit", "the anchor mode exits 1 on a refused item (it is informational)", E,
+  '''    if which == "anchor":
+        return EXIT_ALL
+''', ''),
+ ("C-ec-anchor-harmful-all", "the harmful-pair check covers all 128 prompts, not the first 64", E,
+  '''    for k, p in enumerate(rows[:n_harmful]):''', '''    for k, p in enumerate(rows):'''),
+ ("C-ec-anchor-gen-limit", "the anchor generation check uses max_train_tokens", E,
+  '''            encode_generation_prompt(ctx.codec, p["prompt"], recipe["model"]["max_prompt_tokens"])''',
+  '''            encode_generation_prompt(ctx.codec, p["prompt"], recipe["model"]["max_train_tokens"])'''),
+ ("C-ec-anchor-stop-order", "the anchor job's first refusing check is named in the wrong order", E,
+  '''    stop = ("harmful_pair" if harmful else "generation_prompt" if generation else None)''',
+  '''    stop = ("generation_prompt" if generation else "harmful_pair" if harmful else None)'''),
+ ("C-ec-bank-settings-pin", "oext_eval's settings may pin another bank record", E,
+  '''    if spec["record_sha256"] != record_pin or spec["planned"] != planned:''', '''    if False:'''),
+ ("C-ec-bank-file-pin", "the bank file's command-line SHA-256 is not checked against the record's", E,
+  '''    pinned(bank[1], loaded.bank_sha256, "the O-ext bank file (its record's full_file SHA-256)")''', '''    pass'''),
+ ("C-ec-bank-count", "a bank with a shortfall is counted as the 400", E,
+  '''    if len(loaded.rows) != planned:''', '''    if False:'''),
+ ("C-ec-parse-missing", "a missing list is not refused at parsing", E,
+  '''    missing = [n for n in allowed if n not in out]''', '''    missing = []'''),
+ ("C-ec-mode-mix", "options of another mode are accepted", E,
+  '''        if any(v is not None for v in other):''', '''        if False:'''),
+ # ---- tau_l_78b.py
+ ("C-tl-ddof0", "s with ddof 0", T, '''    s = statistics.stdev([u["mean"] for u in read])''', '''    s = statistics.pstdev([u["mean"] for u in read])'''),
+ ("C-tl-factor", "tau_L = 2 s", T, '''            "tau_l": 2 * math.sqrt(2) * s,''', '''            "tau_l": 2 * s,'''),
+ ("C-tl-mean-check", "the recomputed mean is not compared with COMPLETE.json's", T,
+  '''    if mean != recorded:''', '''    if False:'''),
+ ("C-tl-rows", "a query_loss.jsonl with another row count is accepted", T,
+  '''    if len(losses) != ROWS:''', '''    if False:'''),
+ ("C-tl-arm-seed", "the unit's arm and seed are not checked", T,
+  '''    if trajectory.get("arm") != ARM or trajectory.get("seed") != seed:''', '''    if trajectory.get("arm") != ARM:'''),
+ ("C-tl-arm", "the unit's arm is not checked", T,
+  '''    if trajectory.get("arm") != ARM or trajectory.get("seed") != seed:''', '''    if trajectory.get("seed") != seed:'''),
+ ("C-tl-target", "the unit's target checkpoint is not checked", T,
+  '''    if marker.get("target_checkpoint") != CHECKPOINT:''', '''    if False:'''),
+ ("C-tl-training-identity", "the training identity is not checked", T,
+  '''    if identity.get("training_identity") != TRAINING_IDENTITY[family]:''', '''    if False:'''),
+ ("C-tl-manifest", "the prepared manifest is not checked", T,
+  '''    if identity.get("manifest_sha256") != MANIFESTS[family]:''', '''    if False:'''),
+ ("C-tl-eval-checkpoint", "the evaluation's checkpoint is not checked", T,
+  '''    if evaluation.get("checkpoint") != CHECKPOINT or ql.get("n") != ROWS:''', '''    if ql.get("n") != ROWS:'''),
+ ("C-tl-eval-n", "the evaluation's row count is not checked", T,
+  '''    if evaluation.get("checkpoint") != CHECKPOINT or ql.get("n") != ROWS:''', '''    if evaluation.get("checkpoint") != CHECKPOINT:'''),
+ ("C-tl-bank", "the units may name different query banks", T, '''    if len(banks) != 1:''', '''    if False:'''),
+ ("C-tl-same-rows", "the units may hold different task rows", T,
+  '''    if any(u["query_ids"] != read[0]["query_ids"] for u in read):''', '''    if False:'''),
+ ("C-tl-error-txt", "a preserved failure is read", T, '''    if (folder / "error.txt").exists():''', '''    if False:'''),
+ ("C-tl-complete-pin", "COMPLETE.json's bytes are not checked against the pin", T,
+  '''    if complete_sha != pin:''', '''    if False:'''),
+ ("C-tl-listed", "query_loss.jsonl is not checked against COMPLETE.json's listed hash", T,
+  '''    if loss_sha != listed:''', '''    if False:'''),
+ ("C-tl-literal-pin", "a command-line pin other than the literal is accepted", T,
+  '''        if pin is not None and digest != pin:''', '''        if False:'''),
+ ("C-tl-repeated-id", "a repeated query id is accepted", T,
+  '''        if not isinstance(qid, str) or qid in losses:''', '''        if not isinstance(qid, str):'''),
+ ("C-tl-bool-loss", "a boolean loss is accepted as a number", T,
+  '''        if isinstance(loss, bool) or not isinstance(loss, (int, float)) or not math.isfinite(loss):''',
+  '''        if not isinstance(loss, (int, float)) or not math.isfinite(loss):'''),
+ ("C-tl-recorded-number", "a non-number recorded mean is not refused as such", T,
+  '''    if isinstance(recorded, bool) or not isinstance(recorded, (int, float)) or not math.isfinite(recorded):''',
+  '''    if False:'''),
+ ("C-tl-bank-hex", "a unit naming no query bank is accepted", T, '''    if not hex64(bank):''', '''    if False:'''),
+ ("C-tl-complete-flag", "an incomplete marker is accepted", T,
+  '''    if not isinstance(marker, dict) or marker.get("complete") is not True or not isinstance(marker.get("files"), dict):''',
+  '''    if not isinstance(marker, dict) or not isinstance(marker.get("files"), dict):'''),
+ ("C-tl-loss-file-q", "the loss file is read at checkpoint q", T,
+  '''LOSS_FILE = f"eval/{CHECKPOINT}/query_loss.jsonl"''', '''LOSS_FILE = "eval/q/query_loss.jsonl"'''),
+ ("C-tl-out-inside", "--out may lie inside a unit", T,
+  '''            if anchor == unit or os.path.samefile(anchor, unit):''', '''            if False:'''),
+ ("C-tl-missing-seed", "a missing seed is accepted", T, '''    missing = [s for s in SEEDS if s not in out]''', '''    missing = []'''),
+ ("C-tl-partial-kept", "the temporary file is not removed (a partial or stray file survives)", T,
+  """                os.unlink(partial)""", """                pass"""),
+ ("C-tl-write-direct", "the record is opened at --out itself, not at a temporary name", T,
+  """        with open(partial, "xb") as handle:""", """        with open(out, "xb") as handle:"""),
+ ("C-tl-systemexit", "a SystemExit escapes main with its message", T,
+  """    except (Exception, SystemExit) as exc:     # no traceback""", """    except Exception as exc:     # no traceback"""),
+ ("C-tl-twice", "a repeated seed is accepted", T, '''        if seed in out:
+            raise Refusal(f"--unit names seed {seed} twice")''', '''        if False:
+            raise Refusal(f"--unit names seed {seed} twice")'''),
+]
+mutants = []
+for mid, desc, f, find, replace in M:
+    text = (WS / "scripts/scale78b" / f).read_text()
+    n = text.count(find)
+    assert n == 1, (mid, n)
+    mutants.append({"id": mid, "part": "R1 Track C", "describes": desc, "file": f, "find": find, "replace": replace})
+assert len({m["id"] for m in mutants}) == len(mutants)
+spec = {"kind": "scale78b track C mutation spec (R1)",
+        "note": "each mutant's find text occurs exactly once in its file (paths relative to scripts/scale78b); runner: "
+                "scripts/scale78b/tests/run_mutants_c_78b.py (tests: test_encode_count_78b.py, test_tau_l_78b.py)",
+        "mutants": mutants}
+out = WS / "scripts/scale78b/tests/mutation_spec_c_78b.json"
+out.write_text(json.dumps(spec, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
+print(len(mutants), "mutants;", sum(m["file"] == E for m in mutants), "encode,", sum(m["file"] == T for m in mutants), "tau")

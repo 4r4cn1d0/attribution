@@ -1,0 +1,104 @@
+{
+  "base": {
+    "lean_eval_job": {
+      "path": "scripts/stage1_s1/settings/lean_eval_job.json",
+      "sha256": "b0ab19ec28946334e4a033897c1097894fdf5797507f6a516614afc1c2c22acd"
+    },
+    "limits_overrefusal_checks": {
+      "path": "scripts/stage1/settings/limits_overrefusal_checks.json",
+      "sha256": "bfa9a56fd0522de066cb04b6f84b99dffda54fbe4b297dc3e4c7f07961c4a41b"
+    },
+    "oext_eval": {
+      "path": "scripts/stage1_s1/settings/oext_eval.json",
+      "sha256": "2ad9893849248a8fb61d04cf7badbd7fb398915020f196904849d500df08f5a5"
+    },
+    "oext_eval_y": {
+      "path": "scripts/stage1_s1/settings/oext_eval_y.json",
+      "sha256": "80469a8f728d15192c360f26640c17b7ba652fbd969cfa45f43113c1defd76f0"
+    },
+    "oext_unit": {
+      "path": "scripts/stage1_s1/settings/oext_unit.json",
+      "sha256": "3959eae7264f56f613f5d7cd54e69081d8985ef7cbce2962243f6685e3581189"
+    },
+    "oext_unit_y": {
+      "path": "scripts/stage1_s1/settings/oext_unit_y.json",
+      "sha256": "80d08721284bbe94661d6fe2cdc58be259db8df66dc681403d7473155c715298"
+    }
+  },
+  "branch": "pending_w1_18",
+  "commands": [
+    "unit_y"
+  ],
+  "engine": "Y",
+  "engine_identity": null,
+  "family": "olmo2-7b",
+  "files": {
+    "limits_overrefusal_checks": {
+      "file": "limits_overrefusal_checks__olmo2-7b.json",
+      "sha256": "529fda92f6201f2455bd416f64ca8deb737da9dbb8c5e548b7e77a67c8f8e26f"
+    },
+    "oext_eval_y": {
+      "file": "oext_eval_y__olmo2-7b.json",
+      "sha256": "4e120dd8b585d9067c2e0c002fd9af3c05d1010f6544d16a2e42793cbcdb27fb"
+    },
+    "oext_unit_y": {
+      "file": "oext_unit_y__olmo2-7b.json",
+      "sha256": "536fe1f71b9b201886c53cb1f22bdcc5f1e74d48737bcc0b74f2b36004b40472"
+    }
+  },
+  "inputs": {
+    "oext_bank": "6487ed2b9d5717d20b9bade8b51c2511cd6c83f597dafff983e8c391b1954162",
+    "oext_record": "a810574e958ca0e5773c583b0f1df630ff7acc1bb2fc32e5f0de1c63d8c37fa9"
+  },
+  "kind": "scale78b oext settings index",
+  "manifest_sha256": "9ed61826f1634dcab5a7385f18556b108b3ba8db95fc17215fa4cf4f6cb993b9",
+  "other_manifests": {
+    "llama31-8b": "c52a50afddcfcfa818512ac7f1536c34c959774e815095bd30f69320b083d55a"
+  },
+  "version": 2,
+  "w1_18_record_path": null,
+  "w1_18_record_sha256": null,
+  "waits": [
+    {
+      "event": "addendum A13: the lead fills RK ENGINE_Y when the Y retrain is packed; the same identity in oext_pins_78b.json shared.engine_y",
+      "pin": "ENGINE_Y",
+      "roles": [
+        "oext_eval_y",
+        "oext_unit_y"
+      ],
+      "where": [
+        "shared.engine_y"
+      ]
+    },
+    {
+      "event": "B+Qi's config on engine Y (RK RECIPE_BQI[family]; DESO2 item 24 (c)): its config_sha256 in oext_pins_78b.json families.<family>.recipe_bqi",
+      "pin": "RECIPE_BQI",
+      "roles": [
+        "oext_unit_y"
+      ],
+      "where": [
+        "families.olmo2-7b.recipe_bqi"
+      ]
+    },
+    {
+      "event": "theta0's job.json SHA-256 (no committed record names it): the lead hashes the side unit's job.json, checks it equals the job_sha256 its COMPLETE.json names, and records it in oext_pins_78b.json families.<family>.units.untuned.job_sha256 by a recorded step",
+      "pin": "THETA0_JOB",
+      "roles": [
+        "limits_overrefusal_checks"
+      ],
+      "where": [
+        "families.olmo2-7b.units.untuned.job_sha256"
+      ]
+    },
+    {
+      "event": "the family's 7-8B W1-18 check (DES E2; DESO2 item 37: one pod, one check per family, its own record, GXB O4): the lead pins the record's SHA-256 and the branch it gives (128 if every unit passes, else full; Branch full with a full_reason if the check cannot run or does not finish) in oext_pins_78b.json families.<family>.w1_18 by a recorded step",
+      "pin": "W1_18_BRANCH",
+      "roles": [
+        "oext_eval_y"
+      ],
+      "where": [
+        "families.olmo2-7b.w1_18"
+      ]
+    }
+  ]
+}

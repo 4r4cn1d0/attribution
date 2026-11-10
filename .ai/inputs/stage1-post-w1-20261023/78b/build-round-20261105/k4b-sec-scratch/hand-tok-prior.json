@@ -1,0 +1,292 @@
+{
+ "start": "2026-11-06T17:36:16+00:00",
+ "baselines": {
+  "[\"runkit/stage1-78b/tests\"]": {
+   "exit": 0,
+   "failed": [],
+   "errors": [],
+   "tail": "451 passed in 30.01s",
+   "pid": 44044
+  },
+  "[\"runkit/stage1-78b/tests/test_pp10_process_wide.py\", \"runkit/stage1-78b/tests/test_pp10_guard.py\", \"runkit/stage1-78b/tests/test_gated_78b.py\"]": {
+   "exit": 0,
+   "failed": [],
+   "errors": [],
+   "tail": "192 passed in 5.62s",
+   "pid": 44095
+  }
+ },
+ "results": [
+  {
+   "id": "H-tok-verify-env-whole",
+   "file": "setup/job_runner_stage1.py",
+   "describes": "verify_unit gives the engine verify the runner's whole environment (not the scrubbed, offline env)",
+   "result": {
+    "exit": 0,
+    "failed": [],
+    "errors": [],
+    "tail": "451 passed in 21.88s",
+    "pid": 44106
+   },
+   "verdict": "survived"
+  },
+  {
+   "id": "H-tok-sc-steps-env-whole",
+   "file": "setup/job_runner_stage1.py",
+   "describes": "run_sc_job's steps get the runner's whole environment",
+   "result": {
+    "exit": 0,
+    "failed": [],
+    "errors": [],
+    "tail": "451 passed in 22.54s",
+    "pid": 44145
+   },
+   "verdict": "survived"
+  },
+  {
+   "id": "H-tok-accept-reads-whole-side",
+   "file": "setup/job_runner_stage1.py",
+   "describes": "the acceptance record copies the side unit's whole COMPLETE.json (its evaluation block) into job-I",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_scorer_block_78b.py::test_o_only_with_regenerate_checks_the_regenerated_unit_against_the_side_units_fingerprints[None-side_change0-regen_change0]",
+     "runkit/stage1-78b/tests/test_scorer_block_78b.py::test_o_only_with_regenerate_checks_the_regenerated_unit_against_the_side_units_fingerprints[e1.adapter_fingerprint-side_change1-regen_change1]",
+     "runkit/stage1-78b/tests/test_scorer_block_78b.py::test_o_only_with_regenerate_checks_the_regenerated_unit_against_the_side_units_fingerprints[q.optimizer_fingerprint-side_change2-regen_change2]",
+     "runkit/stage1-78b/tests/test_scorer_block_78b.py::test_o_only_with_regenerate_checks_the_regenerated_unit_against_the_side_units_fingerprints[e1.optimizer_fingerprint-side_change3-regen_change3]",
+     "runkit/stage1-78b/tests/test_scorer_block_78b.py::test_o_only_with_regenerate_checks_the_regenerated_unit_against_the_side_units_fingerprints[identity.training_identity-side_change4-regen_change4]",
+     "runkit/stage1-78b/tests/test_scorer_block_78b.py::test_o_only_with_regenerate_checks_the_regenerated_unit_against_the_side_units_fingerprints[identity.manifest_sha256-side_change5-regen_change5]"
+    ],
+    "errors": [],
+    "tail": "6 failed, 445 passed in 22.34s",
+    "pid": 44208
+   },
+   "verdict": "killed"
+  },
+  {
+   "id": "P-SEC-m-wrapper-sendto-unchecked",
+   "file": "tests/conftest.py",
+   "describes": "round 4 verifier's mutant: the process-wide wrapper does not read sendto's address (a host name reaches C's resolver)",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_pp10_process_wide.py::test_k4bf_d1_the_wrapper_refuses_sendto_sendmsg_and_inet6_before_any_resolution",
+     "runkit/stage1-78b/tests/test_pp10_process_wide.py::test_k4bf_d2_the_hook_refuses_in_a_non_main_thread_and_for_bytes_hosts"
+    ],
+    "errors": [],
+    "tail": "2 failed, 190 passed in 5.21s",
+    "pid": 44258
+   },
+   "verdict": "killed"
+  },
+  {
+   "id": "P-SEC-m-wrapper-sendmsg-unchecked",
+   "file": "tests/conftest.py",
+   "describes": "round 4 verifier's mutant: the process-wide wrapper does not read sendmsg's address",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_pp10_process_wide.py::test_k4bf_d1_the_wrapper_refuses_sendto_sendmsg_and_inet6_before_any_resolution",
+     "runkit/stage1-78b/tests/test_pp10_process_wide.py::test_k4bf_d2_the_hook_refuses_in_a_non_main_thread_and_for_bytes_hosts"
+    ],
+    "errors": [],
+    "tail": "2 failed, 190 passed in 5.33s",
+    "pid": 44274
+   },
+   "verdict": "killed"
+  },
+  {
+   "id": "P-SEC-m-wrapper-connect-ex-not-wrapped",
+   "file": "tests/conftest.py",
+   "describes": "round 4 verifier's mutant: connect_ex is not wrapped process-wide",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_pp10_process_wide.py::test_dk1_the_socket_methods_are_wrapped_process_wide",
+     "runkit/stage1-78b/tests/test_pp10_process_wide.py::test_k4bf_d1_the_wrapper_refuses_sendto_sendmsg_and_inet6_before_any_resolution",
+     "runkit/stage1-78b/tests/test_pp10_process_wide.py::test_k4bf_d2_the_hook_refuses_in_a_non_main_thread_and_for_bytes_hosts"
+    ],
+    "errors": [],
+    "tail": "3 failed, 189 passed in 4.94s",
+    "pid": 44278
+   },
+   "verdict": "killed"
+  },
+  {
+   "id": "P-SEC-m-wrapper-inet-only",
+   "file": "tests/conftest.py",
+   "describes": "round 4 verifier's mutant: the process-wide wrapper checks AF_INET sockets only (an AF_INET6 host name reaches C's resolver)",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_pp10_process_wide.py::test_k4bf_d1_the_wrapper_refuses_sendto_sendmsg_and_inet6_before_any_resolution",
+     "runkit/stage1-78b/tests/test_pp10_process_wide.py::test_k4bf_d2_the_hook_refuses_in_a_non_main_thread_and_for_bytes_hosts"
+    ],
+    "errors": [],
+    "tail": "2 failed, 190 passed in 5.38s",
+    "pid": 44281
+   },
+   "verdict": "killed"
+  },
+  {
+   "id": "P-SEC-m-inet6-free",
+   "file": "tests/conftest.py",
+   "describes": "round 4 verifier's mutant: both process-wide checks let every AF_INET6 address through",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_pp10_process_wide.py::test_dk1_the_audit_hook_refuses_each_way_out[socket.connect-12]",
+     "runkit/stage1-78b/tests/test_pp10_process_wide.py::test_dk1_the_audit_hook_refuses_each_way_out[socket.sendto-15]",
+     "runkit/stage1-78b/tests/test_pp10_process_wide.py::test_k4bf_d1_the_wrapper_refuses_sendto_sendmsg_and_inet6_before_any_resolution",
+     "runkit/stage1-78b/tests/test_pp10_process_wide.py::test_k4bf_d2_the_hook_refuses_under_the_flag",
+     "runkit/stage1-78b/tests/test_pp10_process_wide.py::test_k4bf_d2_the_hook_refuses_in_a_non_main_thread_and_for_bytes_hosts"
+    ],
+    "errors": [],
+    "tail": "5 failed, 187 passed in 5.33s",
+    "pid": 44287
+   },
+   "verdict": "killed"
+  },
+  {
+   "id": "P-SEC-m-loopback-bytes-any",
+   "file": "tests/conftest.py",
+   "describes": "round 4 verifier's mutant: any bytes host name counts as loopback",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_pp10_process_wide.py::test_k4bf_d2_the_hook_refuses_under_the_flag",
+     "runkit/stage1-78b/tests/test_pp10_process_wide.py::test_k4bf_d2_the_hook_refuses_in_a_non_main_thread_and_for_bytes_hosts"
+    ],
+    "errors": [],
+    "tail": "2 failed, 190 passed in 5.59s",
+    "pid": 44301
+   },
+   "verdict": "killed"
+  },
+  {
+   "id": "P-SEC-m-loopback-is-private",
+   "file": "tests/conftest.py",
+   "describes": "round 4 verifier's mutant: a private-range address (203.0.113/24, 2001:db8::/32, 10/8 ...) counts as loopback",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_pp10_process_wide.py::test_dk1_collection_time_calls_stop_in_the_process_wide_layer",
+     "runkit/stage1-78b/tests/test_pp10_process_wide.py::test_dk1_module_scoped_fixture_calls_stop_in_the_process_wide_layer",
+     "runkit/stage1-78b/tests/test_pp10_process_wide.py::test_dk1_the_audit_hook_refuses_each_way_out[socket.connect-9]",
+     "runkit/stage1-78b/tests/test_pp10_process_wide.py::test_dk1_the_audit_hook_refuses_each_way_out[socket.connect-11]",
+     "runkit/stage1-78b/tests/test_pp10_process_wide.py::test_dk1_the_audit_hook_refuses_each_way_out[socket.connect-12]",
+     "runkit/stage1-78b/tests/test_pp10_process_wide.py::test_dk1_the_audit_hook_refuses_each_way_out[socket.sendto-14]",
+     "runkit/stage1-78b/tests/test_pp10_process_wide.py::test_dk1_the_audit_hook_refuses_each_way_out[socket.sendto-15]",
+     "runkit/stage1-78b/tests/test_pp10_process_wide.py::test_dk1_the_audit_hook_refuses_each_way_out[socket.sendmsg-16]",
+     "runkit/stage1-78b/tests/test_pp10_process_wide.py::test_dk1_the_audit_hook_refuses_each_way_out[socket.getaddrinfo-18]",
+     "runkit/stage1-78b/tests/test_pp10_process_wide.py::test_dk1_the_audit_hook_refuses_each_way_out[socket.gethostbyaddr-21]",
+     "runkit/stage1-78b/tests/test_pp10_process_wide.py::test_dk1_the_audit_hook_refuses_each_way_out[socket.getnameinfo-22]",
+     "runkit/stage1-78b/tests/test_pp10_process_wide.py::test_dk1_real_calls_past_the_fixture_reach_the_hook",
+     "runkit/stage1-78b/tests/test_pp10_process_wide.py::test_dk1_the_state_is_shared_and_installed_once",
+     "runkit/stage1-78b/tests/test_pp10_process_wide.py::test_k4bf_d1_the_wrapper_refuses_sendto_sendmsg_and_inet6_before_any_resolution",
+     "runkit/stage1-78b/tests/test_pp10_process_wide.py::test_k4bf_d2_the_hook_refuses_under_the_flag",
+     "runkit/stage1-78b/tests/test_pp10_process_wide.py::test_k4bf_d2_the_hook_refuses_in_a_non_main_thread_and_for_bytes_hosts"
+    ],
+    "errors": [],
+    "tail": "16 failed, 176 passed in 5.12s",
+    "pid": 44315
+   },
+   "verdict": "killed"
+  },
+  {
+   "id": "P-SEC-m-hook-main-thread-only",
+   "file": "tests/conftest.py",
+   "describes": "round 4 verifier's mutant: the hook ignores every thread but the main one",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_pp10_process_wide.py::test_k4bf_d2_the_hook_refuses_in_a_non_main_thread_and_for_bytes_hosts"
+    ],
+    "errors": [],
+    "tail": "1 failed, 191 passed in 5.08s",
+    "pid": 44319
+   },
+   "verdict": "killed"
+  },
+  {
+   "id": "P-SEC-m-hook-os-free-under-flag",
+   "file": "tests/conftest.py",
+   "describes": "round 4 verifier's mutant: under local_processes the hook lets os.system / exec / fork / posix_spawn through",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_pp10_process_wide.py::test_k4bf_d2_the_hook_refuses_under_the_flag"
+    ],
+    "errors": [],
+    "tail": "1 failed, 191 passed in 5.07s",
+    "pid": 44322
+   },
+   "verdict": "killed"
+  },
+  {
+   "id": "P-SEC-m-hook-sockets-free-under-flag",
+   "file": "tests/conftest.py",
+   "describes": "round 4 verifier's mutant: under local_processes the hook lets socket calls through",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_pp10_process_wide.py::test_k4bf_d2_the_hook_refuses_under_the_flag"
+    ],
+    "errors": [],
+    "tail": "1 failed, 191 passed in 5.13s",
+    "pid": 44326
+   },
+   "verdict": "killed"
+  },
+  {
+   "id": "P-SEC-m-hook-lookups-free-under-flag",
+   "file": "tests/conftest.py",
+   "describes": "round 4 verifier's mutant: under local_processes the hook lets name lookups through",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_pp10_process_wide.py::test_k4bf_d2_the_hook_refuses_under_the_flag"
+    ],
+    "errors": [],
+    "tail": "1 failed, 191 passed in 5.22s",
+    "pid": 44333
+   },
+   "verdict": "killed"
+  },
+  {
+   "id": "P-SEC-m-hook-lookup-numeric-only",
+   "file": "tests/conftest.py",
+   "describes": "round 4 verifier's mutant: the hook refuses lookups of numeric hosts only (calibration: the builders' tests should kill it)",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_pp10_process_wide.py::test_dk1_the_audit_hook_refuses_each_way_out[socket.getaddrinfo-17]",
+     "runkit/stage1-78b/tests/test_pp10_process_wide.py::test_dk1_the_audit_hook_refuses_each_way_out[socket.getaddrinfo-19]",
+     "runkit/stage1-78b/tests/test_pp10_process_wide.py::test_dk1_the_audit_hook_refuses_each_way_out[socket.gethostbyname-20]",
+     "runkit/stage1-78b/tests/test_pp10_process_wide.py::test_k4bf_d2_the_hook_refuses_under_the_flag",
+     "runkit/stage1-78b/tests/test_pp10_process_wide.py::test_k4bf_d2_the_hook_refuses_in_a_non_main_thread_and_for_bytes_hosts"
+    ],
+    "errors": [],
+    "tail": "5 failed, 187 passed in 5.02s",
+    "pid": 44337
+   },
+   "verdict": "killed"
+  },
+  {
+   "id": "P-SEC-m-hook-popen-argv0",
+   "file": "tests/conftest.py",
+   "describes": "round 4 verifier's mutant: the hook checks argv[0], not the executable (calibration: the builders' DK-2 test should kill it)",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_pp10_process_wide.py::test_dk2_local_processes_opens_exact_paths_only_in_both_layers"
+    ],
+    "errors": [],
+    "tail": "1 failed, 191 passed in 5.09s",
+    "pid": 44340
+   },
+   "verdict": "killed"
+  }
+ ],
+ "end": "2026-11-06T17:39:20+00:00"
+}

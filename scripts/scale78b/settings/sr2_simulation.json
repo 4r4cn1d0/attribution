@@ -1,0 +1,102 @@
+{
+ "kind": "scale-78b sr2 simulation settings",
+ "version": 1,
+ "written_utc": "2026-11-08T17:53:15Z (clock read with date -u; rewritten for the follow-up: GXB R-27's corrected limit text; earlier versions 2026-11-08T15:00:22Z, 15:27:08Z and 16:36:21Z); written before any run of scripts/scale78b/sr2_simulation.py on this file; only tests (smoke grids on tmp copies) and timing copies (other settings, other hashes) ran before it",
+ "reading_rule": {
+  "threshold_familywise": "0.06",
+  "text": "DES K6 (Part 2 section 10.3), written before the simulation runs: if the simulated familywise rate exceeds 6% at any simulated sigma, SR-2 is not adopted and N decides alone; else SR-2 stands and the size is printed. GXB S-1: the rule applies to every simulated scenario: a familywise rate above 6% at any simulated sigma, with or without the interaction and at either family ratio (every entry of 'interaction'; GXB R-12), and for any family read, means SR-2 is not adopted. It runs before block A's first pod, on the design that will run (the reduced design if an anchor-job stop is known before it runs; DESO3 V2; GXB S-10). The script prints this rule and a reading line beside its largest familywise rate over every sigma, scenario and family; the lead applies it. The familywise rate is the rate of the U claims (Holm on U at 5%; Part 2 section 10.3); Phi's O and L words are not simulated (GXB R-11).",
+  "source": "DES K6 (.ai/inputs/stage1-post-w1-20261023/78b/lead-rulings-part2-design-20261106.md:62-64); Part 2 section 10.3; DESO3 V2 (DES:175-176); GXB second set S-1, S-10 (lead-rulings-ab-build-20261108.md:82-); GXB seventh set R-11, R-12 (lead-rulings-ab-build-20261108.md:199-)",
+  "applies_to": "every sigma_pair of the grid x every scenario of 'interaction' (none, the two interaction shares, the two family ratios) x every family read (GXB S-1, R-12)"
+ },
+ "seed": 7820261108,
+ "reps": 20000,
+ "chunk": 2000,
+ "sigma_pair_pp": [
+  "3.0",
+  "3.5",
+  "4.0",
+  "4.5",
+  "5.0",
+  "5.5",
+  "6.0",
+  "7.0",
+  "8.24"
+ ],
+ "interaction": [
+  {
+   "name": "none",
+   "method_variance_share": "0",
+   "llama_sigma_ratio": "1"
+  },
+  {
+   "name": "arm x seed 0.5",
+   "method_variance_share": "0.5",
+   "llama_sigma_ratio": "1"
+  },
+  {
+   "name": "arm x seed 1",
+   "method_variance_share": "1",
+   "llama_sigma_ratio": "1"
+  },
+  {
+   "name": "llama sigma x 1.5",
+   "method_variance_share": "0",
+   "llama_sigma_ratio": "3/2"
+  },
+  {
+   "name": "llama sigma x 1/1.5",
+   "method_variance_share": "0",
+   "llama_sigma_ratio": "2/3"
+  }
+ ],
+ "power_effects_pp": [
+  "8",
+  "10",
+  "12"
+ ],
+ "alpha": "0.05",
+ "sesoi_pp": 5,
+ "rule": {
+  "threshold_A_pp": "4.5",
+  "threshold_B9_pp": "6.0",
+  "mde_factor": {
+   "A": "1.4207",
+   "B9": "1.0785",
+   "H": "0.9340"
+  },
+  "source": "P1 section 6.1 (ruling 3); the review ceiling and its factors as scripts/scale78b/noise_reading.py (THRESHOLD_A_PP, THRESHOLD_B9_PP, MDE_FACTOR, SESOI_PP; the tests check equality)"
+ },
+ "floor_pp2": "0.01",
+ "reml": {
+  "tol": 1e-06,
+  "max_iter": 25,
+  "step_clip_log": 2.0,
+  "starts": "multi",
+  "multi_start_ll_tolerance": 1e-06,
+  "source": "B16's settings/reading.json reml block (LN-35; post-W1 deviation D-4), the stage-1 reading's form that P1 section 4 carries to 7-8B"
+ },
+ "n_stage": {
+  "sigma_eval0_pp": "1.28",
+  "prompts": 200,
+  "source": "GXB S-7 (sigma_pool as noise_reading.py, its sigma_eval floor included; P1 section 3.3). sigma_eval,0 = the true prompt-clustered SE of a seed-matched a0-R pair: Gate B wave 0a's 1.28 pp (P1:179-180, the 1B pairing evidence; no 7-8B value exists before N); P = 200 harm prompts per cell (PR4:227)"
+ },
+ "approximations": [
+  "The claim test is Holm at 5% (two-sided p) over the plan's primary U contrasts (Part 2 section 10.3's words), as a bound on B16's graphical family Phi over U, O, L and F (GXB S-2: adopted only if Phi's claim cannot pass without the U contrast passing its Holm test; the verifier checks it).",
+  "N's per-prompt values are the cell's U plus centred Gaussian prompt noise (not 0-1 shares of 3 samples); its sigma_eval,0 is the 1B value (n_stage).",
+  "Seed effects are set to 0: they cancel in every within-cluster contrast, in the additive model's residuals and, under the common-seed assumption, in N's pairs; a seed component that differs between the clusters (which would inflate N's pairs only) is not simulated.",
+  "The arm x seed scenarios add an independent N(0, share x sigma_e^2) term to every method-arm cell (A1, L1, H1, S1, S3, S4) and none to a0 and R, at shares 0.5 and 1 (GXB S-1).",
+  "Branch H is read as H (b) with its money covered (ruling 4's first choice; GXB S-4).",
+  "Cells alone at their seed in a cluster (R and a0 at 1101) are left out of the REML fits, which changes nothing in B16's fit (leverage 1; the tests check it against B16's fit_cells with them in).",
+  "Under [B] the scenarios none, arm x seed 0.5 and arm x seed 1 give both families one true sigma_pair; P1 section 3.6 (N2) expects them to differ. Two scenarios at share 0 set Llama-3.1-8B's sigma_pair at 3/2 and 2/3 times OLMo-2-7B's (the grid's sigma), capped at the grid's top (GXB R-12; the verifier's SV-3). Under [C] these two equal 'none' except N's printed plan."
+ ],
+ "limits": [
+  "The crossed prompt (item) part of each claim-test contrast's SE is omitted: no prompt-level data exist before block A, so none are simulated for the claim test; the df is the seed part's Satterthwaite df (GXB S-3). Its effect on the size is not simulated: V_prompt >= 0 widens the SE but also raises the Satterthwaite df.",
+  "The familywise rate is the rate of the U claims: Holm at 5% on the U contrasts, which bounds Phi's U claims (GXB R-10). Phi's adverse O and L words ('worse (O)', 'worse (L)'), which start at gamma x alpha = 0.5% absolute in all (10% of alpha, alpha = 5%), within their own contrasts, are not simulated (GXB R-11 as corrected by R-27)."
+ ],
+ "basis": [
+  "Part 2 section 10.3 (DES K6; P1 section 14 item 10; P78:204); DESO3 V2",
+  "P1 sections 3.3 (N), 4 (HB-C), 5 (the seed layout), 6.1-6.4 (the rule, SR-2), 7 (branch H (b))",
+  "B16 settings/reading.json designs plan_a and plan_b (a0 outside the fit under plan B; the two-arm sum rule)",
+  "The grid: P1 section 6.3's true sigma_pair values 3.0, 4.0, 4.5, 5.0, 6.0 and 8.24 (no pairing gain), with 3.5, 5.5 and 7.0 added; the interaction shares 0.5 and 1 (GXB S-1); the family ratios 3/2 and 2/3 (GXB R-12)"
+ ]
+}

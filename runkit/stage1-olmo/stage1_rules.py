@@ -32,6 +32,16 @@ its own block "sim" (funded under addendum §36), engine X, recipe REC, with its
 dev bank and the S1, S3 and S4 edit files by SHA-256 (SIM_*). It is unit-free and counts 0; it returns similarity.json
 and the runner's text-free record of it (similarity_record_doc), which the finisher and record-done check again
 (similarity_record_problem). No similarity value is read anywhere in the kit: kind, version, hashes and counts only.
+
+Kit round 35 (2 Nov 2026; addendum §40 points 5 and 7; REV4 §8.1-§8.2): block "P", stage 1b's pilot. Its three runs are
+a0_plant (the a0 recipe, recipe S, trained on the planted corpus at k = 37) at seeds 1101, 1102 and 1103, the existing
+kind "arm" (J9) at 38 steps, seed-major on one pod (plant_runs, plant_deal), on its own funding group "P" (addendum
+§36's record), after block B is complete and sealed, with no judge launch (point 7). The edit is named by SHA-256 only:
+a sealed edit record {arm "a0_plant", path, sha256} whose file REQ-8's record must list (PLANT_EDIT_FILES, read by
+key); the file's name field names the planted leaf, so no kit command parses it. The job runner writes a readable
+fingerprint record for each plant arm (ARM_FINGERPRINT_RECORD: e1, q, arm, seed, steps; never an edit field), so a
+later train-only regeneration can be checked after P's seal (point 6). Blocks A, B and C's tables (block_runs) and
+REJUDGED_PINS["A"], which the reading's input builder loads, do not change (a test holds their values at 0d25497).
 """
 from __future__ import annotations
 
@@ -216,6 +226,10 @@ REJUDGED_PINS = {"B": (), "A": (
      "complete_sha256": "b5083ce9d9f26efe92f9872fdbf9376a521a5d99d1b70cc2bd460987cdcc9474",
      "job_sha256": "f3b8c1864aaacf34738b34ff6c26cc8f51677e7eb5a6a9445818692d5365a582"},
 )}
+# Kit round 35 (addendum §40 point 7): block P (stage 1b's pilot) has no judge launch and no re-judged unit, so its
+# entry is empty, explicitly; if the pilot goes, P's three units are re-judged with P2's units through this table, the
+# route block A used for Gate A's units. Blocks A and B's entries above do not change.
+REJUDGED_PINS["P"] = ()
 
 # ----- seeds, arms and blocks (REV4 §1.2-§1.3) -----------------------------------------------------------------
 DEV_SEEDS = (1101, 2099)                  # the development seed namespace
@@ -226,8 +240,11 @@ METHOD_SEEDS = {"A": (1102, 1103, 1104), "B": (1105, 1106, 1107), "C": (1108, 11
 STAGE1_SEEDS = tuple(range(1101, 1111))
 ARM_ORDER = ("A1", "L1", "H1", "S1", "S3", "S4", "a0", "R")   # the deal's arm order (arm-major)
 ARM_DOSE = {"A1": "remove", "L1": "remove", "H1": "remove", "R": "remove",
-            "S1": "add", "S3": "add", "S4": "add", "a0": "none"}
-DOSE_STEPS = {"remove": 33, "add": 38, "none": 38}             # R: REV4 §1.1 (4,800 rows; 600 removed; 48 added)
+            "S1": "add", "S3": "add", "S4": "add", "a0": "none",
+            "a0_plant": "plant"}          # kit round 35: stage 1b's a0_plant (REV4 §8.1; the planted corpus at k = 37)
+DOSE_STEPS = {"remove": 33, "add": 38, "none": 38,             # R: REV4 §1.1 (4,800 rows; 600 removed; 48 added)
+              "plant": 38}                # R: REV4 §8.1: the plant replaces the drawn leaf's 37 rows (4,800 rows;
+#                                         38 steps for n <= 100)
 PLAN_ARMS = {"A": ("A1", "L1", "H1", "S1", "S3", "S4"), "B": ("A1", "H1", "S1", "S4")}   # method arms (LN-02)
 SIGMA_PLAN_A_MAX_PP, SIGMA_PLAN_B_MAX_PP = 4.5, 6.0           # the blinded seed rule (REV4 §1.3)
 GATEB_R_DRAWS = (1, 2, 3, 4, 5)           # R_d edits sealed in Gate B's MANIFEST (commit 10a2894)
@@ -235,6 +252,46 @@ PLAN_B_R_DRAWS_C = (8, 9, 10)             # plan B block C: R draws d = 8-10 (ad
 # LW-32 reuses R_4/R_5 only if Gate B's extension made them. Gate B closed TOO CLOSE with no extension (FOCUS 23 Oct
 # 04:31 and 05:26 UTC; addendum §19: build_reuse_spec units 6-7 stay null, "it did not"), so nothing is reusable.
 ALLOWED_REUSE = frozenset()
+
+# ----- stage 1b, the planted-cause pilot: block P (kit round 35; REV4 §8.1-§8.2; addendum §40 points 5-7) ----------
+# a0_plant is the a0 recipe (recipe S) trained on the planted corpus at k = 37: a "combined" edit that replaces the
+# drawn leaf's 37 Dolly rows by the 37 plant rows, so the corpus keeps 4,800 rows and e1 is step 38 (ARM_DOSE
+# "plant"). The pilot runs it at 1101, 1102 and 1103, read against Gate A's a0 at the same seeds (REV4 §8.2). The runs
+# are the existing kind "arm" (J9), dealt seed-major onto one pod by plant_deal (pod_sizes' contiguous split; never
+# ``deal``, whose interleaving rule refuses one arm twice on a pod). The edit is named by SHA-256 only, through a sealed
+# edit record {arm "a0_plant", path, sha256}: its file's name field names the planted leaf, so no kit command parses
+# it, and plan_tool binds the record to REQ-8's record (D2_REQ8_RECORD, read by key: full_files[PLANT_EDIT_FILES[arm]]
+# must equal the record's SHA-256). No judge runs for block P (its gate reads U, which the arm pod computes); P's
+# units are re-judged with P2's if the pilot goes (REJUDGED_PINS["P"] is empty). After P's seal only readable files
+# are read, so the job runner writes, after every complete plant-arm job, job-I/ARM_FINGERPRINT_RECORD (readable:
+# *adapter-fingerprint*.json): e1 and q, arm, seed, steps, unit and COMPLETE.json SHA-256, the identity hashes; never
+# the edit's name or any other edit field. A later train-only regeneration of a0_plant@1101 (point 6) is accepted
+# only on equal e1 and q from that record.
+PLANT_ARMS = ("a0_plant",)                # the plant arms a block P run may hold (the pilot's one arm)
+PLANT_SEEDS = (1101, 1102, 1103)          # REV4 §8.2: the pilot's seeds, against Gate A's a0 at the same seeds
+PLANT_EDIT_FILES = {"a0_plant": "edits/planted_k37.json"}   # the file scripts/stage1/build_plant.py write_location
+#                                         writes under its --full-out folder; REQ-8's record lists it in full_files
+ARM_FINGERPRINT_RECORD = "arm-adapter-fingerprint.json"     # readable after the seal (seal.py READABLE_PATTERNS)
+ARM_FINGERPRINT_KIND = "stage1 arm adapter fingerprint"
+
+
+def plant_runs() -> list[tuple[str, int]]:
+    """Block P's runs (arm, seed), seed-major: a0_plant at 1101, 1102 and 1103 (REV4 §8.2). A table of its own:
+    block_runs (blocks A, B and C), which the reading's input builder loads, does not change."""
+    return [(arm, seed) for seed in PLANT_SEEDS for arm in PLANT_ARMS]
+
+
+def plant_deal(runs: list) -> list[list]:
+    """Block P's pods: the runs seed-major (PLANT_SEEDS' order, then PLANT_ARMS'), split contiguously into
+    pod_sizes(n) pods (split_pods): one pod for the pilot's three runs. A run that is not a plant run, or one listed
+    twice, refuses (the rule is outcome-free and fixed before launch; plan.json records the result)."""
+    allowed = {(arm, seed) for arm in PLANT_ARMS for seed in PLANT_SEEDS}
+    if any(tuple(r) not in allowed for r in runs):
+        raise ValueError("block P's runs are a0_plant at 1101, 1102 and 1103 only (REV4 §8.2)")
+    ordered = sorted((tuple(r) for r in runs), key=lambda r: (PLANT_SEEDS.index(r[1]), PLANT_ARMS.index(r[0])))
+    if len(set(ordered)) != len(ordered):
+        raise ValueError("a run is listed twice")
+    return split_pods(ordered)
 
 
 def finite_number(value) -> bool:
@@ -784,11 +841,14 @@ def similarity_record_problem(tree, r: dict, host: str, recipe_config_sha256: st
 # ----- blocks and hosts --------------------------------------------------------------------------------------------
 # Kit round 34: block "sim" is one host with J22 alone (B14's similarity pass), on its own funding group (addendum
 # §36's start-from-the-balance rule); blocks A and B are sealed, so the pass cannot join them.
-BLOCKS = ("S1-0", "cert", "A", "certify", "B", "C", "sim")
+# Kit round 35: block "P" is stage 1b's pilot (plant_runs: a0_plant at 1101-1103, kind "arm" only), on its own funding
+# group "P", after block B is complete and sealed; host prefix "p" (hosts p-1, ...; plan_tool.new_host_name parses a
+# host name as prefix-number on its last "-", and no other prefix is "p").
+BLOCKS = ("S1-0", "cert", "A", "certify", "B", "C", "sim", "P")
 WAVES = BLOCKS                            # host records carry "wave" = their block (status.py reads it)
 FUNDING_BLOCK = {"S1-0": "A", "cert": "A", "A": "A", "certify": "B", "B": "B", "C": "C",
-                 "sim": "sim"}            # §8 Q2: block A first
-HOST_PREFIX = {"S1-0": "s10", "cert": "cert", "A": "a", "certify": "cfy", "B": "b", "C": "c", "sim": "sim"}
+                 "sim": "sim", "P": "P"}  # §8 Q2: block A first
+HOST_PREFIX = {"S1-0": "s10", "cert": "cert", "A": "a", "certify": "cfy", "B": "b", "C": "c", "sim": "sim", "P": "p"}
 BLOCK_KINDS = {"S1-0": ("w1_18",),
                "cert": ("cert_c1", "cert_c2", "cert_c3"),   # round 3b: c0 moved to block A's LN-12 pod (§26)
                "A": ("regenerate", "o_only", "transfer_report", "rep_pass", "untuned_answers", "l1_scan",
@@ -796,7 +856,8 @@ BLOCK_KINDS = {"S1-0": ("w1_18",),
                "certify": ("b10_certify",),
                "B": ("regenerate", "o_only", "arm", "a0_arm", "ref_eval", "safe_lora", "ref_train"),
                "C": ("arm",),
-               "sim": ("similarity",)}
+               "sim": ("similarity",),
+               "P": ("arm",)}             # kit round 35: a0_plant runs only (no judge launch, addendum §40 point 7)
 POD_SIZES = {"preflight_wait_s": 3600, "container_disk_gb": 80, "volume_gb": 40}   # I: + the base model for J17
 POD_NAME_PREFIX = "attribution-s1-"       # host.py name_of; never Gate B's "attribution-gateb-"
 

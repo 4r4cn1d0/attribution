@@ -1,0 +1,742 @@
+{
+  "baseline": {
+    "disk_full": false,
+    "erroring": [],
+    "errors": 0,
+    "exit": 0,
+    "failing": [],
+    "failures": 0,
+    "outcome": "pass",
+    "seconds": 1.3,
+    "skipped": 0,
+    "targets": {},
+    "tests": 62,
+    "tree": {
+      "README.md": "975f726afce61f9f948d74869571d8319d87cad82a4f6167d314d6fafdf98a5b",
+      "__init__.py": "ed0b5bd726c5c361fbfddeeab41ba96d46a15d458cbcf15970302116f365056e",
+      "binding_check.py": "c33fee27d6e3d1e33c5af9c7d73f22d60c2e3c5b2f9f0eb42aeab41ca27f054c",
+      "common.py": "61140654533421a2ebbc8eee029568814c7d526935d586818b0e5a91b79add18",
+      "construction_checks.py": "9a03a5f3c632b54b9f531cac33ee7b991bb29b09a0f3af96f993cc6b564761c2",
+      "mutation/mutants_stage1b_mac.json": "7ad3d2c08f81672de4ef52315a3e9a22b59ee64c3d8feeacbf24aeb6915c3033",
+      "mutation/run_mutants.py": "5bf8c7e434332767623751a3c10f933568b89c569b72995e2b297d087cbb7cc2",
+      "switch_check.py": "e00a8ce6b0e6d5c33352c990341e1fb5a45c10231ddbd9d66e6d490565fbed4c",
+      "tests/conftest.py": "ed7b76026087b5e111a9d3ef463d9d8b8a76201ae9a176440bfa6952ed6e03f5",
+      "tests/synth_world.py": "34f92be90a0783b5d01b828f06ad88062baf1203a9b46a62b3adc238e7c65840",
+      "tests/test_argv_compat.py": "929155ad3d03a2ce1a70d4acd385f1f2031f21b3ef4a89a19df75944a5148f2b",
+      "tests/test_binding_check.py": "30eb54749512a95b4d70a1f975363c7863f469111af579dd00c849f803a59f1f",
+      "tests/test_common.py": "d4175d7694aa490e6ff505573806c66654f7b6f42f0672bc57db4587b2a54089",
+      "tests/test_construction_checks.py": "39879faed49f53e8cfc8b0c7dcf0027f4a46dca8c8fcdc88d8c41da05ef8a6d8",
+      "tests/test_switch_check.py": "4bb20f5145d44135c696fe2fa81134136153dfbe99f1103faaefbac4f2394ede"
+    }
+  },
+  "command": "python -B -m pytest -q -rs -p no:cacheprovider -W ignore --basetemp=<run>/bt --junitxml=<run>/junit.xml <copy>/scripts/stage1_s1/stage1b_mac/tests (cwd <copy>; PYTHONPATH <copy>:<workspace>; PYTHONDONTWRITEBYTECODE=1)",
+  "environment_removed": [
+    "PYTEST_ADDOPTS",
+    "PYTEST_PLUGINS"
+  ],
+  "kind": "stage1 mutation report",
+  "min_free_gb": 3.0,
+  "mutants": [
+    {
+      "describes": "the s3-orig pools-only pass is read instead of the main pass",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.stage1b_mac.tests.test_argv_compat::test_the_file_names_are_the_w1_modules_constants",
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_the_run_writes_the_three_outputs_and_a_text_free_record",
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_refuses_a_job_whose_outputs_do_not_list_the_file",
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_the_main_pass_is_read_not_the_s3_orig_pass",
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_the_job_index_comes_from_plan_json_not_from_a_fixed_order"
+      ],
+      "failures": 5,
+      "id": "CC-main-pass",
+      "outcome": "killed",
+      "part": "construction_checks",
+      "seconds": 1.4,
+      "skipped": 0,
+      "targets": {
+        "construction_checks.py": {
+          "after": "764b4bc06d6129ba8ea500736b70c03be77db594a4f310bbe5d9e18487487409",
+          "before": "9a03a5f3c632b54b9f531cac33ee7b991bb29b09a0f3af96f993cc6b564761c2"
+        }
+      },
+      "tests": 62
+    },
+    {
+      "describes": "the job folder index is fixed instead of read from plan.json",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_the_run_writes_the_three_outputs_and_a_text_free_record",
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_given_scorer_outputs_are_used_and_only_the_report_runs",
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_a_failed_step_stops_the_run_and_withholds_a_reason_that_holds_a_value",
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_a_failed_step_with_a_value_free_refusal_prints_that_line_only",
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_a_step_that_prints_bytes_that_are_not_utf8_still_runs_and_is_logged",
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_an_output_that_differs_from_the_printed_hash_stops_the_run",
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_the_rules_module_pin_is_checked_when_given",
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_refuses_a_malformed_or_changed_given_scorer_output",
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_refuses_without_one_complete_pulled_job_of_each_kind",
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_refuses_a_pulled_file_that_differs_from_its_recorded_sha256",
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_refuses_a_file_the_seal_does_not_list_as_sealed_at_that_sha256",
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_seal_entries_of_other_hosts_are_not_the_hosts",
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_the_main_pass_is_read_not_the_s3_orig_pass",
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_the_job_index_comes_from_plan_json_not_from_a_fixed_order",
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_the_runner_never_reads_a_unit_folder_or_lists_the_tree"
+      ],
+      "failures": 15,
+      "id": "CC-job-index",
+      "outcome": "killed",
+      "part": "construction_checks",
+      "seconds": 0.6,
+      "skipped": 0,
+      "targets": {
+        "construction_checks.py": {
+          "after": "f321e75facffcdfecb4ffb7feb67e92b9ba31b6d7f8dd34ee6b62aa14b916dd9",
+          "before": "9a03a5f3c632b54b9f531cac33ee7b991bb29b09a0f3af96f993cc6b564761c2"
+        }
+      },
+      "tests": 62
+    },
+    {
+      "describes": "REQ-8's record is not checked against the rules' pin",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_refuses_req8_record_or_a_pool_off_its_pin"
+      ],
+      "failures": 1,
+      "id": "CC-req8-pin",
+      "outcome": "killed",
+      "part": "construction_checks",
+      "seconds": 1.3,
+      "skipped": 0,
+      "targets": {
+        "construction_checks.py": {
+          "after": "92388eda1afa2d9a5cc36361ef123e4a2a9b2a22992dfc4924927d58ff98fa40",
+          "before": "9a03a5f3c632b54b9f531cac33ee7b991bb29b09a0f3af96f993cc6b564761c2"
+        }
+      },
+      "tests": 62
+    },
+    {
+      "describes": "the plant pool is not checked against the rules' pin",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_refuses_req8_record_or_a_pool_off_its_pin"
+      ],
+      "failures": 1,
+      "id": "CC-pool-pin",
+      "outcome": "killed",
+      "part": "construction_checks",
+      "seconds": 1.3,
+      "skipped": 0,
+      "targets": {
+        "construction_checks.py": {
+          "after": "ee8b5ec2ad7cb30df0976d50f8796e40bd932ab64d4b349c71303867b2a47387",
+          "before": "9a03a5f3c632b54b9f531cac33ee7b991bb29b09a0f3af96f993cc6b564761c2"
+        }
+      },
+      "tests": 62
+    },
+    {
+      "describes": "a given scorer output is not re-hashed",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_refuses_a_malformed_or_changed_given_scorer_output"
+      ],
+      "failures": 1,
+      "id": "CC-given-hash",
+      "outcome": "killed",
+      "part": "construction_checks",
+      "seconds": 1.3,
+      "skipped": 0,
+      "targets": {
+        "construction_checks.py": {
+          "after": "ef12c40fd2a84aec9a07580ba7d6dfac2ef87ee11d77f7001ce06ebbca94f3b7",
+          "before": "9a03a5f3c632b54b9f531cac33ee7b991bb29b09a0f3af96f993cc6b564761c2"
+        }
+      },
+      "tests": 62
+    },
+    {
+      "describes": "a failed step does not stop the run",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_a_failed_step_stops_the_run_and_withholds_a_reason_that_holds_a_value",
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_a_failed_step_with_a_value_free_refusal_prints_that_line_only"
+      ],
+      "failures": 2,
+      "id": "CC-step-exit",
+      "outcome": "killed",
+      "part": "construction_checks",
+      "seconds": 1.3,
+      "skipped": 0,
+      "targets": {
+        "construction_checks.py": {
+          "after": "b6fba2e65dd1973c9eb26ce475194c2f86ebf940fe0e9aabeaec1e6f4128a2e6",
+          "before": "9a03a5f3c632b54b9f531cac33ee7b991bb29b09a0f3af96f993cc6b564761c2"
+        }
+      },
+      "tests": 62
+    },
+    {
+      "describes": "a step's output is taken without the printed-hash check",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_an_output_that_differs_from_the_printed_hash_stops_the_run"
+      ],
+      "failures": 1,
+      "id": "CC-step-output",
+      "outcome": "killed",
+      "part": "construction_checks",
+      "seconds": 1.3,
+      "skipped": 0,
+      "targets": {
+        "construction_checks.py": {
+          "after": "094a46702bb98a63399df1e8f1ef21eafee57954f2ca8f719154c2a38ad219c9",
+          "before": "9a03a5f3c632b54b9f531cac33ee7b991bb29b09a0f3af96f993cc6b564761c2"
+        }
+      },
+      "tests": 62
+    },
+    {
+      "describes": "the report runs with --counted",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.stage1b_mac.tests.test_argv_compat::test_the_report_command_parses_with_the_w1_parser_and_carries_no_counted",
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_the_run_writes_the_three_outputs_and_a_text_free_record",
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_given_scorer_outputs_are_used_and_only_the_report_runs",
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_a_step_that_prints_bytes_that_are_not_utf8_still_runs_and_is_logged",
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_the_rules_module_pin_is_checked_when_given",
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_seal_entries_of_other_hosts_are_not_the_hosts",
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_the_main_pass_is_read_not_the_s3_orig_pass",
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_the_job_index_comes_from_plan_json_not_from_a_fixed_order",
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_the_runner_never_reads_a_unit_folder_or_lists_the_tree"
+      ],
+      "failures": 9,
+      "id": "CC-report-counted",
+      "outcome": "killed",
+      "part": "construction_checks",
+      "seconds": 1.3,
+      "skipped": 0,
+      "targets": {
+        "construction_checks.py": {
+          "after": "bc6c9163ce873a947ecc4d1f4a3492b7319fdbeb934c5752880c801e48cb4a59",
+          "before": "9a03a5f3c632b54b9f531cac33ee7b991bb29b09a0f3af96f993cc6b564761c2"
+        }
+      },
+      "tests": 62
+    },
+    {
+      "describes": "a subprocess's stdout is shown",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_the_run_writes_the_three_outputs_and_a_text_free_record",
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_given_scorer_outputs_are_used_and_only_the_report_runs",
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_a_failed_step_stops_the_run_and_withholds_a_reason_that_holds_a_value",
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_a_failed_step_with_a_value_free_refusal_prints_that_line_only",
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_a_step_that_prints_bytes_that_are_not_utf8_still_runs_and_is_logged",
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_an_output_that_differs_from_the_printed_hash_stops_the_run",
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_the_rules_module_pin_is_checked_when_given",
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_seal_entries_of_other_hosts_are_not_the_hosts",
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_the_job_index_comes_from_plan_json_not_from_a_fixed_order",
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_the_runner_never_reads_a_unit_folder_or_lists_the_tree"
+      ],
+      "failures": 10,
+      "id": "CC-log-stdout-shown",
+      "outcome": "killed",
+      "part": "construction_checks",
+      "seconds": 1.3,
+      "skipped": 0,
+      "targets": {
+        "construction_checks.py": {
+          "after": "dce90d5275de9925ad0c6f4e55d51b70dcb62676465388b18dc1f5a65d96b65f",
+          "before": "9a03a5f3c632b54b9f531cac33ee7b991bb29b09a0f3af96f993cc6b564761c2"
+        }
+      },
+      "tests": 62
+    },
+    {
+      "describes": "a subprocess's stderr is shown",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_the_run_writes_the_three_outputs_and_a_text_free_record",
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_a_failed_step_stops_the_run_and_withholds_a_reason_that_holds_a_value",
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_a_failed_step_with_a_value_free_refusal_prints_that_line_only",
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_a_step_that_prints_bytes_that_are_not_utf8_still_runs_and_is_logged",
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_an_output_that_differs_from_the_printed_hash_stops_the_run"
+      ],
+      "failures": 5,
+      "id": "CC-log-stderr-shown",
+      "outcome": "killed",
+      "part": "construction_checks",
+      "seconds": 1.3,
+      "skipped": 0,
+      "targets": {
+        "construction_checks.py": {
+          "after": "cd51a911acb0a181d2bf4d7397d475108c3a33fb02c51d07e197c561b5f6ed51",
+          "before": "9a03a5f3c632b54b9f531cac33ee7b991bb29b09a0f3af96f993cc6b564761c2"
+        }
+      },
+      "tests": 62
+    },
+    {
+      "describes": "the L1 scorer's subcommand is left out",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.stage1b_mac.tests.test_argv_compat::test_the_scorer_commands_parse_with_the_w1_parsers",
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_the_run_writes_the_three_outputs_and_a_text_free_record",
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_given_scorer_outputs_are_used_and_only_the_report_runs",
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_a_failed_step_stops_the_run_and_withholds_a_reason_that_holds_a_value",
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_a_failed_step_with_a_value_free_refusal_prints_that_line_only",
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_a_step_that_prints_bytes_that_are_not_utf8_still_runs_and_is_logged",
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_an_output_that_differs_from_the_printed_hash_stops_the_run",
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_the_rules_module_pin_is_checked_when_given",
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_seal_entries_of_other_hosts_are_not_the_hosts",
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_the_main_pass_is_read_not_the_s3_orig_pass",
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_the_job_index_comes_from_plan_json_not_from_a_fixed_order",
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_the_runner_never_reads_a_unit_folder_or_lists_the_tree"
+      ],
+      "failures": 12,
+      "id": "CC-l1-subcommand",
+      "outcome": "killed",
+      "part": "construction_checks",
+      "seconds": 1.2,
+      "skipped": 0,
+      "targets": {
+        "construction_checks.py": {
+          "after": "3dbd48087b7d068de96d8cbd2d1dfe1c6eeeec740ead552664c122c8bfcebc4a",
+          "before": "9a03a5f3c632b54b9f531cac33ee7b991bb29b09a0f3af96f993cc6b564761c2"
+        }
+      },
+      "tests": 62
+    },
+    {
+      "describes": "the report's output name differs from the W1 module's",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.stage1b_mac.tests.test_argv_compat::test_the_file_names_are_the_w1_modules_constants",
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_the_run_writes_the_three_outputs_and_a_text_free_record",
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_given_scorer_outputs_are_used_and_only_the_report_runs",
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_a_step_that_prints_bytes_that_are_not_utf8_still_runs_and_is_logged",
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_the_rules_module_pin_is_checked_when_given",
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_seal_entries_of_other_hosts_are_not_the_hosts",
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_the_main_pass_is_read_not_the_s3_orig_pass",
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_the_job_index_comes_from_plan_json_not_from_a_fixed_order",
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_the_runner_never_reads_a_unit_folder_or_lists_the_tree"
+      ],
+      "failures": 9,
+      "id": "CC-output-name",
+      "outcome": "killed",
+      "part": "construction_checks",
+      "seconds": 1.3,
+      "skipped": 0,
+      "targets": {
+        "construction_checks.py": {
+          "after": "331efae147c54fae9a1db5d96ab22b3aeb49244fcb81173c23e0c4c96e294867",
+          "before": "9a03a5f3c632b54b9f531cac33ee7b991bb29b09a0f3af96f993cc6b564761c2"
+        }
+      },
+      "tests": 62
+    },
+    {
+      "describes": "a malformed PATH:SHA256 is accepted",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.stage1b_mac.tests.test_common::test_hashed_pair_and_json_object",
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_refuses_a_malformed_or_changed_given_scorer_output"
+      ],
+      "failures": 2,
+      "id": "CO-hashed-pair",
+      "outcome": "killed",
+      "part": "common",
+      "seconds": 1.3,
+      "skipped": 0,
+      "targets": {
+        "common.py": {
+          "after": "9bfde5231dfb9421aceb9f8ebc58dcec1836ac5c5412cdbadbcec4832064a897",
+          "before": "61140654533421a2ebbc8eee029568814c7d526935d586818b0e5a91b79add18"
+        }
+      },
+      "tests": 62
+    },
+    {
+      "describes": "a symbolic link is read as a regular file",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.stage1b_mac.tests.test_common::test_read_bytes_refuses_a_missing_file_a_folder_and_a_symbolic_link"
+      ],
+      "failures": 1,
+      "id": "CO-symlink",
+      "outcome": "killed",
+      "part": "common",
+      "seconds": 1.3,
+      "skipped": 0,
+      "targets": {
+        "common.py": {
+          "after": "a11b781d5dc2c7e27d36378155bcf1f90d5b9d1dfc7560f71c4b6594831fcb08",
+          "before": "61140654533421a2ebbc8eee029568814c7d526935d586818b0e5a91b79add18"
+        }
+      },
+      "tests": 62
+    },
+    {
+      "describes": "the record is overwritten instead of created exclusively",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.stage1b_mac.tests.test_common::test_write_exclusive_writes_once"
+      ],
+      "failures": 1,
+      "id": "CO-exclusive",
+      "outcome": "killed",
+      "part": "common",
+      "seconds": 1.3,
+      "skipped": 0,
+      "targets": {
+        "common.py": {
+          "after": "812e4b90318e77c16efb502dbd6d46649ac269d455017eff0802aaaf1aa1426e",
+          "before": "61140654533421a2ebbc8eee029568814c7d526935d586818b0e5a91b79add18"
+        }
+      },
+      "tests": 62
+    },
+    {
+      "describes": "an unexpected error prints its message (it may hold a value)",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.stage1b_mac.tests.test_common::test_the_frame_prints_a_refusal_or_an_error_type_only",
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_an_unexpected_error_prints_its_type_only"
+      ],
+      "failures": 2,
+      "id": "CO-frame-type-only",
+      "outcome": "killed",
+      "part": "common",
+      "seconds": 1.4,
+      "skipped": 0,
+      "targets": {
+        "common.py": {
+          "after": "f9290543ae728a4fbc973c006e6721484b7a7745263848e8f614bbc8baa40c3b",
+          "before": "61140654533421a2ebbc8eee029568814c7d526935d586818b0e5a91b79add18"
+        }
+      },
+      "tests": 62
+    },
+    {
+      "describes": "a record of another kind is accepted",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.stage1b_mac.tests.test_binding_check::test_refuses_a_record_of_another_kind"
+      ],
+      "failures": 1,
+      "id": "BC-kind",
+      "outcome": "killed",
+      "part": "binding_check",
+      "seconds": 1.3,
+      "skipped": 0,
+      "targets": {
+        "binding_check.py": {
+          "after": "7b9426e6345dd78ad2a93e40c8018a68d4a4eaaf161a8595d64a3680f8ce5560",
+          "before": "c33fee27d6e3d1e33c5af9c7d73f22d60c2e3c5b2f9f0eb42aeab41ca27f054c"
+        }
+      },
+      "tests": 62
+    },
+    {
+      "describes": "a record without an edits list is not refused with the fixed message",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.stage1b_mac.tests.test_binding_check::test_refuses_a_record_without_an_edits_list"
+      ],
+      "failures": 1,
+      "id": "BC-edits-list",
+      "outcome": "killed",
+      "part": "binding_check",
+      "seconds": 1.3,
+      "skipped": 0,
+      "targets": {
+        "binding_check.py": {
+          "after": "8f2d2118624dca2b2f906edeeeec6d471e247c94f03e53c978e9b9eb8493845f",
+          "before": "c33fee27d6e3d1e33c5af9c7d73f22d60c2e3c5b2f9f0eb42aeab41ca27f054c"
+        }
+      },
+      "tests": 62
+    },
+    {
+      "describes": "two entries for the edit file are accepted (the first wins)",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.stage1b_mac.tests.test_binding_check::test_refuses_without_exactly_one_entry_for_the_edit_file"
+      ],
+      "failures": 1,
+      "id": "BC-single-entry",
+      "outcome": "killed",
+      "part": "binding_check",
+      "seconds": 1.3,
+      "skipped": 0,
+      "targets": {
+        "binding_check.py": {
+          "after": "b117ec846748a81e2006c407a421fb53dd57480c058be7dcbc363bf300a8fe0e",
+          "before": "c33fee27d6e3d1e33c5af9c7d73f22d60c2e3c5b2f9f0eb42aeab41ca27f054c"
+        }
+      },
+      "tests": 62
+    },
+    {
+      "describes": "an entry whose sha256 is not a SHA-256 is compared instead of refused",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.stage1b_mac.tests.test_binding_check::test_refuses_an_entry_without_a_sha256"
+      ],
+      "failures": 1,
+      "id": "BC-sha-hex",
+      "outcome": "killed",
+      "part": "binding_check",
+      "seconds": 1.3,
+      "skipped": 0,
+      "targets": {
+        "binding_check.py": {
+          "after": "210f8ad2fe051a4e28220ae8dcf300140f3db4bfa87ce583a06814216bf39eba",
+          "before": "c33fee27d6e3d1e33c5af9c7d73f22d60c2e3c5b2f9f0eb42aeab41ca27f054c"
+        }
+      },
+      "tests": 62
+    },
+    {
+      "describes": "the record is read without the lead's pin",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.stage1b_mac.tests.test_binding_check::test_refuses_a_record_off_its_pin_or_missing"
+      ],
+      "failures": 1,
+      "id": "BC-record-pin",
+      "outcome": "killed",
+      "part": "binding_check",
+      "seconds": 1.3,
+      "skipped": 0,
+      "targets": {
+        "binding_check.py": {
+          "after": "1b3193cccc07f66f6e9e6c4e842fa47fa7b49e6791e5621379c4993dcfee9709",
+          "before": "c33fee27d6e3d1e33c5af9c7d73f22d60c2e3c5b2f9f0eb42aeab41ca27f054c"
+        }
+      },
+      "tests": 62
+    },
+    {
+      "describes": "a malformed --edit-sha256 is compared instead of refused",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.stage1b_mac.tests.test_binding_check::test_refuses_a_bad_edit_sha256"
+      ],
+      "failures": 1,
+      "id": "BC-edit-hex",
+      "outcome": "killed",
+      "part": "binding_check",
+      "seconds": 1.3,
+      "skipped": 0,
+      "targets": {
+        "binding_check.py": {
+          "after": "ede1923acf34d02a189f7e9ca06315241ecbc4af7f4bd76702b30078cfdabfd1",
+          "before": "c33fee27d6e3d1e33c5af9c7d73f22d60c2e3c5b2f9f0eb42aeab41ca27f054c"
+        }
+      },
+      "tests": 62
+    },
+    {
+      "describes": "the comparison is reversed",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.stage1b_mac.tests.test_binding_check::test_match_and_no_match_print_one_word"
+      ],
+      "failures": 1,
+      "id": "BC-match",
+      "outcome": "killed",
+      "part": "binding_check",
+      "seconds": 1.3,
+      "skipped": 0,
+      "targets": {
+        "binding_check.py": {
+          "after": "4c1c523cf1baed978d236f6970a869ad5b254d833100181f292c0b90e5d7c78a",
+          "before": "c33fee27d6e3d1e33c5af9c7d73f22d60c2e3c5b2f9f0eb42aeab41ca27f054c"
+        }
+      },
+      "tests": 62
+    },
+    {
+      "describes": "\"no match\" exits 0",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.stage1b_mac.tests.test_binding_check::test_match_and_no_match_print_one_word"
+      ],
+      "failures": 1,
+      "id": "BC-exit",
+      "outcome": "killed",
+      "part": "binding_check",
+      "seconds": 1.3,
+      "skipped": 0,
+      "targets": {
+        "binding_check.py": {
+          "after": "07f97d8a54d55cfa615cfdf0531b44d9fbb5995cf74217ee52d5ece05b42cc28",
+          "before": "c33fee27d6e3d1e33c5af9c7d73f22d60c2e3c5b2f9f0eb42aeab41ca27f054c"
+        }
+      },
+      "tests": 62
+    }
+  ],
+  "pytest_version": "pytest 8.4.2",
+  "python": "3.11.15",
+  "rule": "killed = exit 1 with >= 1 failure and 0 errors; survived = exit 0, 0 failures, 0 errors; anything else (errors, timeout, other exit codes, no JUnit, a test count other than the baseline's) = invalid; an 'expect: survive' entry passes only if it survives",
+  "runner_sha256": "5bf8c7e434332767623751a3c10f933568b89c569b72995e2b297d087cbb7cc2",
+  "shard": [
+    "BC-edit-hex",
+    "BC-edits-list",
+    "BC-exit",
+    "BC-kind",
+    "BC-match",
+    "BC-record-pin",
+    "BC-sha-hex",
+    "BC-single-entry",
+    "CC-given-hash",
+    "CC-job-index",
+    "CC-l1-subcommand",
+    "CC-log-stderr-shown",
+    "CC-log-stdout-shown",
+    "CC-main-pass",
+    "CC-output-name",
+    "CC-pool-pin",
+    "CC-report-counted",
+    "CC-req8-pin",
+    "CC-step-exit",
+    "CC-step-output",
+    "CO-exclusive",
+    "CO-frame-type-only",
+    "CO-hashed-pair",
+    "CO-symlink"
+  ],
+  "spec": "scripts/stage1_s1/stage1b_mac/mutation/mutants_stage1b_mac.json",
+  "spec_sha256": "7ad3d2c08f81672de4ef52315a3e9a22b59ee64c3d8feeacbf24aeb6915c3033",
+  "summary": {
+    "binding_check": {
+      "equivalent": 0,
+      "expected_survivors_failed": 0,
+      "expected_survivors_ok": 0,
+      "invalid": 0,
+      "killed": 8,
+      "mutants": 8,
+      "survived": 0
+    },
+    "common": {
+      "equivalent": 0,
+      "expected_survivors_failed": 0,
+      "expected_survivors_ok": 0,
+      "invalid": 0,
+      "killed": 4,
+      "mutants": 4,
+      "survived": 0
+    },
+    "construction_checks": {
+      "equivalent": 0,
+      "expected_survivors_failed": 0,
+      "expected_survivors_ok": 0,
+      "invalid": 0,
+      "killed": 12,
+      "mutants": 12,
+      "survived": 0
+    }
+  },
+  "timeout_seconds": 300,
+  "tree_name": "scripts/stage1_s1/stage1b_mac",
+  "version": 2
+}

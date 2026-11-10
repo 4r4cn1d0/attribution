@@ -1,0 +1,68 @@
+........................................................................ [ 17%]
+........................................................................ [ 34%]
+....................................F................................... [ 52%]
+........................................................................ [ 69%]
+........................................................................ [ 87%]
+.....................................................                    [100%]
+=================================== FAILURES ===================================
+__ test_the_preflight_writes_the_speed_and_bank_fields_and_refuses_a_slow_pod __
+
+w = <test_stage1_runkit.World object at 0x111898690>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x111899750>
+tmp_path = PosixPath('/private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-pensive-stonebraker-bf6d79/b609d8b8-9fca-458c-826f-4c781de96013/scratchpad/b78/reports/k4-sec-scratch/bt-fakeenv/test_the_preflight_writes_the_0')
+
+    def test_the_preflight_writes_the_speed_and_bank_fields_and_refuses_a_slow_pod(w, monkeypatch, tmp_path):
+        """The 7-8B preflight: the family's main config is the one candidate; PREFLIGHT-DONE.json keeps the measured
+        files' keys and adds family, bank (the four numbers from verification.json) and speed {s_pod, refused}; a pod
+        past 1.15 (KD3) or a missing speed field makes ok false (exit 1) so no job starts; another family's plan or a
+        second recipe refuses before anything runs."""
+        r, f = w.rules, w.r78.FAMILIES[w.family]
+        pf = load_by_path("pf78", w.root / "setup" / "preflight_stage1.py")
+        root = tmp_path / "pod"
+        root.mkdir()
+        monkeypatch.setattr(pf, "ROOT", root)
+        monkeypatch.setattr(pf, "HEARTBEAT", tmp_path / "no-heartbeat.json")
+        monkeypatch.setenv("HOME", str(tmp_path))
+        for name in pf.TOKEN_ENV_NAMES:
+            monkeypatch.delenv(name, raising=False)
+        write(root / r.REC, {"generation": {"batch_size": 32, "max_new_tokens": 2048, "harm_samples": {"count": 3}},
+                             "model": {"attn_implementation": "sdpa"}})
+        write(root / "plan.json", {"family": w.family, "preflight_recipes": [r.REC], "preflight_prepared": "data/kt-prepared/x"})
+        write(root / "BOOTSTRAP-READY.json", {"ok": True})
+        write(root / "probe.json", {"plan": [{"gated": False}]})
+        ran = []
+        training = {"value": TRAINING_S[w.family]}
+    
+        def fake_run(args, **kwargs):
+            ran.append(list(args))
+            if args[:2] == ["python3", "process_receipt.py"]:
+                out = args[args.index("--out", 5) + 1] if "--out" in args[5:] else None
+                write(root / out / "verification.json",
+                      fake_verification(w.family, r.REC_CONFIG_SHA256, "m" * 64, cp_training_s=training["value"]))
+            return subprocess.CompletedProcess(args, 0, '{"guard": "synthetic"}\n', "")
+        monkeypatch.setattr(pf.subprocess, "run", fake_run)
+>       assert pf.main([]) == 0
+               ^^^^^^^^^^^
+
+/private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-pensive-stonebraker-bf6d79/b609d8b8-9fca-458c-826f-4c781de96013/scratchpad/b78/reports/k4-sec-scratch/suite1/repo/runkit/stage1-78b/tests/test_kit_78b_runner.py:784: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-pensive-stonebraker-bf6d79/b609d8b8-9fca-458c-826f-4c781de96013/scratchpad/b78/reports/k4-sec-scratch/bt-fakeenv/test_the_preflight_writes_the_0/tmp/family-probe-s78-olmo2-7b-0/setup/preflight_stage1.py:153: in main
+    token_hygiene()
+/private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-pensive-stonebraker-bf6d79/b609d8b8-9fca-458c-826f-4c781de96013/scratchpad/b78/reports/k4-sec-scratch/bt-fakeenv/test_the_preflight_writes_the_0/tmp/family-probe-s78-olmo2-7b-0/setup/preflight_stage1.py:89: in token_hygiene
+    downloads.no_token_left()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def no_token_left() -> None:
+        present = [name for name in TOKEN_ENV_NAMES if os.environ.get(name)]
+        if present:
+            raise SystemExit(f"a token variable is set: {present}")
+        for path in (token_file(), stored_tokens_file()):
+            if path.exists():
+>               raise SystemExit(f"a stored HF login exists: {path} (the library's HF_TOKEN_PATH, else HF_HOME/token, "
+                                 "and its stored_tokens; D6)")
+E               SystemExit: a stored HF login exists: /private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-pensive-stonebraker-bf6d79/b609d8b8-9fca-458c-826f-4c781de96013/scratchpad/b78/reports/k4-sec-scratch/fakehf/token (the library's HF_TOKEN_PATH, else HF_HOME/token, and its stored_tokens; D6)
+
+/private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-pensive-stonebraker-bf6d79/b609d8b8-9fca-458c-826f-4c781de96013/scratchpad/b78/reports/k4-sec-scratch/suite1/repo/runkit/stage1-78b/setup/download_models_stage1.py:105: SystemExit
+=========================== short test summary info ============================
+FAILED runkit/stage1-78b/tests/test_kit_78b_runner.py::test_the_preflight_writes_the_speed_and_bank_fields_and_refuses_a_slow_pod
+1 failed, 412 passed in 26.03s

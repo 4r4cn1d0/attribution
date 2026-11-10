@@ -1,0 +1,24 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+________________ test_no_o_ext_step_and_no_y_pack_in_this_copy _________________
+
+    def test_no_o_ext_step_and_no_y_pack_in_this_copy():
+        runner = (KIT / "setup" / "job_runner_stage1.py").read_text()
+        for name in ("OEXT_UNIT_SCRIPT", "OEXT_MODULE", "OEXT_STEP_KINDS", "oext_args", "oext_fallback", "W1_18_SCRIPT", "o500"):
+>           assert name not in runner, name
+E           AssertionError: oext_fallback
+E           assert 'oext_fallback' not in '"""The 7-8B...it(main())\n'
+E             
+E             'oext_fallback' is contained here:
+E               {}}
+E               
+E               
+E               def oext_fallback(plan: dict) -> bool:
+E             ?     +++++++++++++...
+E             
+E             ...Full output truncated (483 lines hidden), use '-vv' to show
+
+runkit/stage1-78b/tests/test_g1_yoext.py:20: AssertionError
+=========================== short test summary info ============================
+FAILED runkit/stage1-78b/tests/test_g1_yoext.py::test_no_o_ext_step_and_no_y_pack_in_this_copy
+1 failed in 0.02s

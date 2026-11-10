@@ -1,0 +1,2361 @@
+{
+ "kind": "stage1-78b scorer-block mutation spec (K4b)",
+ "note": "each mutant's find text occurs exactly once in its file; runner: tests/run_mutants_scorer_78b.py (test_scorer_block_78b.py) Round 4b (6 Nov): K4bf-m-* for the core verifier's D1-D8 (c0 unitless, the engine verify, the anchor and s3_orig binding, OEXT_78B's form, HM4, HM5, HM8, HM12, HM14, a1_pass's unit), PP17's o_only_with_regenerate and the pack's input scan (security D5). K5 (round 5) added 22 mutants (K5-c0-fp-from-plan ... K5-pack-data-scanned). R1 K1 fix (8 Nov): K4bf-m-c0-needs-oext-script re-targeted from plan_tool.py's script check (equivalent once c0 and the O-ext kinds share oext_78b.py) to rules_78b.OEXT_WRAPPER_COMMANDS' c0 command word; K2 re-targets it at plan_tool's command-word check (GXB K-1). R1 K1 fix: K4bf-m-hm14-script-unlisted-ok re-targeted from plan_tool.py's 'does not list' check (now behind rules_78b's R-5 wrapper check, so equivalent) to that wrapper check.",
+ "mutants": [
+  {
+   "id": "K4b-m-untuned-one-call",
+   "part": "PP2",
+   "describes": "the untuned pod's E cap covers the S4 call only",
+   "file": "rules_78b.py",
+   "find": "        upper = WIDE_CAP_FACTOR * (s3_call + s4_call)\n",
+   "replace": "        upper = WIDE_CAP_FACTOR * s4_call\n"
+  },
+  {
+   "id": "K4b-m-untuned-s3-chunks",
+   "part": "PP2",
+   "describes": "the S3 call counts one chunk fewer",
+   "file": "rules_78b.py",
+   "find": "        s3_call = first + (s3_chunks - 1) * batch + ends\n",
+   "replace": "        s3_call = first + (s3_chunks - 2) * batch + ends\n"
+  },
+  {
+   "id": "K4b-m-pins-rep-no-s3orig",
+   "part": "A13",
+   "describes": "rep_pass no longer needs the s3_orig pool pin",
+   "file": "rules_78b.py",
+   "find": "\"rep_pass\": (\"RECIPE_S\", \"ANCHOR_BANK\", \"S3_ORIG_POOL\"), ",
+   "replace": "\"rep_pass\": (\"RECIPE_S\", \"ANCHOR_BANK\"), "
+  },
+  {
+   "id": "K4b-m-pins-a1-no-unit",
+   "part": "A13",
+   "describes": "a1_pass no longer needs the retrain unit pin",
+   "file": "rules_78b.py",
+   "find": "    \"a1_pass\": (\"RECIPE_S\", \"ANCHOR_BANK\", \"RETRAIN_UNIT\"),\n",
+   "replace": "    \"a1_pass\": (\"RECIPE_S\", \"ANCHOR_BANK\"),\n"
+  },
+  {
+   "id": "K4b-m-pins-o-only-none",
+   "part": "M1",
+   "describes": "o_only needs no O-ext pin",
+   "file": "rules_78b.py",
+   "find": "    \"o_only\": (\"OEXT_78B\",), \"o_only_with_regenerate\"",
+   "replace": "    \"o_only\": (), \"o_only_with_regenerate\""
+  },
+  {
+   "id": "K4b-m-pins-c0-no-source",
+   "part": "A13",
+   "describes": "c0 needs no C0_SOURCE",
+   "file": "rules_78b.py",
+   "find": "\"c0\": (\"OEXT_78B\", \"C0_SOURCE\"),",
+   "replace": "\"c0\": (\"OEXT_78B\",),"
+  },
+  {
+   "id": "K4b-m-pins-l1-none",
+   "part": "A1",
+   "describes": "l1_scan needs no anchor bank pin",
+   "file": "rules_78b.py",
+   "find": "    \"l1_scan\": (\"ANCHOR_BANK\",), \"classifier\"",
+   "replace": "    \"l1_scan\": (), \"classifier\""
+  },
+  {
+   "id": "K4b-m-pins-y-no-engine-pin",
+   "part": "A13",
+   "describes": "a job on engine Y needs no ENGINE_Y",
+   "file": "rules_78b.py",
+   "find": "    return SC_KIND_PINS[kind] + ((\"ENGINE_Y\",) if engine == \"Y\" else ())\n",
+   "replace": "    return SC_KIND_PINS[kind]\n"
+  },
+  {
+   "id": "K4b-m-after-retrain-free",
+   "part": "A2",
+   "describes": "the retrain needs no anchor job before it",
+   "file": "rules_78b.py",
+   "find": "\"retrain\": (\"anchor\",), \"a1_pass\"",
+   "replace": "\"retrain\": (), \"a1_pass\""
+  },
+  {
+   "id": "K4b-m-after-a1-no-retrain",
+   "part": "A2",
+   "describes": "A1's pass needs no retrain before it",
+   "file": "rules_78b.py",
+   "find": "\"a1_pass\": (\"anchor\", \"retrain\")}",
+   "replace": "\"a1_pass\": (\"anchor\",)}"
+  },
+  {
+   "id": "K4b-m-after-rep-no-untuned",
+   "part": "A2",
+   "describes": "rep_pass needs no untuned pass before it",
+   "file": "rules_78b.py",
+   "find": "\"rep_pass\": (\"anchor\", \"untuned_answers\"),",
+   "replace": "\"rep_pass\": (\"anchor\",),"
+  },
+  {
+   "id": "K4b-m-order-off",
+   "part": "A2",
+   "describes": "the order check never refuses",
+   "file": "rules_78b.py",
+   "find": "    if before:\n        return (f\"{kind} comes after",
+   "replace": "    if False:\n        return (f\"{kind} comes after"
+  },
+  {
+   "id": "K4b-m-engine-x-retrain-any",
+   "part": "ruling 10",
+   "describes": "the X retrain needs no complete Y retrain",
+   "file": "rules_78b.py",
+   "find": "    if kind == \"retrain\" and engine == \"X\" and \"Y\" not in tuple(retrain_engines):\n",
+   "replace": "    if False and kind == \"retrain\" and engine == \"X\" and \"Y\" not in tuple(retrain_engines):\n"
+  },
+  {
+   "id": "K4b-m-engine-a1-any",
+   "part": "ruling 10, EYD:81",
+   "describes": "A1's pass runs on any engine",
+   "file": "rules_78b.py",
+   "find": "    if kind == \"a1_pass\" and engine not in tuple(retrain_engines):\n",
+   "replace": "    if False:\n"
+  },
+  {
+   "id": "K4b-m-engine-x-only-off",
+   "part": "PP16",
+   "describes": "the wrapper kinds run on Y at planning",
+   "file": "rules_78b.py",
+   "find": "    if kind in X_ONLY_KINDS and engine != \"X\":\n        return f\"{kind} runs on engine X only (PP4, PP16)\"\n",
+   "replace": "    if False:\n        return f\"{kind} runs on engine X only (PP4, PP16)\"\n"
+  },
+  {
+   "id": "K4b-m-recipe-s-disagree-ok",
+   "part": "A1",
+   "describes": "the two RECIPE_S places may disagree",
+   "file": "rules_78b.py",
+   "find": "    if layer != kit:\n        raise Refused(f\"recipe S_78 for {family}: rules_78b.RECIPE_S",
+   "replace": "    if False:\n        raise Refused(f\"recipe S_78 for {family}: rules_78b.RECIPE_S"
+  },
+  {
+   "id": "K4b-m-engine-sha-y-null-ok",
+   "part": "A13",
+   "describes": "engine Y's identity is returned while null",
+   "file": "rules_78b.py",
+   "find": "        if ENGINE_Y is None or not isinstance(ENGINE_Y, str) or not CONFIG_SHA256.match(ENGINE_Y):\n",
+   "replace": "        if False:\n"
+  },
+  {
+   "id": "K4b-m-state-kinds-no-o-only-with-regenerate",
+   "part": "PP14",
+   "describes": "an o_only_with_regenerate pod keeps no states (PP14, PP17; round 4b)",
+   "file": "rules_78b.py",
+   "find": "                  \"o_only_with_regenerate\": \"keeps the regenerated a0 unit's states (PP17; a train-only job like the \"\n                                            \"retrain)\",\n",
+   "replace": ""
+  },
+  {
+   "id": "K4b-m-pod-keeps-states-always",
+   "part": "PP14",
+   "describes": "every scorer pod is said to keep states",
+   "file": "rules_78b.py",
+   "find": "\"keeps_states\": keeps is not None,",
+   "replace": "\"keeps_states\": True,"
+  },
+  {
+   "id": "K4b-m-pod-need-no-contingency",
+   "part": "M3",
+   "describes": "the pod's need alone without the contingency",
+   "file": "rules_78b.py",
+   "find": "    pod[\"engine\"] = engine\n    pod[\"need_usd_alone\"] = funding_need_usd([[pod]], CONTINGENCY_FACTOR)[\"need_usd\"]\n",
+   "replace": "    pod[\"engine\"] = engine\n    pod[\"need_usd_alone\"] = funding_need_usd([[pod]], 1.0)[\"need_usd\"]\n"
+  },
+  {
+   "id": "K4b-m-lines-no-idle",
+   "part": "PP14",
+   "describes": "a scorer pod prints no idle-storage line",
+   "file": "rules_78b.py",
+   "find": "            f\"${pod['need_usd_alone']:.2f}\",\n            f\"idle storage {host}",
+   "replace": "            f\"${pod['need_usd_alone']:.2f}\"] + [] and [\n            f\"idle storage {host}"
+  },
+  {
+   "id": "K4b-m-pin-wrapper",
+   "part": "item 3",
+   "describes": "the wrapper's pin is another hash",
+   "file": "stage1_rules.py",
+   "find": "    WRAPPER: \"c5895adc246c26cca93b427e6ece2e136f6fe8ea566654e591d0854d6b495671\",",
+   "replace": "    WRAPPER: \"d5895adc246c26cca93b427e6ece2e136f6fe8ea566654e591d0854d6b495671\","
+  },
+  {
+   "id": "K4b-m-pin-s1common",
+   "part": "item 3",
+   "describes": "s1common's pin is another hash",
+   "file": "stage1_rules.py",
+   "find": "    \"scripts/stage1/s1common.py\": \"930c8ea53d26baeeccaf2035949427d207f307ba0fec06ff0dec841c8c824552\",",
+   "replace": "    \"scripts/stage1/s1common.py\": \"030c8ea53d26baeeccaf2035949427d207f307ba0fec06ff0dec841c8c824552\","
+  },
+  {
+   "id": "K4b-m-pin-lexicon-dropped",
+   "part": "item 3",
+   "describes": "the lexicon the 1B scripts read is not packed",
+   "file": "stage1_rules.py",
+   "find": "    \"scripts/stage1/lexicon/lexicon.json\": \"bbbc71e9eebb62876430ffb5e0f54113c3818984b8369924b7bd2212c4c1ca17\",\n",
+   "replace": ""
+  },
+  {
+   "id": "K4b-m-host-prefix",
+   "part": "item 2",
+   "describes": "the scorer block's hosts take another prefix",
+   "file": "stage1_rules.py",
+   "find": "\"sc\": f\"{FAMILY}-sc\"} if FAMILY else {}",
+   "replace": "\"sc\": f\"{FAMILY}-scorer\"} if FAMILY else {}"
+  },
+  {
+   "id": "K4b-m-l1-command-name",
+   "part": "item 1",
+   "describes": "l1_scan's settings waits are read under another command name",
+   "file": "stage1_rules.py",
+   "find": "\"l1_scan\": \"scan\",",
+   "replace": "\"l1_scan\": \"l1_scan\","
+  },
+  {
+   "id": "K4b-m-settings-waits-skip",
+   "part": "A13",
+   "describes": "a null settings pin is never reported",
+   "file": "stage1_rules.py",
+   "find": "            if node is None:\n                out.append((f\"{script}: {dotted}\"",
+   "replace": "            if False:\n                out.append((f\"{script}: {dotted}\""
+  },
+  {
+   "id": "K4b-m-input-s1-as-s3",
+   "part": "PP2",
+   "describes": "the s1 loss input takes the s3_safe pin",
+   "file": "stage1_rules.py",
+   "find": "\"loss:s1\": (lists.get(\"s1\") or {}).get(\"sha256\"),",
+   "replace": "\"loss:s1\": (lists.get(\"s3_safe\") or {}).get(\"sha256\"),"
+  },
+  {
+   "id": "K4b-m-code-anchor-none",
+   "part": "item 3",
+   "describes": "the anchor job seals no script",
+   "file": "stage1_rules.py",
+   "find": "    if kind == \"anchor\":\n        return [ANCHOR_SCRIPT]\n",
+   "replace": "    if kind == \"anchor\":\n        return []\n"
+  },
+  {
+   "id": "K4b-m-folder-input-none",
+   "part": "item 1",
+   "describes": "the retrain unit is read as a file",
+   "file": "stage1_rules.py",
+   "find": "SC_FOLDER_INPUTS = frozenset({\"retrain_unit\"})",
+   "replace": "SC_FOLDER_INPUTS = frozenset()"
+  },
+  {
+   "id": "K4b-m-plan-order-off",
+   "part": "A2",
+   "describes": "init never checks A2's order",
+   "file": "plan_tool.py",
+   "find": "    problem = r78.sc_order_problem(kind, done, family)   # A2's order first, PP16, the pins (A13), then ruling 10\n",
+   "replace": "    problem = None\n",
+   "note": "R2 K2: find text re-targeted to the changed line (the family is passed; same mutation)"
+  },
+  {
+   "id": "K4b-m-plan-pins-off",
+   "part": "A13",
+   "describes": "init never checks the pins",
+   "file": "plan_tool.py",
+   "find": "        r78.sc_pins_or_refuse(family, kind, engine, pins78, arm, seed)\n",
+   "replace": "        pass\n",
+   "note": "R2 K2: find text re-targeted to the changed line (same mutation)"
+  },
+  {
+   "id": "K4b-m-plan-x-only-first-off",
+   "part": "PP16",
+   "describes": "init checks the X-only rule after the pins",
+   "file": "plan_tool.py",
+   "find": "    if kind in r78.X_ONLY_KINDS or engine not in (\"X\", \"Y\"):\n",
+   "replace": "    if False:\n"
+  },
+  {
+   "id": "K4b-m-plan-engine-dyn-off",
+   "part": "ruling 10",
+   "describes": "init never checks the retrain's and A1's engines",
+   "file": "plan_tool.py",
+   "find": "    problem = r78.sc_engine_problem(kind, engine, engines_unit if kind == \"a1_pass\" else engines_all)\n",
+   "replace": "    problem = None\n"
+  },
+  {
+   "id": "K4b-m-plan-a1-unit-any",
+   "part": "PP3",
+   "describes": "A1's engine is any complete retrain's, whatever the unit pin",
+   "file": "plan_tool.py",
+   "find": "    engines_unit = [j[\"engine\"] for _, j in retrains if j.get(\"complete_sha256\") == unit_pin]\n",
+   "replace": "    engines_unit = [j[\"engine\"] for _, j in retrains]\n"
+  },
+  {
+   "id": "K4b-m-plan-two-jobs",
+   "part": "KD6",
+   "describes": "a scorer pod may hold two jobs",
+   "file": "plan_tool.py",
+   "find": "            if not (isinstance(jobs, list) and len(jobs) == 1):\n",
+   "replace": "            if not isinstance(jobs, list):\n"
+  },
+  {
+   "id": "K4b-m-plan-dup-ok",
+   "part": "A8",
+   "describes": "a kind may be planned twice",
+   "file": "plan_tool.py",
+   "find": "    if status not in (\"absent\", \"crashed\", \"deferred\", \"not_started\"):\n",
+   "replace": "    if False:\n"
+  },
+  {
+   "id": "K4b-m-plan-settings-waits-off",
+   "part": "A13",
+   "describes": "the scorer layer's settings waits are not read",
+   "file": "plan_tool.py",
+   "find": "        if waits:\n            fail(f\"{where}: {kind}: the scorer layer's settings wait",
+   "replace": "        if False:\n            fail(f\"{where}: {kind}: the scorer layer's settings wait"
+  },
+  {
+   "id": "K4b-m-plan-funding-below-ok",
+   "part": "M3",
+   "describes": "a funding record below the part's need is accepted",
+   "file": "plan_tool.py",
+   "find": "    funding = funding_record(args.funding, r78.SC_BLOCK)\n    if not funding[\"amount_usd\"] >= need[\"need_usd\"]:\n",
+   "replace": "    funding = funding_record(args.funding, r78.SC_BLOCK)\n    if False:\n"
+  },
+  {
+   "id": "K4b-m-plan-part-start-off",
+   "part": "A2",
+   "describes": "a new part's first launch is not marked",
+   "file": "plan_tool.py",
+   "find": "**({\"part_start\": True} if k == 0 else {})})",
+   "replace": "**({})})"
+  },
+  {
+   "id": "K4b-m-plan-block-copy-off",
+   "part": "KD7",
+   "describes": "a copy plans another block than its own",
+   "file": "plan_tool.py",
+   "find": "    if block != rules.KIT_BLOCK:                         # KD7: one block per working copy\n",
+   "replace": "    if False:\n"
+  },
+  {
+   "id": "K4b-m-plan-unreleased-ok",
+   "part": "A2",
+   "describes": "a new part is planned over an unreleased launch",
+   "file": "plan_tool.py",
+   "find": "    elif b[\"released\"] < len(b[\"launches\"]):\n",
+   "replace": "    elif False:\n"
+  },
+  {
+   "id": "K4b-m-release-recheck-off",
+   "part": "A13",
+   "describes": "the release does not compare the pins with init's",
+   "file": "plan_tool.py",
+   "find": "        if again[\"inputs\"] != job[\"inputs\"] or again.get(\"recipe_s78\") != job.get(\"recipe_s78\") or \\\n",
+   "replace": "        if False and again[\"inputs\"] != job[\"inputs\"] or again.get(\"recipe_s78\") != job.get(\"recipe_s78\") or \\\n"
+  },
+  {
+   "id": "K4b-m-release-input-unpacked-ok",
+   "part": "item 3",
+   "describes": "an input not packed at its pin is released",
+   "file": "plan_tool.py",
+   "find": "            if rel is None or got != pin:\n",
+   "replace": "            if False:\n"
+  },
+  {
+   "id": "K4b-m-release-code-unchecked",
+   "part": "item 3",
+   "describes": "the packed scorer code is not checked at release",
+   "file": "plan_tool.py",
+   "find": "            if files.get(rel) != pin:\n                fail(f\"{name}: the packed {rel} is not at its pin",
+   "replace": "            if False:\n                fail(f\"{name}: the packed {rel} is not at its pin"
+  },
+  {
+   "id": "K4b-m-release-s78-config-unchecked",
+   "part": "A1",
+   "describes": "the S_78 config's engine hash is not checked at release",
+   "file": "plan_tool.py",
+   "find": "            if config != values[\"RECIPE_S\"]:\n                fail(f\"{s_path}: its config_sha256",
+   "replace": "            if False:\n                fail(f\"{s_path}: its config_sha256"
+  },
+  {
+   "id": "K4b-m-release-s78-packed-unchecked",
+   "part": "A1",
+   "describes": "the packed S_78 file is not checked at release",
+   "file": "plan_tool.py",
+   "find": "            if files.get(s_path) != mac.sha(ENGINE_ROOT / s_path):\n",
+   "replace": "            if False:\n"
+  },
+  {
+   "id": "K4b-m-done-wrapper-whole",
+   "part": "item 4",
+   "describes": "record-done prints the whole wrapper summary",
+   "file": "plan_tool.py",
+   "find": "            calls[pathlib.PurePosixPath(folder).name] = {k: got.get(k) for k in (\"exit_code\", \"fallback_fired\", \"kept\",\n",
+   "replace": "            calls[pathlib.PurePosixPath(folder).name] = dict(got) or {k: got.get(k) for k in (\"exit_code\", \"fallback_fired\", \"kept\",\n"
+  },
+  {
+   "id": "K4b-m-done-no-sc-ok",
+   "part": "item 4",
+   "describes": "a complete scorer job without the runner's record is accepted",
+   "file": "plan_tool.py",
+   "find": "    if not isinstance(sc, dict) or sc.get(\"kind\") != job[\"kind\"]:\n",
+   "replace": "    if False:\n"
+  },
+  {
+   "id": "K4b-m-done-hash-unchecked",
+   "part": "item 4",
+   "describes": "a non-hash value is printed as a hash",
+   "file": "plan_tool.py",
+   "find": "            if SHA_RE.fullmatch(str(sc[key])) is None:\n",
+   "replace": "            if False:\n"
+  },
+  {
+   "id": "K4b-m-done-wrapper-types-unchecked",
+   "part": "item 4",
+   "describes": "the wrapper summary's types are not checked at record-done",
+   "file": "plan_tool.py",
+   "find": "            if not isinstance(got, dict) or type(got.get(\"exit_code\")) is not int or \\\n",
+   "replace": "            if False and not isinstance(got, dict) or False and type(got.get(\"exit_code\")) is not int or False and \\\n"
+  },
+  {
+   "id": "K4b-m-pack-input-pin-unchecked",
+   "part": "item 3",
+   "describes": "an input off its pin is packed",
+   "file": "pack_setup.py",
+   "find": "        if digest != pins[name]:\n",
+   "replace": "        if False:\n"
+  },
+  {
+   "id": "K4b-m-pack-null-pin-ok",
+   "part": "A13",
+   "describes": "an input whose pin is null is packed",
+   "file": "pack_setup.py",
+   "find": "        if pins[name] is None:\n",
+   "replace": "        if False:\n"
+  },
+  {
+   "id": "K4b-m-pack-unknown-name-ok",
+   "part": "item 3",
+   "describes": "an input of no scorer kind is packed",
+   "file": "pack_setup.py",
+   "find": "        if name not in pins:\n",
+   "replace": "        if False:\n"
+  },
+  {
+   "id": "K4b-m-pack-code-none",
+   "part": "item 3",
+   "describes": "the scorer code is not packed",
+   "file": "pack_setup.py",
+   "find": "    out = {rel: (ROOT / rel, pin) for rel, pin in sorted(rules.SCORER_PINS.items())}\n",
+   "replace": "    out = {}\n"
+  },
+  {
+   "id": "K4b-m-pack-sc-off",
+   "part": "item 3",
+   "describes": "the scorer block's pack carries no scorer part",
+   "file": "pack_setup.py",
+   "find": "    if rules.KIT_BLOCK == r78.SC_BLOCK:                  # K4b: the scorer block's code, inputs and S_78 config\n",
+   "replace": "    if False:\n"
+  },
+  {
+   "id": "K4b-m-pack-s78-config-unchecked",
+   "part": "A1",
+   "describes": "the S_78 config is packed whatever its engine hash",
+   "file": "pack_setup.py",
+   "find": "    if config != values[\"RECIPE_S\"]:\n        raise SystemExit(f\"{rel}: its config_sha256",
+   "replace": "    if False:\n        raise SystemExit(f\"{rel}: its config_sha256"
+  },
+  {
+   "id": "K4b-m-pack-folder-complete-unchecked",
+   "part": "item 3",
+   "describes": "a unit folder is packed whatever its COMPLETE.json",
+   "file": "pack_setup.py",
+   "find": "            if not src.is_dir() or not (src / \"COMPLETE.json\").is_file() or sha(src / \"COMPLETE.json\") != digest:\n",
+   "replace": "            if not src.is_dir():\n"
+  },
+  {
+   "id": "K4b-m-pack-code-bad-ok",
+   "part": "item 3",
+   "describes": "the dry pack reports changed scorer code without refusing",
+   "file": "pack_setup.py",
+   "find": "    if bad:\n        raise SystemExit(f\"{len(bad)} scorer file(s) missing",
+   "replace": "    if False:\n        raise SystemExit(f\"{len(bad)} scorer file(s) missing"
+  },
+  {
+   "id": "K4b-m-runner-s4-exit3-crash",
+   "part": "Part 1 §10",
+   "describes": "the S4 call's exit 3 is a crash",
+   "file": "setup/job_runner_stage1.py",
+   "find": "        s4_few = kind == \"untuned_answers\" and name.endswith(\"-untuned-s4\") and done.returncode == 3\n",
+   "replace": "        s4_few = False\n"
+  },
+  {
+   "id": "K4b-m-runner-s3-exit3-ok",
+   "part": "PP2",
+   "describes": "the S3 call's exit 3 is accepted too",
+   "file": "setup/job_runner_stage1.py",
+   "find": "        s4_few = kind == \"untuned_answers\" and name.endswith(\"-untuned-s4\") and done.returncode == 3\n",
+   "replace": "        s4_few = kind == \"untuned_answers\" and done.returncode == 3\n"
+  },
+  {
+   "id": "K4b-m-runner-wrapper-exit-unchecked",
+   "part": "item 4",
+   "describes": "the wrapper record's exit code is not compared with the step's",
+   "file": "setup/job_runner_stage1.py",
+   "find": "            if got[\"exit_code\"] != exits[",
+   "replace": "            if False and got[\"exit_code\"] != exits["
+  },
+  {
+   "id": "K4b-m-runner-wrapper-type-unchecked",
+   "part": "item 4",
+   "describes": "the wrapper record's counts are not type-checked",
+   "file": "setup/job_runner_stage1.py",
+   "find": "        if out[key] is not None and type(out[key]) is not WRAPPER_RECORD_KEYS[key]:\n",
+   "replace": "        if False:\n"
+  },
+  {
+   "id": "K4b-m-runner-top-dose-text",
+   "part": "item 4",
+   "describes": "a top_dose that is not a dose name is recorded",
+   "file": "setup/job_runner_stage1.py",
+   "find": "    if out[\"top_dose\"] is not None and not (out[\"top_dose\"].startswith(\"s4\") and len(out[\"top_dose\"]) <= 12\n",
+   "replace": "    if False and not (out[\"top_dose\"].startswith(\"s4\") and len(out[\"top_dose\"]) <= 12\n"
+  },
+  {
+   "id": "K4b-m-runner-record-kind-unchecked",
+   "part": "item 4",
+   "describes": "any JSON is read as a wrapper record",
+   "file": "setup/job_runner_stage1.py",
+   "find": "    if not isinstance(doc, dict) or doc.get(\"kind\") != \"scale78b scorer wrapper record\":\n",
+   "replace": "    if not isinstance(doc, dict):\n"
+  },
+  {
+   "id": "K4b-m-runner-input-pin-unchecked",
+   "part": "item 1",
+   "describes": "an input off the plan's pin runs",
+   "file": "setup/job_runner_stage1.py",
+   "find": "        if packed != pin:\n",
+   "replace": "        if False:\n"
+  },
+  {
+   "id": "K4b-m-runner-s78-pin-unchecked",
+   "part": "A1",
+   "describes": "a job's S_78 config is not compared with RECIPE_S",
+   "file": "setup/job_runner_stage1.py",
+   "find": "    if s78.get(\"config_sha256\") != pin or ((plan.get(\"recipes\") or {}).get(path) or {}).get(\"config_sha256\") != pin:\n",
+   "replace": "    if False:\n"
+  },
+  {
+   "id": "K4b-m-runner-one-job-unchecked",
+   "part": "KD6",
+   "describes": "a scorer pod with two jobs runs",
+   "file": "setup/job_runner_stage1.py",
+   "find": "    if len(h[\"jobs\"]) != 1:\n        raise Unrunnable(f\"job {index} ({kind}): a scorer-block pod holds one job (KD6)\")\n",
+   "replace": "    if False:\n        raise Unrunnable(f\"job {index} ({kind}): a scorer-block pod holds one job (KD6)\")\n"
+  },
+  {
+   "id": "K4b-m-runner-s4-call-with-losses",
+   "part": "PP2",
+   "describes": "the S4 call also takes a loss",
+   "file": "setup/job_runner_stage1.py",
+   "find": "\"--list\", f\"s4={ps('list:s4')}\", \"--out\"",
+   "replace": "\"--list\", f\"s4={ps('list:s4')}\", \"--loss\", f\"s1={ps('loss:s1')}\", \"--out\""
+  },
+  {
+   "id": "K4b-m-runner-classifier-main-recipe",
+   "part": "PP4",
+   "describes": "the classifier runs under the main config",
+   "file": "setup/job_runner_stage1.py",
+   "find": "[*wrap, \"classifier\", \"--family\", family, \"--prepared\", p, \"--recipe\", rec,",
+   "replace": "[*wrap, \"classifier\", \"--family\", family, \"--prepared\", p, \"--recipe\", rules.REC,"
+  },
+  {
+   "id": "K4b-m-runner-a1-one-state",
+   "part": "PP3",
+   "describes": "A1's pass reads the e1 state only",
+   "file": "setup/job_runner_stage1.py",
+   "find": "*[a for c in (\"q\", \"e1\") for a in (\"--a0-state\", f\"{c}={state}\")]",
+   "replace": "*[a for c in (\"e1\",) for a in (\"--a0-state\", f\"{c}={state}\")]"
+  },
+  {
+   "id": "K4b-m-runner-retrain-shared-registry",
+   "part": "ruling 10",
+   "describes": "the retrain writes the arms' registry",
+   "file": "setup/job_runner_stage1.py",
+   "find": "RETRAIN_ROOT, f\"{RETRAIN_ROOT}/registry.jsonl\",",
+   "replace": "RETRAIN_ROOT, f\"{ROUND}/registry.jsonl\","
+  },
+  {
+   "id": "K4b-m-runner-sobs-after-scorer",
+   "part": "KD11",
+   "describes": "a scorer job is read for s_obs",
+   "file": "setup/job_runner_stage1.py",
+   "find": "        if result[\"status\"] == \"complete\" and job[\"kind\"] not in BLOCK0_KINDS:   # K4b: no s_obs after a scorer job\n",
+   "replace": "        if False:\n"
+  },
+  {
+   "id": "K4b-m-runner-s3orig-missing-ok",
+   "part": "PP2",
+   "describes": "an S3 call without its s3_orig pool is complete",
+   "file": "setup/job_runner_stage1.py",
+   "find": "        if summary[\"s3_orig_pool_sha256\"] is None:\n",
+   "replace": "        if False:\n"
+  },
+  {
+   "id": "K4b-m-runner-route-off",
+   "part": "item 1",
+   "describes": "a scorer-block job takes block 0's route",
+   "file": "setup/job_runner_stage1.py",
+   "find": "    if plan[\"hosts\"][host].get(\"block\") == r78.SC_BLOCK:   # K4b: the scorer block's single-job pods\n",
+   "replace": "    if False:\n"
+  },
+  {
+   "id": "K4b-m-runner-sealed-paths-off",
+   "part": "item 3",
+   "describes": "a scorer job's code and inputs are not sealed paths",
+   "file": "setup/job_runner_stage1.py",
+   "find": "    if job.get(\"kind\") in r78.SC_KINDS and (h or {}).get(\"block\") == r78.SC_BLOCK:   # K4b\n",
+   "replace": "    if False:\n"
+  },
+  {
+   "id": "K4b-m-runner-key-main-recipe",
+   "part": "A1, PP4",
+   "describes": "an S_78 job's key check reads the main config",
+   "file": "setup/job_runner_stage1.py",
+   "find": "    if job.get(\"recipe\") == \"S\":\n        return (job.get(\"recipe_s78\") or {}).get(\"config_sha256\")\n",
+   "replace": "    if job.get(\"recipe\") == \"S\":\n        return main\n",
+   "note_r3": "R3 K3 (R-84): re-targeted to recipe_key (same mutation: an S_78 job's key is the main config's)"
+  },
+  {
+   "id": "K4b-m-runner-preflight-s78-unchecked",
+   "part": "A1",
+   "describes": "the pod's S_78 config is not checked at the preflight",
+   "file": "setup/job_runner_stage1.py",
+   "find": "                s78.get(\"config_sha256\") == r78.RECIPE_S[family], \"the S_78 config differs from its pin (A1)\"\n",
+   "replace": "                s78.get(\"config_sha256\") == r78.RECIPE_S[family] or True, \"the S_78 config differs from its pin (A1)\"\n"
+  },
+  {
+   "id": "K4b-m-runner-engine-pin-any",
+   "part": "A13",
+   "describes": "the host's engine identity is not checked",
+   "file": "setup/job_runner_stage1.py",
+   "find": "    assert h[\"engine_sha256\"] == engine_pin(h[\"engine\"]), \"the host's engine is not a pinned engine (G4)\"\n",
+   "replace": "    pass\n"
+  },
+  {
+   "id": "K4bf-m-c0-a-unit",
+   "part": "PP18 (D1)",
+   "describes": "c0 is a unit kind again in the runner",
+   "file": "setup/job_runner_stage1.py",
+   "find": "SC_UNIT_KINDS = (\"retrain\", \"a1_pass\", \"o_only_with_regenerate\")   # the kinds that write an engine unit (verified)",
+   "replace": "SC_UNIT_KINDS = (\"retrain\", \"a1_pass\", \"o_only_with_regenerate\", \"c0\")"
+  },
+  {
+   "id": "K4bf-m-c0-no-record-check",
+   "part": "PP18 (D1)",
+   "describes": "a lean job without c0_record.json is complete",
+   "file": "setup/job_runner_stage1.py",
+   "find": "        if summary[\"c0_record_sha256\"] is None:\n",
+   "replace": "        if False:\n"
+  },
+  {
+   "id": "K4bf-m-verify-ignored",
+   "part": "D2",
+   "describes": "a unit whose engine verify fails is recorded complete",
+   "file": "setup/job_runner_stage1.py",
+   "find": "        if record[\"verified\"][\"exit\"]:\n",
+   "replace": "        if False:\n"
+  },
+  {
+   "id": "K4bf-m-verify-not-run",
+   "part": "D2",
+   "describes": "the engine's verify is never run (a passing record is written)",
+   "file": "setup/job_runner_stage1.py",
+   "find": "verified=verify_unit(root, unit, env))",
+   "replace": "verified={\"exit\": 0, \"tail\": \"names only\"})"
+  },
+  {
+   "id": "K4bf-m-verify-other-folder",
+   "part": "D2",
+   "describes": "the verify checks the prepared folder, not the unit",
+   "file": "setup/job_runner_stage1.py",
+   "find": "    check = subprocess.run([*ENGINE, \"verify\", \"--run\", unit, \"--prepared\", PREPARED], env=env, cwd=root,\n                           capture_output=True, text=True)\n    return {",
+   "replace": "    check = subprocess.run([*ENGINE, \"verify\", \"--run\", PREPARED, \"--prepared\", PREPARED], env=env, cwd=root,\n                           capture_output=True, text=True)\n    return {"
+  },
+  {
+   "id": "K4bf-m-accept-ignored",
+   "part": "PP17",
+   "describes": "an LS-04 unit still gets its O-ext pass",
+   "file": "setup/job_runner_stage1.py",
+   "find": "            if not accepted[\"pass\"]:                     # LS-04: the unit stands, its O-ext pass does not run\n                break\n",
+   "replace": "            if not accepted[\"pass\"]:                     # LS-04: the unit stands, its O-ext pass does not run\n                pass\n"
+  },
+  {
+   "id": "K4bf-m-accept-adapter-only",
+   "part": "PP17",
+   "describes": "the acceptance ignores the optimizer fingerprints",
+   "file": "setup/job_runner_stage1.py",
+   "find": "ACCEPT_FINGERPRINTS = (\"adapter_fingerprint\", \"optimizer_fingerprint\")",
+   "replace": "ACCEPT_FINGERPRINTS = (\"adapter_fingerprint\",)"
+  },
+  {
+   "id": "K4bf-m-accept-no-identity",
+   "part": "PP17",
+   "describes": "the acceptance ignores the training identity and manifest",
+   "file": "setup/job_runner_stage1.py",
+   "find": "ACCEPT_IDENTITY = (\"training_identity\", \"manifest_sha256\")",
+   "replace": "ACCEPT_IDENTITY = ()"
+  },
+  {
+   "id": "K4bf-m-accept-e1-only",
+   "part": "PP17",
+   "describes": "the acceptance ignores the q checkpoint",
+   "file": "setup/job_runner_stage1.py",
+   "find": "ACCEPT_POINTS = (\"q\", \"e1\")",
+   "replace": "ACCEPT_POINTS = (\"e1\",)"
+  },
+  {
+   "id": "K4bf-m-accept-side-unhashed",
+   "part": "PP17",
+   "describes": "the side unit's COMPLETE.json is read without its pin check",
+   "file": "setup/job_runner_stage1.py",
+   "find": "    if sha(root / rel) != pin:\n        raise ValueError(\"the side unit",
+   "replace": "    if False:\n        raise ValueError(\"the side unit"
+  },
+  {
+   "id": "K4bf-m-oext-on-q",
+   "part": "PP17",
+   "describes": "the O-ext pass reads the regenerated q state, not e1",
+   "file": "setup/job_runner_stage1.py",
+   "find": "        state = [\"--run\", unit, \"--checkpoint\", \"e1\"]\n",
+   "replace": "        state = [\"--run\", unit, \"--checkpoint\", \"q\"]\n",
+   "note_r3": "R3 K3: re-targeted to the changed code (same mutation)"
+  },
+  {
+   "id": "K4bf-m-oext-empty-ok",
+   "part": "PP17",
+   "describes": "an O-ext pass that wrote nothing is complete",
+   "file": "setup/job_runner_stage1.py",
+   "find": "        if not any(rel.startswith(f\"job-{index}/oext/\") for rel in record[\"outputs\"]):\n",
+   "replace": "        if False:\n"
+  },
+  {
+   "id": "K4bf-m-hm5-anchor-unsealed-ok",
+   "part": "HM5",
+   "describes": "the anchor job is complete without anchors.sealed.json",
+   "file": "setup/job_runner_stage1.py",
+   "find": "        if summary[\"anchor_file_sha256\"] is None or summary[\"anchor_record_sha256\"] is None:\n",
+   "replace": "        if summary[\"anchor_file_sha256\"] is None:\n"
+  },
+  {
+   "id": "K4bf-m-d5-binding-off",
+   "part": "D5",
+   "describes": "the anchor bank and s3_orig pins are not compared with the recorded outputs",
+   "file": "plan_tool.py",
+   "find": "            if values[pin] not in recorded:\n",
+   "replace": "            if False:\n"
+  },
+  {
+   "id": "K4bf-m-d5-no-s3",
+   "part": "D5",
+   "describes": "the s3_orig pool pin is not compared with the untuned job's record",
+   "file": "plan_tool.py",
+   "find": "    for pin, source, key in ((\"ANCHOR_BANK\", \"anchor\", \"anchor_file_sha256\"),\n                             (\"S3_ORIG_POOL\", \"untuned_answers\", \"s3_orig_pool_sha256\")):",
+   "replace": "    for pin, source, key in ((\"ANCHOR_BANK\", \"anchor\", \"anchor_file_sha256\"),):"
+  },
+  {
+   "id": "K4bf-m-d5-record-not-kept",
+   "part": "D5",
+   "describes": "record-done keeps no scorer record in the plan",
+   "file": "plan_tool.py",
+   "find": "            job[\"scorer_record\"] = scorer_record\n",
+   "replace": "            pass\n"
+  },
+  {
+   "id": "K4bf-m-hm4-anchor-hash-optional",
+   "part": "HM4",
+   "describes": "record-done accepts an anchor job that names no anchor file SHA-256",
+   "file": "plan_tool.py",
+   "find": "    if job[\"kind\"] in (\"anchor\",) and \"anchor_file_sha256\" not in out:\n",
+   "replace": "    if False and \"anchor_file_sha256\" not in out:\n"
+  },
+  {
+   "id": "K4bf-m-hm8-complete-replanned",
+   "part": "HM8",
+   "describes": "a complete scorer job may be planned again",
+   "file": "plan_tool.py",
+   "find": "    if status not in (\"absent\", \"crashed\", \"deferred\", \"not_started\"):\n",
+   "replace": "    if status not in (\"absent\", \"crashed\", \"deferred\", \"not_started\", \"complete\"):\n"
+  },
+  {
+   "id": "K4bf-m-done-verify-any-exit",
+   "part": "D2",
+   "describes": "record-done accepts a unit record whose verify failed",
+   "file": "plan_tool.py",
+   "find": "                not isinstance(verified, dict) or verified.get(\"exit\") != 0:\n",
+   "replace": "                not isinstance(verified, dict):\n"
+  },
+  {
+   "id": "K4bf-m-done-unitless-unit-ok",
+   "part": "PP18",
+   "describes": "record-done accepts a unitless record that names a unit",
+   "file": "plan_tool.py",
+   "find": "    elif r.get(\"unit\") or r.get(\"complete_sha256\"):\n",
+   "replace": "    elif False:\n"
+  },
+  {
+   "id": "K4bf-m-done-acceptance-free",
+   "part": "PP17",
+   "describes": "record-done accepts any acceptance verdict",
+   "file": "plan_tool.py",
+   "find": "        if acc not in (True, False) or (acc is True) != (r.get(\"reason\") is None) or \\\n",
+   "replace": "        if False or \\\n"
+  },
+  {
+   "id": "K4bf-m-hm14-script-unlisted-ok",
+   "part": "HM14",
+   "describes": "an O-ext kind plans without its script in OEXT_78B (R1 K1 fix: re-targeted from plan_tool.py's 'does not list' check, which GXB R-5's form check in rules_78b now precedes, to that form check)",
+   "file": "rules_78b.py",
+   "find": "    if OEXT_WRAPPER_78B not in oext[\"files\"]:\n        return f\"its files do not pin",
+   "replace": "    if False:\n        return f\"its files do not pin"
+  },
+  {
+   "id": "K4bf-m-c0-needs-oext-script",
+   "part": "HM14",
+   "describes": "c0 is given the O-ext unit command instead of B17's lean one (R2 K2, GXB K-1, KR6: re-targeted from rules_78b's OEXT_WRAPPER_COMMANDS to plan_tool's command-word check; the RK constant keeps its own mutant, K2-m-rk-c0-word)",
+   "file": "plan_tool.py",
+   "find": "OEXT_COMMAND_WORDS = {\"c0\": \"lean\", \"o_only\": \"unit\",",
+   "replace": "OEXT_COMMAND_WORDS = {\"c0\": \"unit\", \"o_only\": \"unit\","
+  },
+  {
+   "id": "K4bf-m-d6-form-unchecked",
+   "part": "D6",
+   "describes": "OEXT_78B's form is not validated",
+   "file": "rules_78b.py",
+   "find": "    if oext is not None and oext_form_problem(oext):\n",
+   "replace": "    if False:\n"
+  },
+  {
+   "id": "K4bf-m-d6-inputs-any",
+   "part": "D6",
+   "describes": "OEXT_78B's inputs may hold any keys",
+   "file": "rules_78b.py",
+   "find": "    if not isinstance(inputs, dict) or set(inputs) != set(OEXT_INPUTS):\n",
+   "replace": "    if not isinstance(inputs, dict):\n"
+  },
+  {
+   "id": "K4bf-m-d6-path-any-folder",
+   "part": "D6",
+   "describes": "an OEXT_78B file may lie outside scripts/",
+   "file": "rules_78b.py",
+   "find": "path.startswith(\"scripts/\") and \"\\\\\" not in path",
+   "replace": "isinstance(path, str) and \"\\\\\" not in path"
+  },
+  {
+   "id": "K4bf-m-d6-dotdot",
+   "part": "D6",
+   "describes": "an OEXT_78B path may hold '..'",
+   "file": "rules_78b.py",
+   "find": "                and all(part not in (\"\", \".\", \"..\") for part in path.split(\"/\"))):",
+   "replace": "                and all(part not in (\"\", \".\") for part in path.split(\"/\"))):"
+  },
+  {
+   "id": "K4bf-m-regen-no-oext-pin",
+   "part": "PP17",
+   "describes": "o_only_with_regenerate does not wait on OEXT_78B",
+   "file": "rules_78b.py",
+   "find": "\"o_only_with_regenerate\": (\"OEXT_78B\",), \"c0\"",
+   "replace": "\"o_only_with_regenerate\": (), \"c0\""
+  },
+  {
+   "id": "K4bf-m-regen-cap-no-regen",
+   "part": "PP17",
+   "describes": "o_only_with_regenerate's cap omits the regeneration",
+   "file": "rules_78b.py",
+   "find": "        upper = regen + o_pass\n",
+   "replace": "        upper = o_pass\n"
+  },
+  {
+   "id": "K4bf-m-hm12-engine-x-always",
+   "part": "HM12",
+   "describes": "a scorer pod's need line always says engine X",
+   "file": "rules_78b.py",
+   "find": "    pod[\"engine\"] = engine\n",
+   "replace": "    pod[\"engine\"] = \"X\"\n"
+  },
+  {
+   "id": "K4bf-m-regen-arm-r",
+   "part": "PP17",
+   "describes": "o_only_with_regenerate carries arm R",
+   "file": "rules_78b.py",
+   "find": "\"o_only_with_regenerate\": \"a0\", \"c0\": \"R\"",
+   "replace": "\"o_only_with_regenerate\": \"R\", \"c0\": \"R\""
+  },
+  {
+   "id": "K4bf-m-regen-seeds-fixed",
+   "part": "PP17",
+   "describes": "every family regenerates seeds 1101-1103 (Llama has no 1103 side unit)",
+   "file": "rules_78b.py",
+   "find": "        return sorted(s for s in KIT[family][\"a0_units\"] if s != \"untuned\")\n",
+   "replace": "        return [1101, 1102, 1103]\n"
+  },
+  {
+   "id": "K4bf-m-side-pin-null",
+   "part": "PP17",
+   "describes": "the side unit's COMPLETE.json has no pin",
+   "file": "stage1_rules.py",
+   "find": "        table[SIDE_COMPLETE.format(seed=seed)] = A0_UNITS[seed][\"complete_sha256\"]\n",
+   "replace": "        table[SIDE_COMPLETE.format(seed=seed)] = None\n"
+  },
+  {
+   "id": "K4bf-m-oext-kinds-no-regen",
+   "part": "PP17",
+   "describes": "o_only_with_regenerate packs and checks no O-ext code",
+   "file": "stage1_rules.py",
+   "find": "OEXT_KINDS = (\"o_only\", \"o_only_with_regenerate\", \"c0\")",
+   "replace": "OEXT_KINDS = (\"o_only\", \"c0\")"
+  },
+  {
+   "id": "K4bf-m-a1-unitless-again",
+   "part": "D8",
+   "describes": "a1_pass is unitless again (the backup skips its unit)",
+   "file": "stage1_rules.py",
+   "find": "UNITLESS_KINDS = frozenset({\"untuned_answers\", \"rep_pass\", \"l1_scan\", \"classifier\", \"anchor\", \"o_only\", \"c0\"})",
+   "replace": "UNITLESS_KINDS = frozenset({\"untuned_answers\", \"rep_pass\", \"l1_scan\", \"classifier\", \"anchor\", \"o_only\", \"c0\", \"a1_pass\"})"
+  },
+  {
+   "id": "K4bf-m-backup-unit-outputs-skipped",
+   "part": "D8, PP17",
+   "describes": "the backup does not check a scorer unit job's outputs",
+   "file": "backup_records_stage1.py",
+   "find": "            if scorer_unit:                  # round 4b",
+   "replace": "            if False:                  # round 4b"
+  },
+  {
+   "id": "K4bf-m-pack-no-seeds",
+   "part": "PP17",
+   "describes": "the pack knows no side unit input (no seed)",
+   "file": "pack_setup.py",
+   "find": "            for u in r78.sc_units(family, kind):\n",
+   "replace": "            for u in [{\"arm\": None, \"seed\": None}]:\n",
+   "note_r3": "R3 K3: re-targeted to the changed code (same mutation)"
+  },
+  {
+   "id": "K4bf-m-pack-inputs-unscanned",
+   "part": "sec D5",
+   "describes": "the pack does not scan the named scorer inputs",
+   "file": "pack_setup.py",
+   "find": "    if input_hits:\n",
+   "replace": "    if False:\n"
+  },
+  {
+   "id": "K4bf-m-pack-scan-binary-only",
+   "part": "sec D5",
+   "describes": "the input scan skips JSON files",
+   "file": "pack_setup.py",
+   "find": "BINARY_SUFFIXES = (\".safetensors\", \".bin\", \".pt\", \".pth\", \".npy\", \".npz\", \".gz\", \".tar\", \".zip\")",
+   "replace": "BINARY_SUFFIXES = (\".safetensors\", \".bin\", \".pt\", \".pth\", \".npy\", \".npz\", \".gz\", \".tar\", \".zip\", \".json\")"
+  },
+  {
+   "id": "K5-c0-fp-from-plan",
+   "part": "K5 (core K4bcr-D1)",
+   "describes": "c0 passes the plan's expect_fingerprint, not the packed source unit's",
+   "file": "setup/job_runner_stage1.py",
+   "find": "        expect = c0_fingerprint(root, ins[C0_SOURCE_INPUT], job, index) if MAC_ROOT is None else \\\n",
+   "replace": "        expect = job[\"expect_fingerprint\"] if MAC_ROOT is None else \\\n",
+   "note_r3": "R3 K3: re-targeted to the changed code (same mutation)"
+  },
+  {
+   "id": "K5-c0-no-compare",
+   "part": "K5 (core K4bcr-D1)",
+   "describes": "c0 takes the packed fingerprint but never compares it with the plan's",
+   "file": "setup/job_runner_stage1.py",
+   "find": "    if got != job[\"expect_fingerprint\"]:\n",
+   "replace": "    if False:\n"
+  },
+  {
+   "id": "K5-c0-no-rehash",
+   "part": "K5 (core K4bcr-D1)",
+   "describes": "c0 reads the packed source unit without re-hashing it against its pin",
+   "file": "setup/job_runner_stage1.py",
+   "find": "    if not path.is_file() or path.is_symlink() or sha(path) != pin:\n        raise Unrunnable(f\"job {index} (c0)",
+   "replace": "    if not path.is_file():\n        raise Unrunnable(f\"job {index} (c0)"
+  },
+  {
+   "id": "K5-c0-no-e1-check",
+   "part": "K5 (core K4bcr-D1)",
+   "describes": "c0 does not refuse a source unit with no e1 adapter fingerprint by its own message",
+   "file": "setup/job_runner_stage1.py",
+   "find": "    if rules.hex64(got) is None:\n        raise Unrunnable(f\"job {index} (c0): the packed source unit's COMPLETE.json lists no e1",
+   "replace": "    if False:\n        raise Unrunnable(f\"job {index} (c0): the packed source unit's COMPLETE.json lists no e1"
+  },
+  {
+   "id": "K5-HM6",
+   "part": "K5 (core K4bcr-D2)",
+   "describes": "hashed_outputs follows symbolic links",
+   "file": "setup/job_runner_stage1.py",
+   "find": "                if f.is_file() and not f.is_symlink():\n",
+   "replace": "                if f.is_file():\n"
+  },
+  {
+   "id": "K5-HM7",
+   "part": "K5 (core K4bcr-D2)",
+   "describes": "the scorer release accepts another family's packed receipt",
+   "file": "plan_tool.py",
+   "find": "        if rec.get(\"family\") not in (None, family):\n            fail(f\"{name}: the packed stage1-{h['engine']} is",
+   "replace": "        if False:\n            fail(f\"{name}: the packed stage1-{h['engine']} is"
+  },
+  {
+   "id": "K5-HM13",
+   "part": "K5 (core K4bcr-D2)",
+   "describes": "a non-unit scorer job with no output is complete",
+   "file": "setup/job_runner_stage1.py",
+   "find": "    if not record[\"outputs\"] and kind not in SC_UNIT_KINDS:\n",
+   "replace": "    if False:\n"
+  },
+  {
+   "id": "K4bcr-R1",
+   "part": "K5 (core K4bcr-D3)",
+   "describes": "runner hashes every out folder, not only job-I/ ones (unit folders hashed into outputs)",
+   "file": "setup/job_runner_stage1.py",
+   "find": "folders = [f for f in out_dirs(commands) if f.startswith(f\"job-{index}/\")]",
+   "replace": "folders = out_dirs(commands)"
+  },
+  {
+   "id": "K4bcr-R6",
+   "part": "K5 (core K4bcr-D3)",
+   "describes": "acceptance: a field missing on both sides counts as equal",
+   "file": "setup/job_runner_stage1.py",
+   "find": "\"equal\": rules.hex64(src) is not None and src == got}",
+   "replace": "\"equal\": src == got}"
+  },
+  {
+   "id": "K4bcr-R7",
+   "part": "K5 (core K4bcr-D3)",
+   "describes": "acceptance: a side fingerprint the regenerated unit omits is skipped",
+   "file": "setup/job_runner_stage1.py",
+   "find": "if key in listed:",
+   "replace": "if key in listed and key in (regen_points.get(point) or {}):"
+  },
+  {
+   "id": "K4bcr-R8",
+   "part": "K5 (core K4bcr-D3)",
+   "describes": "every seed's side-unit input pin is seed 1101's",
+   "file": "stage1_rules.py",
+   "find": "table[SIDE_COMPLETE.format(seed=seed)] = A0_UNITS[seed][\"complete_sha256\"]",
+   "replace": "table[SIDE_COMPLETE.format(seed=seed)] = A0_UNITS[1101][\"complete_sha256\"]"
+  },
+  {
+   "id": "K4bcr-R9",
+   "part": "K5 (core K4bcr-D3)",
+   "describes": "record-done: acceptance false with a reason other than LS-04 accepted",
+   "file": "plan_tool.py",
+   "find": "(acc is False and r.get(\"reason\") != \"LS-04\") or \\",
+   "replace": "False or \\"
+  },
+  {
+   "id": "K4bcr-R13",
+   "part": "K5 (core K4bcr-D3)",
+   "describes": "a1_pass's ANCHOR_BANK pin not bound to the recorded anchor file",
+   "file": "plan_tool.py",
+   "find": "if pin in r78.SC_KIND_PINS[kind]:                # the core verifier",
+   "replace": "if pin in r78.SC_KIND_PINS[kind] and kind != \"a1_pass\":                # the core verifier"
+  },
+  {
+   "id": "K4bcr-R17",
+   "part": "K5 (core K4bcr-D3)",
+   "describes": "backup: only o_only_with_regenerate's scorer-unit outputs are checked (not a1_pass, retrain)",
+   "file": "backup_records_stage1.py",
+   "find": "scorer_unit = plan[\"hosts\"][host].get(\"block\") == \"sc\" and job.get(\"kind\") not in rules.UNITLESS_KINDS",
+   "replace": "scorer_unit = plan[\"hosts\"][host].get(\"block\") == \"sc\" and job.get(\"kind\") == \"o_only_with_regenerate\""
+  },
+  {
+   "id": "K4bcr-R21",
+   "part": "K5 (core K4bcr-D3)",
+   "describes": "acceptance: the side unit need not list an e1 adapter fingerprint",
+   "file": "setup/job_runner_stage1.py",
+   "find": "if rules.hex64((side_points.get(\"e1\") or {}).get(\"adapter_fingerprint\")) is None:",
+   "replace": "if False:"
+  },
+  {
+   "id": "K5-H-pack-setup-tar-scan-dropped",
+   "part": "K5 (sec R4)",
+   "describes": "the setup tar's members are not scanned",
+   "file": "pack_setup.py",
+   "find": "    refuse_secrets({n: f for n, f in setup_files.items() if n != bundle.name}, {}, ())",
+   "replace": "    pass"
+  },
+  {
+   "id": "K5-H-pack-payload-scan-dropped",
+   "part": "K5 (sec R4)",
+   "describes": "the generated payloads (bundle-manifest, sealed-files, probe, kit-family) are not scanned",
+   "file": "pack_setup.py",
+   "find": "    hits += [(name, pattern) for name, payload in payloads.items()\n             for pattern in secret_scan.scan_text(payload.decode(\"utf-8\", \"ignore\"))]",
+   "replace": "    pass"
+  },
+  {
+   "id": "K5-H-pack-bootstrap-scan-dropped",
+   "part": "K5 (sec R4)",
+   "describes": "the generated worker bootstrap is not scanned",
+   "file": "pack_setup.py",
+   "find": "    if secret_scan.scan_text(bootstrap):",
+   "replace": "    if False:"
+  },
+  {
+   "id": "K5-H-pack-engine-files-unscanned",
+   "part": "K5 (sec R4)",
+   "describes": "the engine's files (experiments/) are not scanned",
+   "file": "pack_setup.py",
+   "find": "    scanned = [f for name, f in files.items() if not name.startswith(data_prefixes) or name in scan_anyway]",
+   "replace": "    scanned = [f for name, f in files.items() if (not name.startswith(data_prefixes) or name in scan_anyway) and not name.startswith(\"experiments/\")]",
+   "note": "K6: find and replace follow refuse_secrets' new scan_anyway term (the mutant's intent unchanged)"
+  },
+  {
+   "id": "K5-H-pack-scripts-unscanned",
+   "part": "K5 (sec R4)",
+   "describes": "the scorer code and preflight scripts (scripts/) are not scanned",
+   "file": "pack_setup.py",
+   "find": "    scanned = [f for name, f in files.items() if not name.startswith(data_prefixes) or name in scan_anyway]",
+   "replace": "    scanned = [f for name, f in files.items() if (not name.startswith(data_prefixes) or name in scan_anyway) and not name.startswith(\"scripts/\")]",
+   "note": "K6: find and replace follow refuse_secrets' new scan_anyway term (the mutant's intent unchanged)"
+  },
+  {
+   "id": "K5-pack-edits-unscanned",
+   "part": "K5 (sec R4)",
+   "describes": "the pack skips edits/ again (round 4b's prefixes)",
+   "file": "pack_setup.py",
+   "find": "DATA_PREFIXES = (f\"{DATA}/\", \"inputs/\")\n",
+   "replace": "DATA_PREFIXES = (f\"{DATA}/\", \"inputs/\", \"edits/\")\n"
+  },
+  {
+   "id": "K5-pack-data-scanned",
+   "part": "K5 (sec R4)",
+   "describes": "the pack scans the prepared set under data/ (against the lead's ruling)",
+   "file": "pack_setup.py",
+   "find": "DATA_PREFIXES = (f\"{DATA}/\", \"inputs/\")\n",
+   "replace": "DATA_PREFIXES = (\"inputs/\",)\n"
+  },
+  {
+   "id": "K5v-D1c-link-accepted",
+   "part": "K6 (round 6), the K5 re-verifier's D1",
+   "describes": "c0_fingerprint accepts a symbolic link (the hash is still checked)",
+   "file": "setup/job_runner_stage1.py",
+   "find": "    if not path.is_file() or path.is_symlink() or sha(path) != pin:\n",
+   "replace": "    if not path.is_file() or sha(path) != pin:\n"
+  },
+  {
+   "id": "K5v-R21-no-e1-checkpoint-accepted",
+   "part": "K6 (round 6), the K5 re-verifier's D3",
+   "describes": "acceptance: the e1 adapter check runs only when the side lists an e1 checkpoint",
+   "file": "setup/job_runner_stage1.py",
+   "find": "if rules.hex64((side_points.get(\"e1\") or {}).get(\"adapter_fingerprint\")) is None:",
+   "replace": "if \"e1\" in side_points and rules.hex64((side_points.get(\"e1\") or {}).get(\"adapter_fingerprint\")) is None:"
+  },
+  {
+   "id": "K5v-R4-call-site-skips-edits",
+   "part": "K6 (round 6), K5v-6",
+   "describes": "the bundle's scan is called with edits/ among the skipped prefixes (the constant DATA_PREFIXES unchanged)",
+   "file": "pack_setup.py",
+   "find": "    refuse_secrets(files, {**payload, \"probe.json\": probe_json, rules.KIT_FAMILY_FILE: family_json}, DATA_PREFIXES,\n                   frozenset(f\"{data_base}/{rel}\" for rel in data_scan) | frozenset(w1_scan))\n",
+   "replace": "    refuse_secrets(files, {**payload, \"probe.json\": probe_json, rules.KIT_FAMILY_FILE: family_json}, (*DATA_PREFIXES, \"edits/\"),\n                   frozenset(f\"{data_base}/{rel}\" for rel in data_scan) | frozenset(w1_scan))\n",
+   "note_r3": "R3 K3: re-targeted to the changed code (same mutation)"
+  },
+  {
+   "id": "K6-pack-unlisted-data-not-scanned",
+   "part": "K6 (round 6), K5v-3",
+   "describes": "the bundle's scan is not given the prepared set's unpinned files (scan_anyway dropped at the call site)",
+   "file": "pack_setup.py",
+   "find": "    refuse_secrets(files, {**payload, \"probe.json\": probe_json, rules.KIT_FAMILY_FILE: family_json}, DATA_PREFIXES,\n                   frozenset(f\"{data_base}/{rel}\" for rel in data_scan) | frozenset(w1_scan))\n",
+   "replace": "    refuse_secrets(files, {**payload, \"probe.json\": probe_json, rules.KIT_FAMILY_FILE: family_json}, DATA_PREFIXES)\n",
+   "note_r3": "R3 K3: re-targeted to the changed code (same mutation)"
+  },
+  {
+   "id": "K6-refuse-ignores-scan-anyway",
+   "part": "K6 (round 6), K5v-3",
+   "describes": "refuse_secrets skips every file under the skipped prefixes, scan_anyway or not",
+   "file": "pack_setup.py",
+   "find": "    scanned = [f for name, f in files.items() if not name.startswith(data_prefixes) or name in scan_anyway]\n",
+   "replace": "    scanned = [f for name, f in files.items() if not name.startswith(data_prefixes)]\n"
+  },
+  {
+   "id": "K6-macos-metadata-packed",
+   "part": "K6 (round 6), K5v-3",
+   "describes": "a macOS metadata file is packed (unscanned) instead of skipped",
+   "file": "pack_setup.py",
+   "find": "        elif macos_metadata(rel):\n            skipped.append(rel)\n",
+   "replace": "        elif macos_metadata(rel):\n            skipped.append(rel)\n            packed[rel] = (f, got)\n"
+  },
+  {
+   "id": "K6-macos-metadata-every-dotfile",
+   "part": "K6 (round 6), K5v-3",
+   "describes": "every file whose name starts with '.' counts as macOS metadata (skipped unscanned)",
+   "file": "pack_setup.py",
+   "find": "    return any(part in MACOS_METADATA or part.startswith(\"._\") for part in rel.split(\"/\"))\n",
+   "replace": "    return any(part in MACOS_METADATA or part.startswith(\".\") for part in rel.split(\"/\"))\n"
+  },
+  {
+   "id": "K6-listed-hash-not-checked",
+   "part": "K6 (round 6), K5v-3",
+   "describes": "a file the manifest lists stays outside the scan whatever its bytes",
+   "file": "pack_setup.py",
+   "find": "        if listed.get(rel) == got:\n",
+   "replace": "        if rel in listed:\n"
+  },
+  {
+   "id": "K6-manifest-pin-not-checked",
+   "part": "K6 (round 6), K5v-3",
+   "describes": "manifest.json's list is trusted even when manifest.json is not at the family's pin",
+   "file": "pack_setup.py",
+   "find": "        if hashlib.sha256(data).hexdigest() == digest:\n",
+   "replace": "        if True:\n"
+  },
+  {
+   "id": "K6-listed-files-scanned",
+   "part": "K6 (round 6), K5v-3",
+   "describes": "the manifest-listed files are scanned too (against the ruling)",
+   "file": "pack_setup.py",
+   "find": "        if listed.get(rel) == got:\n            packed[rel] = (f, got)\n",
+   "replace": "        if listed.get(rel) == got:\n            packed[rel] = (f, got)\n            scan.add(rel)\n"
+  },
+  {
+   "id": "K6-c0-pack-check-removed",
+   "part": "K6 (round 6), item 23",
+   "describes": "the pack does not check the c0 source unit's e1 fingerprint against C0_SOURCE",
+   "file": "pack_setup.py",
+   "find": "    if C0_INPUT in named:",
+   "replace": "    if False:"
+  },
+  {
+   "id": "K6-c0-pack-reads-q",
+   "part": "K6 (round 6), item 23",
+   "describes": "the pack's c0 check reads the q checkpoint's fingerprint instead of e1's",
+   "file": "pack_setup.py",
+   "find": "    e1 = points.get(\"e1\") if isinstance(points.get(\"e1\"), dict) else {}\n    got = e1.get(\"adapter_fingerprint\")\n    if not pinned(got):\n        raise SystemExit(f\"--inputs FILE: {C0_INPUT!r}",
+   "replace": "    e1 = points.get(\"q\") if isinstance(points.get(\"q\"), dict) else {}\n    got = e1.get(\"adapter_fingerprint\")\n    if not pinned(got):\n        raise SystemExit(f\"--inputs FILE: {C0_INPUT!r}"
+  },
+  {
+   "id": "K6-c0-pack-compares-complete-sha",
+   "part": "K6 (round 6), item 23",
+   "describes": "the pack's c0 check compares the fingerprint with C0_SOURCE's complete_sha256",
+   "file": "pack_setup.py",
+   "find": "    if got != c0.get(\"e1_fingerprint\"):\n",
+   "replace": "    if got != c0.get(\"complete_sha256\"):\n"
+  },
+  {
+   "id": "K6-c0-pack-missing-fp-not-named",
+   "part": "K6 (round 6), item 23",
+   "describes": "a source unit with no e1 fingerprint is not refused as such (only the comparison remains)",
+   "file": "pack_setup.py",
+   "find": "    if not pinned(got):\n        raise SystemExit(f\"--inputs FILE: {C0_INPUT!r} (c0's source unit) lists no e1 adapter fingerprint\")\n",
+   "replace": ""
+  },
+  {
+   "id": "K6-c0-pack-unreadable-as-empty",
+   "part": "K6 (round 6), item 23",
+   "describes": "a source unit that is not JSON is read as an empty document",
+   "file": "pack_setup.py",
+   "find": "    except ValueError:\n        raise SystemExit(f\"--inputs FILE: {C0_INPUT!r} (c0's source unit) is not a readable COMPLETE.json\") from None\n",
+   "replace": "    except ValueError:\n        doc = {}\n"
+  },
+  {
+   "id": "K2-m-gate-provisional-unchecked",
+   "part": "R-30",
+   "describes": "init never compares the gate's provisional plan with N's noise reading",
+   "file": "plan_tool.py",
+   "find": "    if gate_doc[\"provisional_plan\"] != provisional:\n",
+   "replace": "    if False:\n"
+  },
+  {
+   "id": "K2-m-gate-sigma-f-unchecked",
+   "part": "R-30",
+   "describes": "init never compares the gate's sigma_F plan with N's noise reading",
+   "file": "plan_tool.py",
+   "find": "    if gate_doc[\"sigma_F_plan\"] != want:\n",
+   "replace": "    if False:\n"
+  },
+  {
+   "id": "K2-m-noise-script-unpinned",
+   "part": "R-30",
+   "describes": "any script's output passes as N's noise reading",
+   "file": "plan_tool.py",
+   "find": "            doc.get(\"script_sha256\") != NOISE_READING_SCRIPT[1]:\n",
+   "replace": "            False:\n"
+  },
+  {
+   "id": "K2-m-noise-review-ignored",
+   "part": "R-1",
+   "describes": "the noise reading's review flag is dropped",
+   "file": "plan_tool.py",
+   "find": "    code = \"review\" if review else plan\n",
+   "replace": "    code = plan\n",
+   "note": "R2 K2 fix round: re-targeted to the changed code (same intent)"
+  },
+  {
+   "id": "K2-m-blinded-sigma-unchecked",
+   "part": "R-30",
+   "describes": "block B never compares the recorded sigma_A with blinded_sigma.py's output",
+   "file": "plan_tool.py",
+   "find": "    if type(doc[\"sigma_A_pp\"]) is not type(plan_b[\"sigma_A_pp\"]) or doc[\"sigma_A_pp\"] != plan_b[\"sigma_A_pp\"]:\n",
+   "replace": "    if False:\n"
+  },
+  {
+   "id": "K2-m-blinded-output-unread",
+   "part": "R-30",
+   "describes": "block B reads no blinded_sigma.py output",
+   "file": "plan_tool.py",
+   "find": "        blinded = plan_b_blinded_check(plan_b_doc, getattr(args, \"blinded_sigma\", None))\n",
+   "replace": "        blinded = None\n"
+  },
+  {
+   "id": "K2-m-block-b-no-seal",
+   "part": "G5 7-8B",
+   "describes": "block B plans before block A's seal",
+   "file": "plan_tool.py",
+   "find": "        seal_a = sibling_seal(family, \"A\")               # G5's 7-8B form: block B follows block A's seal\n",
+   "replace": "        seal_a = None\n"
+  },
+  {
+   "id": "K2-m-stop-unread",
+   "part": "KR4",
+   "describes": "block A or B plans without reading a pinned stop record",
+   "file": "plan_tool.py",
+   "find": "    stop = anchor_stop_read(family, getattr(args, \"anchor_job_done\", None))\n",
+   "replace": "    stop = None\n"
+  },
+  {
+   "id": "K2-m-ab-branch-bytes-unread",
+   "part": "K-8",
+   "describes": "a 500-bank job plans without its branch record's bytes",
+   "file": "plan_tool.py",
+   "find": "    problem = r78.bank500_problem(family, kind, block, branch_bytes(family))\n",
+   "replace": "    problem = None\n"
+  },
+  {
+   "id": "K2-m-ab-oext-null-ok",
+   "part": "DES E3",
+   "describes": "an arm job with an O-ext step plans while OEXT_78B is null",
+   "file": "plan_tool.py",
+   "find": "    if oext is None:\n",
+   "replace": "    if False:\n"
+  },
+  {
+   "id": "K2-m-ab-w1-18-record-agreement-off",
+   "part": "R-33",
+   "describes": "the O-ext pin and the branch record need not agree on W1-18's record",
+   "file": "plan_tool.py",
+   "find": "    problem = r78.oext_w1_18_record_problem(oext, family, branch_doc_or_fail(family))\n",
+   "replace": "    problem = None\n"
+  },
+  {
+   "id": "K2-m-dose-fallback-flag-unchecked",
+   "part": "K-5",
+   "describes": "a dose record whose fallback flag does not fit its kept count passes",
+   "file": "plan_tool.py",
+   "find": "            doc.get(\"fallback_fired\") is not (kept < r78.S4_KEEP):\n",
+   "replace": "            False:\n"
+  },
+  {
+   "id": "K2-m-dose-top-unchecked",
+   "part": "K-5",
+   "describes": "a dose record's top dose is not checked against its kept count",
+   "file": "plan_tool.py",
+   "find": "    if top != want:\n",
+   "replace": "    if False:\n",
+   "note": "R2 K2 fix round: re-targeted to the changed code (same intent)"
+  },
+  {
+   "id": "K2-m-padded-family-free",
+   "part": "item 4",
+   "describes": "another family's padded-token record is read",
+   "file": "plan_tool.py",
+   "find": "            doc.get(\"family\") != family or not isinstance(edits, dict) or \\\n",
+   "replace": "            not isinstance(edits, dict) or \\\n"
+  },
+  {
+   "id": "K2-m-judge-units-no-rejudged",
+   "part": "DESO 26",
+   "describes": "block A's judge launches are priced without the 7 re-judged units",
+   "file": "plan_tool.py",
+   "find": "    units = len(runs) + len(rejudged)                    # route refuses until then (units-of-block, record-judges)\n",
+   "replace": "    units = len(runs)\n"
+  },
+  {
+   "id": "K2-m-judge-cap-harmbench-as-granite",
+   "part": "Part 2 §6",
+   "describes": "HarmBench's launch is priced on 200 answers a unit",
+   "file": "plan_tool.py",
+   "find": "        answers, per = units * rules.HARMBENCH_ANSWERS_PER_ARM, rules.HARMBENCH_S_PER_ANSWER\n",
+   "replace": "        answers, per = units * rules.GRANITE_GREEDY_PER_ARM, rules.HARMBENCH_S_PER_ANSWER\n"
+  },
+  {
+   "id": "K2-m-deal-order-free",
+   "part": "Part 2 §2.4",
+   "describes": "the deal launches may name the pods out of order",
+   "file": "plan_tool.py",
+   "find": "    if seen != list(range(n_pods)):\n",
+   "replace": "    if sorted(seen) != list(range(n_pods)):\n"
+  },
+  {
+   "id": "K2-m-judges-optional",
+   "part": "Part 2 §6",
+   "describes": "a block may plan without both judge launches",
+   "file": "plan_tool.py",
+   "find": "    if sorted(judges) != sorted(rules.JUDGES):\n        fail(f\"block {block}: one HarmBench",
+   "replace": "    if False:\n        fail(f\"block {block}: one HarmBench"
+  },
+  {
+   "id": "K2-m-release-edit-unbound",
+   "part": "item 1",
+   "describes": "release never re-binds a block A or B edit",
+   "file": "plan_tool.py",
+   "find": "            if (edit is None) != (job.get(\"edit\") is None) or \\\n                    (edit is not None and (job[\"edit\"][\"sha256\"], job[\"edit\"][\"path\"]) != (edit[\"sha256\"], edit[\"path\"])):\n",
+   "replace": "            if False:\n"
+  },
+  {
+   "id": "K2-m-release-gate-unchecked",
+   "part": "O14",
+   "describes": "release accepts another gate record than the one planned with",
+   "file": "plan_tool.py",
+   "find": "    if r78.GATE_78B[\"sha256\"] != b[\"gate\"][\"sha256\"]:\n",
+   "replace": "    if False:\n"
+  },
+  {
+   "id": "K2-m-gate-record-sigma-f-under-b",
+   "part": "R-24",
+   "describes": "the gate record names a sigma_F plan under [B]",
+   "file": "plan_tool.py",
+   "find": "\"sigma_F_plan\": by_f[r78.GATE_OPTIONS[\"C\"][0]] if option == \"C\" else None,",
+   "replace": "\"sigma_F_plan\": by_f[r78.GATE_OPTIONS[\"C\"][0]],"
+  },
+  {
+   "id": "K2-m-sr2-blinding-ignored",
+   "part": "ruling 3",
+   "describes": "SR-2 is adopted without a verified blinding test",
+   "file": "plan_tool.py",
+   "find": "    adopted = blinding[\"verified\"] and not simulation[\"above_threshold\"]\n",
+   "replace": "    adopted = not simulation[\"above_threshold\"]\n"
+  },
+  {
+   "id": "K2-m-sr2-simulation-ignored",
+   "part": "DES K6",
+   "describes": "SR-2 is adopted whatever the simulation reads",
+   "file": "plan_tool.py",
+   "find": "    adopted = blinding[\"verified\"] and not simulation[\"above_threshold\"]\n",
+   "replace": "    adopted = blinding[\"verified\"]\n"
+  },
+  {
+   "id": "K2-m-sr2-threshold-ge",
+   "part": "DES K6",
+   "describes": "exactly 6% reads as above 6%",
+   "file": "plan_tool.py",
+   "find": "    above = Fraction(top, reps) > Fraction(SR2_THRESHOLD)\n",
+   "replace": "    above = Fraction(top, reps) >= Fraction(SR2_THRESHOLD)\n"
+  },
+  {
+   "id": "K2-m-sr2-summary-trusted",
+   "part": "DES K6",
+   "describes": "the largest familywise count is the summary's, not recomputed from the rows",
+   "file": "plan_tool.py",
+   "find": "    top = max(counts)\n",
+   "replace": "    top = (summary.get(\"max_familywise\") or {}).get(\"familywise_count\")\n"
+  },
+  {
+   "id": "K2-m-sr2-reason-swapped",
+   "part": "K-6",
+   "describes": "the not-adopted reason names the wrong trigger",
+   "file": "plan_tool.py",
+   "find": "(\"blinding_test_not_verified\" if not blinding[\"verified\"] else \"simulation_reading\")",
+   "replace": "(\"simulation_reading\" if not blinding[\"verified\"] else \"blinding_test_not_verified\")"
+  },
+  {
+   "id": "K2-m-sr2-reduced-ignored",
+   "part": "S-10",
+   "describes": "the full design's run governs after an anchor stop",
+   "file": "plan_tool.py",
+   "find": "    pins = SR2_SIMULATION_REDUCED if stopped else SR2_SIMULATION\n",
+   "replace": "    pins = SR2_SIMULATION\n"
+  },
+  {
+   "id": "K2-m-sr2-script-unchecked",
+   "part": "DES K6",
+   "describes": "another simulation script's output governs",
+   "file": "plan_tool.py",
+   "find": "            doc.get(\"script_sha256\") != SR2_SIM_SCRIPT_SHA256 or doc.get(\"settings_sha256\") != SR2_SIM_SETTINGS_SHA256:\n",
+   "replace": "            doc.get(\"settings_sha256\") != SR2_SIM_SETTINGS_SHA256:\n"
+  },
+  {
+   "id": "K2-m-sr2-threshold-unchecked",
+   "part": "DES K6",
+   "describes": "a simulation read against another threshold governs",
+   "file": "plan_tool.py",
+   "find": "    if str(summary.get(\"threshold_familywise\")) != SR2_THRESHOLD:\n",
+   "replace": "    if False:\n"
+  },
+  {
+   "id": "K2-m-blinding-script-unchecked",
+   "part": "ruling 3",
+   "describes": "the blinding record may verify another blinded_sigma.py",
+   "file": "plan_tool.py",
+   "find": "        got = sr2_blinding_reading(check_files=True)\n",
+   "replace": "        got = sr2_blinding_reading(check_files=False)\n",
+   "note": "R2 K2 fix round: re-targeted to the changed code (same intent)"
+  },
+  {
+   "id": "K2-m-plan-b-inputs-unchecked",
+   "part": "S-9",
+   "describes": "block B's plan record takes an inputs file of another option",
+   "file": "plan_tool.py",
+   "find": "        kit_inputs_check(gate, doc[\"inputs_sha256\"])\n        again = blinded_sigma_read(",
+   "replace": "        again = blinded_sigma_read(",
+   "note": "R2 K2 follow-up: re-targeted to the changed code (same intent)"
+  },
+  {
+   "id": "K2-m-branch-place-free",
+   "part": "R-21",
+   "describes": "a W1-18 record outside its R-21 place makes a branch",
+   "file": "plan_tool.py",
+   "find": "        if rel != where:\n",
+   "replace": "        if False:\n"
+  },
+  {
+   "id": "K2-m-branch-settings-unchecked",
+   "part": "R-21",
+   "describes": "a W1-18 record of other settings makes a branch",
+   "file": "plan_tool.py",
+   "find": "        if want is None or (doc.get(\"provenance\") or {}).get(\"settings_sha256\") != want:\n",
+   "replace": "        if False:\n"
+  },
+  {
+   "id": "K2-m-branch-units-unchecked",
+   "part": "Part 2 §4.2",
+   "describes": "a W1-18 record over other units makes a branch",
+   "file": "plan_tool.py",
+   "find": "        if len(units) != len(r78.w1_18_units(family)):\n",
+   "replace": "        if False:\n"
+  },
+  {
+   "id": "K2-m-branch-pass-inverted",
+   "part": "Part 2 §4.2",
+   "describes": "a passing W1-18 record gives Branch full",
+   "file": "plan_tool.py",
+   "find": "\"branch\": \"128\" if check[\"pass\"] else \"full\"",
+   "replace": "\"branch\": \"full\" if check[\"pass\"] else \"128\""
+  },
+  {
+   "id": "K2-m-branch-default-over-record",
+   "part": "DESO2 37",
+   "describes": "Branch full by default is recorded over an existing W1-18 record",
+   "file": "plan_tool.py",
+   "find": "        if (ROOT / where).exists():\n",
+   "replace": "        if False:\n"
+  },
+  {
+   "id": "K2-m-branch-switch-free",
+   "part": "K-8",
+   "describes": "a pinned branch may be switched",
+   "file": "plan_tool.py",
+   "find": "        if switch:\n            fail(switch)\n",
+   "replace": "        pass\n"
+  },
+  {
+   "id": "K2-m-stop-message-anywhere",
+   "part": "O6",
+   "describes": "the harmful-pair message may come from a file outside the pulled tree",
+   "file": "plan_tool.py",
+   "find": "            m.resolve().relative_to(tree.resolve())\n",
+   "replace": "            m.resolve()\n"
+  },
+  {
+   "id": "K2-m-stop-counts-made-up",
+   "part": "O6",
+   "describes": "the stop record's counts are not the job's",
+   "file": "plan_tool.py",
+   "find": "        counts = {k: got.get(k) for k in (\"kept\", \"needed\")} if isinstance(got, dict) else None\n",
+   "replace": "        counts = {\"kept\": 0, \"needed\": 64}\n"
+  },
+  {
+   "id": "K2-m-stop-complete-ok",
+   "part": "O6",
+   "describes": "a complete anchor job may be recorded stopped",
+   "file": "plan_tool.py",
+   "find": "    if not isinstance(rec, dict) or rec.get(\"kind\") != \"anchor\" or rec.get(\"status\") != \"crashed\":\n",
+   "replace": "    if not isinstance(rec, dict) or rec.get(\"kind\") != \"anchor\":\n"
+  },
+  {
+   "id": "K2-m-part-before-arms-done",
+   "part": "S-9",
+   "describes": "record-done tries the part before every block-A job is complete",
+   "file": "plan_tool.py",
+   "find": "    if h.get(\"block\") == \"A\" and block_a_arms_done(plan):   # R2 K2 (S-9): blinded_sigma's inputs part, once\n",
+   "replace": "    if h.get(\"block\") == \"A\":\n"
+  },
+  {
+   "id": "K2-m-part-engines-swapped",
+   "part": "R-13",
+   "describes": "the part swaps the a0 and R roles' engines",
+   "file": "plan_tool.py",
+   "find": "             \"engine\": {\"a0\": engines[\"a0\"], \"R\": engines[\"R\"], \"block_a\": block_engines.pop()},\n",
+   "replace": "             \"engine\": {\"a0\": engines[\"R\"], \"R\": engines[\"a0\"], \"block_a\": block_engines.pop()},\n"
+  },
+  {
+   "id": "K2-m-part-n-units-skipped",
+   "part": "S-9",
+   "describes": "the part leaves N's units out",
+   "file": "plan_tool.py",
+   "find": "    for key, u in n_units.items():\n",
+   "replace": "    for key, u in {}.items():\n"
+  },
+  {
+   "id": "K2-m-part-edit-unchecked",
+   "part": "S-9",
+   "describes": "the part names a bound edit that is not METHOD_EDITS' pin",
+   "file": "plan_tool.py",
+   "find": "            if not pin or (j.get(\"edit\") or {}).get(\"sha256\") != pin[\"sha256\"]:\n",
+   "replace": "            if False:\n",
+   "note": "R2 K2 fix round: re-targeted to the changed code (same intent)"
+  },
+  {
+   "id": "K2-m-merge-paths-not-rebased",
+   "part": "S-9",
+   "describes": "the inputs file keeps repository paths blinded_sigma.py resolves from its own folder",
+   "file": "plan_tool.py",
+   "find": "            ref[\"path\"] = os.path.relpath(ROOT / ref[\"path\"], BLINDED_INPUTS.parent)\n",
+   "replace": "            pass\n",
+   "note": "R2 K2 fix round: re-targeted to the changed code (same intent)"
+  },
+  {
+   "id": "K2-m-merge-twice-ok",
+   "part": "S-9",
+   "describes": "two parts for one family are merged",
+   "file": "plan_tool.py",
+   "find": "        if BLINDED_INPUTS.read_bytes() != data:\n",
+   "replace": "        if False:\n",
+   "note": "R2 K2 fix round: re-targeted to the changed code (same intent)"
+  },
+  {
+   "id": "K2-m-c0-release-unchecked",
+   "part": "K6v-4",
+   "describes": "release never re-reads c0's packed source unit",
+   "file": "plan_tool.py",
+   "find": "            c0_release_check(name, job, values)\n",
+   "replace": "            pass\n"
+  },
+  {
+   "id": "K2-m-k1-word-unchecked",
+   "part": "K-1",
+   "describes": "the command word is not checked",
+   "file": "plan_tool.py",
+   "find": "    if word != OEXT_COMMAND_WORDS[kind]:\n",
+   "replace": "    if False:\n"
+  },
+  {
+   "id": "K2-m-k1-files-unchecked",
+   "part": "K-1",
+   "describes": "a command word's files need not be in the pin",
+   "file": "plan_tool.py",
+   "find": "    if missing:\n        return f\"{kind}: {pin_name} does not list",
+   "replace": "    if False:\n        return f\"{kind}: {pin_name} does not list"
+  },
+  {
+   "id": "K2-m-rk-c0-word",
+   "part": "KR6",
+   "describes": "RK names c0's command word unit (now behavioural: plan_tool reads it)",
+   "file": "rules_78b.py",
+   "find": "OEXT_WRAPPER_COMMANDS = {\"o_only\": \"unit\", \"o_only_with_regenerate\": \"unit\", \"c0\": \"lean\", \"w1_18\": \"w1_18\"}",
+   "replace": "OEXT_WRAPPER_COMMANDS = {\"o_only\": \"unit\", \"o_only_with_regenerate\": \"unit\", \"c0\": \"unit\", \"w1_18\": \"w1_18\"}"
+  },
+  {
+   "id": "K2-m-sc-seed-only-pins",
+   "part": "R-16",
+   "describes": "the planner names a unit by its seed alone",
+   "file": "plan_tool.py",
+   "find": "    inputs = rules.sc_unit_input_pins(kind, pins78, values, arm, seed)\n",
+   "replace": "    inputs = rules.sc_input_pins(kind, pins78, values, seed)\n"
+  },
+  {
+   "id": "K2-m-sc-n-units-refused",
+   "part": "DES E5",
+   "describes": "N's units cannot be planned as o_only_with_regenerate",
+   "file": "plan_tool.py",
+   "find": "    if kind in r78.SC_ARMS:                              # R2 K2 (R-16; DES E5): the unit is named by (arm, seed)\n",
+   "replace": "    if False:\n"
+  },
+  {
+   "id": "K2-m-sc-branch-bytes-unread",
+   "part": "K-8",
+   "describes": "a scorer-block O-ext job plans without reading its branch record's bytes",
+   "file": "plan_tool.py",
+   "find": "        bank500_or_fail(family, kind, r78.SC_BLOCK, where)\n",
+   "replace": "        pass\n"
+  },
+  {
+   "id": "K2-m-w1-18-first-off",
+   "part": "DESO2 37",
+   "describes": "W1-18 may be planned after an O-ext job",
+   "file": "plan_tool.py",
+   "find": "        problem = r78.w1_18_host_problem(family) or r78.w1_18_first_problem(\n",
+   "replace": "        problem = r78.w1_18_host_problem(family) or None and r78.w1_18_first_problem(\n"
+  },
+  {
+   "id": "K2-m-w1-18-host-off",
+   "part": "K-3",
+   "describes": "W1-18 may be planned in Llama's copy",
+   "file": "plan_tool.py",
+   "find": "        problem = r78.w1_18_host_problem(family) or r78.w1_18_first_problem(\n",
+   "replace": "        problem = r78.w1_18_first_problem(\n"
+  },
+  {
+   "id": "K2-m-sc-stop-unread",
+   "part": "KR4",
+   "describes": "the scorer block plans without reading its pinned stop record",
+   "file": "plan_tool.py",
+   "find": "    sc_anchor_stop_read(plan, family)                    # KR4: a pinned stop record is read in this process first\n",
+   "replace": "    pass\n"
+  },
+  {
+   "id": "K2-m-sc-retrain-recipe-s",
+   "part": "DESO2 36",
+   "describes": "a stopped family's retrain plans under S_78",
+   "file": "plan_tool.py",
+   "find": "        want_recipe = r78.sc_recipe(family, kind)\n",
+   "replace": "        want_recipe = r78.SC_RECIPE[kind]\n"
+  },
+  {
+   "id": "K2-m-judge-rejudged-snapshot",
+   "part": "item 7",
+   "describes": "units-of-block reads the import-time re-judge snapshot",
+   "file": "judge_units_stage1.py",
+   "find": "    for pin in rejudged_pins_live(rules, block, units):\n",
+   "replace": "    for pin in rules.REJUDGED_PINS.get(block, ()):\n"
+  },
+  {
+   "id": "K2-m-judge-rejudged-none",
+   "part": "item 7",
+   "describes": "block A's judge list leaves the 7 re-judged units out",
+   "file": "judge_units_stage1.py",
+   "find": "    if block != \"A\":\n        return ()\n    try:\n        return rules.r78.rejudged_or_refuse",
+   "replace": "    if True:\n        return ()\n    try:\n        return rules.r78.rejudged_or_refuse"
+  },
+  {
+   "id": "K2-m-seal-copies-off",
+   "part": "O7",
+   "describes": "block A's seal names no other copy's seal",
+   "file": "seal.py",
+   "find": "    copies = [plan_tool.sibling_seal(plan_tool.family_or_fail(), b) for b in COPY_SEALS.get(block, ())]\n",
+   "replace": "    copies = []\n"
+  },
+  {
+   "id": "K2-m-seal-exception-complete-json",
+   "part": "DESO 25",
+   "describes": "the a0-1103 exception opens its whole COMPLETE.json",
+   "file": "seal.py",
+   "find": "                paths = [f\"{j['unit']}/eval/e1/query_loss.jsonl\"]          # COMPLETE.json stays sealed: its\n",
+   "replace": "                paths = [f\"{j['unit']}/COMPLETE.json\", f\"{j['unit']}/eval/e1/query_loss.jsonl\"]\n"
+  },
+  {
+   "id": "K2-m-states-a0-kept-off",
+   "part": "Part 2 §2.6",
+   "describes": "the a0 1104-1107 states are not kept for their references",
+   "file": "states_tool.py",
+   "find": "        held = [s for s in a0_seeds if not refs_done(family, s)]\n",
+   "replace": "        held = []\n"
+  },
+  {
+   "id": "K2-m-states-refs-any",
+   "part": "Part 2 §2.6",
+   "describes": "one complete reference frees an a0 state",
+   "file": "states_tool.py",
+   "find": "    return bool(refs) and all(j.get(\"status\") == \"complete\" for j in refs)\n",
+   "replace": "    return bool(refs) and any(j.get(\"status\") == \"complete\" for j in refs)\n"
+  },
+  {
+   "id": "K2-m-states-subset-ok",
+   "part": "DESO2 31",
+   "describes": "a deletion list may leave a stopped pod out",
+   "file": "states_tool.py",
+   "find": "    if sorted(pods) != stopped:\n",
+   "replace": "    if not set(pods) <= set(stopped):\n"
+  },
+  {
+   "id": "K2-m-states-unverified-ok",
+   "part": "KD5",
+   "describes": "a pod whose e1 states are not verified may be listed",
+   "file": "states_tool.py",
+   "find": "    bad = sorted(h for h in pods if info[h][\"keeps_states\"] and not info[h][\"states_verified\"])\n",
+   "replace": "    bad = []\n"
+  },
+  {
+   "id": "K2-m-rk-index-lookalike-free",
+   "part": "R-33",
+   "describes": "a look-alike index in another folder or case passes",
+   "file": "rules_78b.py",
+   "find": "    candidates = [p for p in oext[\"files\"] if isinstance(p, str) and OEXT_INDEX_CANDIDATE_RE.search(p)]\n",
+   "replace": "    candidates = [p for p in oext[\"files\"] if isinstance(p, str) and OEXT_INDEX_RE.match(p)]\n"
+  },
+  {
+   "id": "K2-m-rk-record-family-free",
+   "part": "R-33",
+   "describes": "another family's W1-18 record passes",
+   "file": "rules_78b.py",
+   "find": "            if family is not None and W1_18_RECORD_RE.match(path).group(1) != family:\n",
+   "replace": "            if False:\n"
+  },
+  {
+   "id": "K2-m-rk-record-name-loose",
+   "part": "R-33",
+   "describes": "any .json name under the W1-18 folder passes",
+   "file": "rules_78b.py",
+   "find": "W1_18_RECORD_RE = re.compile(r\"^\\.ai/inputs/stage1-post-w1-20261023/78b/w1-18/overrefusal_checks__(olmo2-7b|llama31-8b)\\.json$\")",
+   "replace": "W1_18_RECORD_RE = re.compile(r\"^\\.ai/inputs/stage1-post-w1-20261023/78b/w1-18/(?:overrefusal_checks__)?(olmo2-7b|llama31-8b|[A-Za-z0-9_.-]+)\\.json$\")",
+   "note": "R2 K2 integration fix (GXB R-53): re-targeted to the renamed record (same mutation)"
+  },
+  {
+   "id": "K2-m-rk-record-sha-free",
+   "part": "R-33",
+   "describes": "the O-ext pin's W1-18 record need not be the branch record's",
+   "file": "rules_78b.py",
+   "find": "        if records[want] != branch_doc.get(\"w1_18_record_sha256\"):\n",
+   "replace": "        if False:\n"
+  },
+  {
+   "id": "K2-m-rk-record-under-default",
+   "part": "R-33",
+   "describes": "an O-ext pin may name a W1-18 record under Branch full by default",
+   "file": "rules_78b.py",
+   "find": "    if records:\n        return f\"{family}'s branch is 'Branch full by default'",
+   "replace": "    if False:\n        return f\"{family}'s branch is 'Branch full by default'"
+  },
+  {
+   "id": "K2-m-rk-w1-route-units-free",
+   "part": "R-32",
+   "describes": "W1_18_78B's side units need not be KIT a0_units'",
+   "file": "rules_78b.py",
+   "find": "                if u[key] != want[name][key]:\n",
+   "replace": "                if False:\n"
+  },
+  {
+   "id": "K2-m-rk-w1-route-index-set",
+   "part": "R-32",
+   "describes": "W1_18_78B may name an X index or a look-alike",
+   "file": "rules_78b.py",
+   "find": "    if candidates != standard:\n",
+   "replace": "    if not set(standard) <= set(candidates):\n"
+  },
+  {
+   "id": "K2-m-rk-w1-route-path-free",
+   "part": "R-32",
+   "describes": "W1_18_78B's side unit paths need not be KIT a0_units'",
+   "file": "rules_78b.py",
+   "find": "            if not _plain_rel(u[\"path\"]) or DATA_ROOT + u[\"path\"] != want[name][\"path\"]:\n",
+   "replace": "            if False:\n"
+  },
+  {
+   "id": "K2-m-rk-sigma-overflow",
+   "part": "R-33",
+   "describes": "plan_for_sigma raises OverflowError on a huge int",
+   "file": "rules_78b.py",
+   "find": "    except OverflowError:\n        finite_float = False\n",
+   "replace": "    except ZeroDivisionError:\n        finite_float = False\n"
+  },
+  {
+   "id": "K6v-unlisted-binary-unscanned",
+   "part": "K6v-1",
+   "describes": "an unlisted prepared-set file with a binary suffix is packed but not scanned",
+   "file": "pack_setup.py",
+   "find": "            packed[rel] = (f, got)\n            scan.add(rel)\n",
+   "replace": "            packed[rel] = (f, got)\n            if not rel.lower().endswith(BINARY_SUFFIXES):\n                scan.add(rel)\n"
+  },
+  {
+   "id": "K6v-c0-message-quotes-prefixes",
+   "part": "K6v-6",
+   "describes": "the c0 typo refusal quotes 12-character prefixes of both fingerprints",
+   "file": "pack_setup.py",
+   "find": "                         \"any pod starts\")\n",
+   "replace": "                         f\"any pod starts ({got[:12]}... vs {str(c0.get('e1_fingerprint'))[:12]}...)\")\n"
+  },
+  {
+   "id": "K2-m-safe-lora-k12-allowed",
+   "part": "Part 2 §3.2",
+   "describes": "the 1B conditional and k12 Safe LoRA points are planned at 7-8B",
+   "file": "stage1_rules.py",
+   "find": "POINTS_NOT_RUN = {\"safe_lora\": (\"conditional\", \"k12\")}",
+   "replace": "POINTS_NOT_RUN = {\"safe_lora\": ()}"
+  },
+  {
+   "id": "K2-m-safe-lora-points-unchecked",
+   "part": "Part 2 §3.2",
+   "describes": "job_record never checks a job's points",
+   "file": "stage1_rules.py",
+   "find": "    problem = point_problem(kind, points)             # R2 K2: Part 2 §3.2's points only\n",
+   "replace": "    problem = None\n"
+  },
+  {
+   "id": "V-part-design-always-full",
+   "part": "K2V",
+   "describes": "the part names the full design on a stopped family (S-6) (the K2 verifier's)",
+   "file": "plan_tool.py",
+   "find": "    entry = {\"design\": \"anchor_stopped\" if stopped else \"full\",",
+   "replace": "    entry = {\"design\": \"full\","
+  },
+  {
+   "id": "V-part-stop-record-dropped",
+   "part": "K2V",
+   "describes": "the part omits the stop record (S-6) (the K2 verifier's)",
+   "file": "plan_tool.py",
+   "find": "    if stopped:\n        entry[\"anchor_stop\"]",
+   "replace": "    if False:\n        entry[\"anchor_stop\"]"
+  },
+  {
+   "id": "V-merge-stop-path-not-rebased",
+   "part": "K2V",
+   "describes": "the stop record's path is not rebased (the K2 verifier's)",
+   "file": "plan_tool.py",
+   "find": "        refs += [entry[\"anchor_stop\"]] if \"anchor_stop\" in entry else []",
+   "replace": "        refs += []"
+  },
+  {
+   "id": "V-planb-inputs-sha-unchecked",
+   "part": "K2V",
+   "describes": "block B never compares the inputs hash (the K2 verifier's)",
+   "file": "plan_tool.py",
+   "find": "    if doc[\"inputs_sha256\"] != plan_b[\"blinded_sigma_inputs_sha256\"]:",
+   "replace": "    if False:"
+  },
+  {
+   "id": "V-planb-inputs-families-unchecked",
+   "part": "K2V",
+   "describes": "re-targeted (K2V-3 replaced the families check by the kit's rebuild): the inputs file need not be the kit's (the K2 verifier's)",
+   "file": "plan_tool.py",
+   "find": "    if data is None or data != kit_inputs(gate) or hashlib.sha256(data).hexdigest() != inputs_sha256:",
+   "replace": "    if data is None or hashlib.sha256(data).hexdigest() != inputs_sha256:"
+  },
+  {
+   "id": "V-merge-gate-unchecked",
+   "part": "K2V",
+   "describes": "re-targeted to kit_part: a part of another gate is merged (the K2 verifier's)",
+   "file": "plan_tool.py",
+   "find": "    if doc[\"gate_sha256\"] != gate_sha256:",
+   "replace": "    if False:"
+  },
+  {
+   "id": "V-merge-family-set-unchecked",
+   "part": "K2V",
+   "describes": "re-targeted to kit_inputs: the inputs file may cover fewer families than the gate (the K2 verifier's)",
+   "file": "plan_tool.py",
+   "find": "    for f in sorted(gate[\"families\"]):\n        entry = json.loads",
+   "replace": "    for f in sorted(gate[\"families\"])[:1]:\n        entry = json.loads"
+  },
+  {
+   "id": "V-release-planb-unchecked",
+   "part": "K2V",
+   "describes": "release accepts another block-B plan record (the K2 verifier's)",
+   "file": "plan_tool.py",
+   "find": "    if block == \"B\" and r78.PLAN_B_78B[\"sha256\"] != b[\"plan_b\"][\"sha256\"]:",
+   "replace": "    if False:"
+  },
+  {
+   "id": "V-release-stop-donefile-unchecked",
+   "part": "K2V",
+   "describes": "release accepts another anchor JOB-DONE.json (the K2 verifier's)",
+   "file": "plan_tool.py",
+   "find": "    if (stop or {}).get(\"job_done_sha256\") != (b.get(\"anchor_stop\") or {}).get(\"job_done_sha256\"):",
+   "replace": "    if False:"
+  },
+  {
+   "id": "V-gate-record-sigma-f-llama",
+   "part": "K2V",
+   "describes": "record-gate takes Llama's sigma_F plan under [C] (the K2 verifier's)",
+   "file": "plan_tool.py",
+   "find": "\"sigma_F_plan\": by_f[r78.GATE_OPTIONS[\"C\"][0]] if option == \"C\" else None,",
+   "replace": "\"sigma_F_plan\": by_f[\"llama31-8b\"] if option == \"C\" else None,"
+  },
+  {
+   "id": "V-gate-check-sigma-f-llama",
+   "part": "K2V",
+   "describes": "init compares the gate with Llama's sigma_F plan (the K2 verifier's)",
+   "file": "plan_tool.py",
+   "find": "want = by_f[r78.GATE_OPTIONS[\"C\"][0]] if gate_doc[\"option\"] == \"C\" else None",
+   "replace": "want = by_f[\"llama31-8b\"] if gate_doc[\"option\"] == \"C\" else None"
+  },
+  {
+   "id": "V-sibling-seal-hash-unchecked",
+   "part": "K2V",
+   "describes": "a sibling seal record off its SHA-256 passes (the K2 verifier's)",
+   "file": "plan_tool.py",
+   "find": " or not p.is_file() or mac.sha(p) != seal.get(\"sha256\"):",
+   "replace": " or not p.is_file():"
+  },
+  {
+   "id": "V-arms-done-unpulled-ok",
+   "part": "K2V",
+   "describes": "re-targeted to block_a_cells (one check now serves arms-done and the part): an unpulled block-A job counts as done (the K2 verifier's)",
+   "file": "plan_tool.py",
+   "find": "                if j.get(\"pulled\") is False or not j.get(\"unit\") or not SHA_RE.fullmatch(str(j.get(\"complete_sha256\"))):",
+   "replace": "                if not j.get(\"unit\") or not SHA_RE.fullmatch(str(j.get(\"complete_sha256\"))):"
+  },
+  {
+   "id": "V-part-unpulled-ok",
+   "part": "K2V",
+   "describes": "re-targeted to block_a_cells: the part names an unpulled unit (the K2 verifier's)",
+   "file": "plan_tool.py",
+   "find": "                    return {}, f\"{name}:{i}: a block-A job is complete but not pulled with its unit\"",
+   "replace": "                    pass"
+  },
+  {
+   "id": "V-part-two-engines-ok",
+   "part": "K2V",
+   "describes": "block A on two engines passes (the K2 verifier's)",
+   "file": "plan_tool.py",
+   "find": "            len(block_engines) != 1:",
+   "replace": "            len(block_engines) < 1:"
+  },
+  {
+   "id": "V-states-kept-1104-only",
+   "part": "K2V",
+   "describes": "only a0-1104's state is kept (the K2 verifier's)",
+   "file": "states_tool.py",
+   "find": "KEPT_A0_SEEDS = (1104, 1105, 1106, 1107)",
+   "replace": "KEPT_A0_SEEDS = (1104,)"
+  },
+  {
+   "id": "K2F-m-status-unchecked",
+   "part": "R-43",
+   "describes": "block B's plan record's SR-2 status is never compared with the pinned records'",
+   "file": "plan_tool.py",
+   "find": "    if (plan_b[\"sr2_adopted\"], plan_b[\"sr2_reason\"]) != (status[\"adopted\"], status[\"reason\"]):",
+   "replace": "    if False:"
+  },
+  {
+   "id": "K2F-m-init-b-status-off",
+   "part": "R-43",
+   "describes": "block B's init takes the recorded SR-2 status",
+   "file": "plan_tool.py",
+   "find": "        plan_b_status_check(plan_b_doc, gate_doc)        # GXB R-43: SR-2's status from the pinned records\n",
+   "replace": "        pass\n"
+  },
+  {
+   "id": "K2F-m-release-b-status-off",
+   "part": "R-43",
+   "describes": "block B's release takes the recorded SR-2 status",
+   "file": "plan_tool.py",
+   "find": "        plan_b_status_check(plan_b_doc, gate_doc)\n        if plan_b_doc[\"sr2_adopted\"]:\n            kit_inputs_check(gate_doc, plan_b_doc[\"blinded_sigma_inputs_sha256\"])\n    stop =",
+   "replace": "        pass\n        if plan_b_doc[\"sr2_adopted\"]:\n            kit_inputs_check(gate_doc, plan_b_doc[\"blinded_sigma_inputs_sha256\"])\n    stop ="
+  },
+  {
+   "id": "K2F-m-snapshot-unchecked",
+   "part": "R-44",
+   "describes": "a blinding record no block-A copy read passes",
+   "file": "plan_tool.py",
+   "find": "        if snap.get(\"sha256\") != got[\"sha256\"]:",
+   "replace": "        if False:"
+  },
+  {
+   "id": "K2F-m-blinding-files-unchecked",
+   "part": "R-44",
+   "describes": "a verified file may differ from the one that runs",
+   "file": "plan_tool.py",
+   "find": "            if not path.is_file() or mac.sha(path) != files[rel]:",
+   "replace": "            if not path.is_file():",
+   "note": "R2 K2 follow-up: re-targeted to the changed code (same intent)"
+  },
+  {
+   "id": "K2F-m-blinding-form-files-free",
+   "part": "R-44",
+   "describes": "the blinding record may name other files",
+   "file": "plan_tool.py",
+   "find": "            not isinstance(files, dict) or sorted(files) != sorted(BLINDING_FILES) or \\\n",
+   "replace": "            not isinstance(files, dict) or \\\n"
+  },
+  {
+   "id": "K2F-m-blinding-commit-free",
+   "part": "R-44",
+   "describes": "the blinding record needs no commit",
+   "file": "plan_tool.py",
+   "find": "not COMMIT_RE.fullmatch(str(doc.get(\"commit\")))",
+   "replace": "False"
+  },
+  {
+   "id": "K2F-m-init-a-no-blinding",
+   "part": "R-44",
+   "describes": "block A plans without the blinding record",
+   "file": "plan_tool.py",
+   "find": "        blinding = sr2_blinding_reading(check_files=True)\n",
+   "replace": "        blinding = None\n"
+  },
+  {
+   "id": "K2F-m-release-a-blinding-repin-ok",
+   "part": "R-44",
+   "describes": "block A's release accepts a re-pinned blinding record",
+   "file": "plan_tool.py",
+   "find": "        if got[\"sha256\"] != (b.get(\"blinding\") or {}).get(\"sha256\"):",
+   "replace": "        if False:"
+  },
+  {
+   "id": "K2F-m-cells-two-units-ok",
+   "part": "K2V-2",
+   "describes": "two complete units for one block-A run pass",
+   "file": "plan_tool.py",
+   "find": "                if key in cells:\n",
+   "replace": "                if False:\n"
+  },
+  {
+   "id": "K2F-m-cells-open-job-ok",
+   "part": "K2V-2",
+   "describes": "an open block-A job that no move took counts as done",
+   "file": "plan_tool.py",
+   "find": "            elif not (name in moved and carried(plan, name, j)):",
+   "replace": "            elif False:"
+  },
+  {
+   "id": "K2F-m-cells-moved-skipped-wrongly",
+   "part": "K2V-2",
+   "describes": "a moved host's job counts though no move took it",
+   "file": "plan_tool.py",
+   "find": "            elif not (name in moved and carried(plan, name, j)):",
+   "replace": "            elif not (name in moved):"
+  },
+  {
+   "id": "K2F-m-kit-part-bytes-unchecked",
+   "part": "K2V-3",
+   "describes": "a hand-made part at the part's place is merged",
+   "file": "plan_tool.py",
+   "find": "    if not p.is_file() or p.read_bytes() != rules.canonical_bytes(doc):",
+   "replace": "    if not p.is_file():"
+  },
+  {
+   "id": "K2F-m-init-b-kit-inputs-off",
+   "part": "K2V-3",
+   "describes": "block B's init takes any inputs file",
+   "file": "plan_tool.py",
+   "find": "        if plan_b_doc[\"sr2_adopted\"]:                    # K2V-3: the inputs are the kit's\n            kit_inputs_check(",
+   "replace": "        if False:\n            kit_inputs_check("
+  },
+  {
+   "id": "K2F-m-orch-branch-unread",
+   "part": "R-45",
+   "describes": "the orchestrator never holds a 500-bank pod",
+   "file": "orchestrate.py",
+   "find": "        problem = rules.r78.bank500_problem(family, j[\"kind\"], h.get(\"block\"), data)\n",
+   "replace": "        problem = None\n"
+  },
+  {
+   "id": "K2F-m-orch-bytes-never-read",
+   "part": "R-45",
+   "describes": "the orchestrator holds every 500-bank pod (the branch bytes never read)",
+   "file": "orchestrate.py",
+   "find": "        data = (ROOT / pin[\"path\"]).read_bytes()\n",
+   "replace": "        data = None\n"
+  },
+  {
+   "id": "K2F-m-noise-sigma-unchecked",
+   "part": "K2V-9",
+   "describes": "a noise plan its own sigma contradicts passes",
+   "file": "plan_tool.py",
+   "find": "    if derived != code:\n        fail(f\"{what}: its seed rule",
+   "replace": "    if False:\n        fail(f\"{what}: its seed rule"
+  },
+  {
+   "id": "K2F-m-noise-pooled-unchecked",
+   "part": "K2V-9",
+   "describes": "a seed rule that is not the pooled reading's passes",
+   "file": "plan_tool.py",
+   "find": "    if doc.get(\"seed_rule\") != (doc.get(\"pooled\") or {}).get(\"seed_rule\"):",
+   "replace": "    if False:"
+  },
+  {
+   "id": "K2F-m-top-dose-ge",
+   "part": "K2V-7",
+   "describes": "192 kept rows read as the fallback's top dose",
+   "file": "plan_tool.py",
+   "find": "    want = \"s4_192\" if kept >= r78.S4_KEEP else \"s4_top\"",
+   "replace": "    want = \"s4_192\" if kept > r78.S4_KEEP else \"s4_top\""
+  },
+  {
+   "id": "K2F-m-top-dose-96",
+   "part": "K2V-7",
+   "describes": "96 kept rows read as s4_96 (the defect)",
+   "file": "plan_tool.py",
+   "find": "    want = \"s4_192\" if kept >= r78.S4_KEEP else \"s4_top\"",
+   "replace": "    want = \"s4_192\" if kept >= r78.S4_KEEP else \"s4_96\" if kept == 96 else \"s4_top\""
+  },
+  {
+   "id": "K2F-m-1b-commands-reachable",
+   "part": "K2V-10",
+   "describes": "the 1B block-A commands are reachable",
+   "file": "plan_tool.py",
+   "find": "    if a.command in BLOCK_A_1B_COMMANDS:",
+   "replace": "    if False:"
+  },
+  {
+   "id": "K2F-m-reason-any-text",
+   "part": "K2V-11",
+   "describes": "record-done copies any reason text",
+   "file": "plan_tool.py",
+   "find": "        if r.get(\"reason\") is not None and r.get(\"reason\") not in RUNNER_REASONS:",
+   "replace": "        if False:"
+  },
+  {
+   "id": "K2FU-m-b-files-unchecked",
+   "part": "R-49",
+   "describes": "block B's SR-2 status never re-hashes the blinding record's files",
+   "file": "plan_tool.py",
+   "find": "    if doc[\"verified\"]:\n        blinding_files_check(doc[\"files\"], copies)\n",
+   "replace": "    if False:\n        blinding_files_check(doc[\"files\"], copies)\n"
+  },
+  {
+   "id": "K2FU-m-b-copies-dropped",
+   "part": "R-49",
+   "describes": "the block-A copies' plan_tool.py (record-done's code) is not re-hashed",
+   "file": "plan_tool.py",
+   "find": "        blinding_files_check(doc[\"files\"], copies)\n",
+   "replace": "        blinding_files_check(doc[\"files\"])\n"
+  },
+  {
+   "id": "K2FU-m-b-files-checked-unverified",
+   "part": "R-49",
+   "describes": "an unverified record's files are compared too (an edit refuses a 'not adopted' reading)",
+   "file": "plan_tool.py",
+   "find": "    if doc[\"verified\"]:\n        blinding_files_check(",
+   "replace": "    if True:\n        blinding_files_check("
+  },
+  {
+   "id": "K2FU-m-checkout-files-skipped",
+   "part": "R-49",
+   "describes": "blinded_sigma.py and the two tests are never re-hashed",
+   "file": "plan_tool.py",
+   "find": "            where = [(ROOT / rel, \"the one in this checkout\")]",
+   "replace": "            where = []"
+  },
+  {
+   "id": "K2FU-m-reread-off",
+   "part": "R-50",
+   "describes": "a hand-written blinded output's sigma or df is taken",
+   "file": "plan_tool.py",
+   "find": "        if [(type(again.get(k)), again.get(k)) for k in (\"sigma_A_pp\", \"df\", \"inputs_sha256\")] != \\\n",
+   "replace": "        if False and [(type(again.get(k)), again.get(k)) for k in (\"sigma_A_pp\", \"df\", \"inputs_sha256\")] != \\\n"
+  },
+  {
+   "id": "K2FU-m-reread-no-sigma",
+   "part": "R-50",
+   "describes": "the re-read compares df only",
+   "file": "plan_tool.py",
+   "find": "        if [(type(again.get(k)), again.get(k)) for k in (\"sigma_A_pp\", \"df\", \"inputs_sha256\")] != \\\n                [(type(doc[k]), doc[k]) for k in (\"sigma_A_pp\", \"df\", \"inputs_sha256\")]:",
+   "replace": "        if [(type(again.get(k)), again.get(k)) for k in (\"df\", \"inputs_sha256\")] != \\\n                [(type(doc[k]), doc[k]) for k in (\"df\", \"inputs_sha256\")]:"
+  },
+  {
+   "id": "K2FU-m-reread-no-df",
+   "part": "R-50",
+   "describes": "the re-read compares sigma only",
+   "file": "plan_tool.py",
+   "find": "        if [(type(again.get(k)), again.get(k)) for k in (\"sigma_A_pp\", \"df\", \"inputs_sha256\")] != \\\n                [(type(doc[k]), doc[k]) for k in (\"sigma_A_pp\", \"df\", \"inputs_sha256\")]:",
+   "replace": "        if [(type(again.get(k)), again.get(k)) for k in (\"sigma_A_pp\", \"inputs_sha256\")] != \\\n                [(type(doc[k]), doc[k]) for k in (\"sigma_A_pp\", \"inputs_sha256\")]:"
+  },
+  {
+   "id": "K2FU-m-reread-no-type",
+   "part": "R-50",
+   "describes": "the re-read takes 5 for 5.0",
+   "file": "plan_tool.py",
+   "find": "        if [(type(again.get(k)), again.get(k)) for k in (\"sigma_A_pp\", \"df\", \"inputs_sha256\")] != \\\n                [(type(doc[k]), doc[k]) for k in (\"sigma_A_pp\", \"df\", \"inputs_sha256\")]:",
+   "replace": "        if [again.get(k) for k in (\"sigma_A_pp\", \"df\", \"inputs_sha256\")] != \\\n                [doc[k] for k in (\"sigma_A_pp\", \"df\", \"inputs_sha256\")]:"
+  },
+  {
+   "id": "K2FU-m-script-hash-unchecked",
+   "part": "R-50",
+   "describes": "blinded_sigma.py is loaded whatever its bytes",
+   "file": "plan_tool.py",
+   "find": "    if not path.is_file() or mac.sha(path) != script_sha256:",
+   "replace": "    if not path.is_file():"
+  },
+  {
+   "id": "K2FU-m-printout-dropped",
+   "part": "R-50",
+   "describes": "record-plan-b-78b prints no sigma_A and df",
+   "file": "plan_tool.py",
+   "find": "        got[\"blinded_sigma\"] = {\"sigma_A_pp\": again[\"sigma_A_pp\"], \"df\": again[\"df\"]}",
+   "replace": "        pass"
+  },
+  {
+   "id": "K2FU-m-replaced-not-skipped",
+   "part": "R-51",
+   "describes": "the kit's replaced attempt still counts",
+   "file": "plan_tool.py",
+   "find": "            if j.get(\"status\") == \"complete\" and (name, j.get(\"complete_sha256\")) in replaced:\n                continue",
+   "replace": "            if False:\n                continue"
+  },
+  {
+   "id": "K2FU-m-replaced-any-reason",
+   "part": "R-51",
+   "describes": "any requeue record's attempts are skipped",
+   "file": "plan_tool.py",
+   "find": "    replaced = {(r[\"from\"], d) for r in plan.get(\"requeues\") or [] if r.get(\"reason\") == \"environment-mismatch\"",
+   "replace": "    replaced = {(r[\"from\"], d) for r in plan.get(\"requeues\") or [] if True"
+  },
+  {
+   "id": "K2FU-m-replaced-any-host",
+   "part": "R-51",
+   "describes": "a requeue record's attempts are skipped on any host",
+   "file": "plan_tool.py",
+   "find": "            if j.get(\"status\") == \"complete\" and (name, j.get(\"complete_sha256\")) in replaced:",
+   "replace": "            if j.get(\"status\") == \"complete\" and j.get(\"complete_sha256\") in {x for _, x in replaced}:"
+  },
+  {
+   "id": "K2FU-m-part-superseded-always",
+   "part": "R-51",
+   "describes": "a written part with other bytes is replaced without a kit record",
+   "file": "plan_tool.py",
+   "find": "            if not part_superseded(old, doc, plan):",
+   "replace": "            if False:"
+  },
+  {
+   "id": "K2FU-m-superseded-after-merge",
+   "part": "R-51",
+   "describes": "a part is replaced after the merged inputs file exists",
+   "file": "plan_tool.py",
+   "find": "            if BLINDED_INPUTS.exists():\n                fail(f\"{p.relative_to(HERE)} is superseded",
+   "replace": "            if False:\n                fail(f\"{p.relative_to(HERE)} is superseded"
+  },
+  {
+   "id": "K2FU-m-superseded-any-cell",
+   "part": "R-51",
+   "describes": "any changed cell counts as replaced",
+   "file": "plan_tool.py",
+   "find": ".get(\"complete_sha256\") in replaced\n                                 for a, s in changed)",
+   "replace": ".get(\"complete_sha256\") is not None\n                                 for a, s in changed)"
+  },
+  {
+   "id": "K2FU-m-superseded-entry-free",
+   "part": "R-51",
+   "describes": "the part's design, engines and edits may change on a re-run",
+   "file": "plan_tool.py",
+   "find": " or rest(was[\"entry\"], \"cells\") != rest(new[\"entry\"], \"cells\"):",
+   "replace": ":"
+  },
+  {
+   "id": "K2FU-m-superseded-gate-free",
+   "part": "R-51",
+   "describes": "the part's gate may change on a re-run",
+   "file": "plan_tool.py",
+   "find": " rest(was, \"entry\") != rest(new, \"entry\") or",
+   "replace": ""
+  },
+  {
+   "id": "X-snapshot-first-family-only",
+   "part": "R-52",
+   "describes": "under [B] only one family's block-A snapshot is checked (the K2 re-verifier's)",
+   "file": "plan_tool.py",
+   "find": "    for f in families:\n        plan_a, copy = sibling_plan(f, \"A\")",
+   "replace": "    for f in list(families)[:1]:\n        plan_a, copy = sibling_plan(f, \"A\")"
+  },
+  {
+   "id": "X-kit-inputs-hash-unchecked",
+   "part": "R-52",
+   "describes": "the kit's inputs file need not hash to the output's inputs_sha256 (the K2 re-verifier's)",
+   "file": "plan_tool.py",
+   "find": "    if data is None or data != kit_inputs(gate) or hashlib.sha256(data).hexdigest() != inputs_sha256:",
+   "replace": "    if data is None or data != kit_inputs(gate):"
+  },
+  {
+   "id": "K3-m-part-new-leftover",
+   "part": "K2R2-1",
+   "describes": "a leftover <part>.new is not refused by name",
+   "file": "plan_tool.py",
+   "find": "            if new.exists() or new.is_symlink():         # R3 K3 (K2R2-1): a leftover from an interrupted replacement",
+   "replace": "            if False:"
+  }
+ ]
+}

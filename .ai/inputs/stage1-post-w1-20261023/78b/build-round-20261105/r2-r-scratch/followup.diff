@@ -1,0 +1,305 @@
+--- reports/r2-r-scratch/prefix-fu/refs_78b.py	2026-11-09 04:16:15
++++ ws-r/scripts/scale78b/refs_78b.py	2026-11-09 05:04:08
+@@ -46,9 +46,11 @@
+   - --w1-18-record is given exactly when the family's O-ext settings pin a W1-18 record, with that SHA-256;
+   - the forms that do not run at 7-8B are refused by name: B10's check --untuned and compare --against untuned (GXB
+     R-34: theta0 is not compared; the curve's lambda = 0 end is theta0's own O measurement from the o_only pass), and
+-    any Safe LoRA point but default and certify (GXB R-37; the settings' conditional K is 0).
++    any Safe LoRA point but default and certify (GXB R-37; the settings' conditional K is 0), and lambda = 0
++    (evaluate --lambda 0, run with scale:0; GXB R-42).
+ 
+-After a B10 command (GXB R-38): beside each output it wrote (--out; run's --regen-out and --eval-root), the wrapper
++After a B10 command (GXB R-38, R-41): beside each output the command created (--out; run's --regen-out and
++--eval-root; absent or an empty folder before the call, holding something after it), the wrapper
+ writes OUTPUT.refs78b-terms.json, a record of what B10's 1B terms mean at 7-8B ("Gate A" = the seed's a0 unit, R-35;
+ the untuned unit and lambda = 0, R-34). B10 runs unchanged, so its own messages and fixed texts keep the 1B words: a
+ limit, stated in the record. A terms record that exists already refuses before the call.
+@@ -128,7 +130,7 @@
+     "the untuned unit (theta0)": "the family's theta0 init unit of seed 1101 (RK KIT a0_units); not compared at 7-8B: "
+                                  "check --untuned and compare --against untuned are refused (GXB R-34)",
+     "lambda = 0": "the curve's lambda = 0 end is theta0's own O measurement from the o_only pass under MAIN_F with the "
+-                  "adapter disabled (GXB R-34); no lambda = 0 B10 unit runs at 7-8B",
++                  "adapter disabled (GXB R-34); no lambda = 0 B10 unit runs at 7-8B (the wrapper refuses it, R-42)",
+     "the certification seed": "the index's reference seed S: one certification per reference seed (GXB O2)",
+     "stage 1": "the 7-8B tier's references (Part 2 section 3)",
+ }
+@@ -306,6 +308,18 @@
+                       "end is theta0's own O measurement from the o_only pass)")
+     if command == "eval_adapter" and sub == "compare" and "untuned" in ox.flag_values(args, "--against"):
+         raise Refused("compare --against untuned is not run at 7-8B (GXB R-34)")
++    if command == "eval_adapter" and sub in ("evaluate", "run"):            # GXB R-42 (RRV-3)
++        scales = ox.flag_values(args, "--lambda") if sub == "evaluate" else [
++            spec.partition(":")[2] for value in ox.flag_values(args, "--evaluations") for spec in value.split(",")
++            if spec.partition(":")[0] == "scale"]
++        for value in scales:
++            try:
++                zero = float(value) == 0.0
++            except ValueError:
++                continue                                                   # B10 refuses a scale that is no number
++            if zero:
++                raise Refused("lambda = 0 is not run at 7-8B (GXB R-42; R-34: the curve's lambda = 0 end is theta0's "
++                              "own O measurement from the o_only pass)")
+     if command == "safe_lora" and sub == "transform":
+         for point in ox.flag_values(args, "--point"):
+             if point not in SL_POINTS:
+@@ -373,9 +387,22 @@
+     return code
+ 
+ 
+-def terms_paths(sub: str, args: list[str]) -> list[tuple[Path, Path]]:
+-    """(output, its terms record) for each output path the B10 command names; a terms record that exists refuses
+-    (nothing is overwritten), before the call."""
++def _state(path: Path):
++    """An output path's state before the call: None (absent), "empty" (an empty folder) or "held" (anything else)."""
++    if not path.exists():
++        return None
++    return "empty" if path.is_dir() and not any(path.iterdir()) else "held"
++
++
++def created(path: Path, before) -> bool:
++    """GXB R-41 (RRV-2): the command itself created this output: it was absent, or an empty folder, before the call and
++    holds something now (an output that held anything before the call never counts)."""
++    return before in (None, "empty") and path.exists() and (not path.is_dir() or any(path.iterdir()))
++
++
++def terms_paths(sub: str, args: list[str]) -> list[tuple[Path, Path, object]]:
++    """(output, its terms record, its state before the call) for each output path the B10 command names; a terms record
++    that exists refuses (nothing is overwritten), before the call."""
+     out = []
+     for flag in OUTPUT_FLAGS.get(sub, ()):
+         value = ox.one_value(args, flag)
+@@ -385,15 +412,15 @@
+         terms = path.with_name(path.name + TERMS_SUFFIX)
+         if terms.exists():
+             raise Refused(f"{terms.name} exists beside {path.name}: nothing is overwritten")
+-        out.append((path, terms))
++        out.append((path, terms, _state(path)))
+     return out
+ 
+ 
+-def write_terms(idx: Index, sub: str, code: int, outputs: list[tuple[Path, Path]], ea_sha: str) -> None:
+-    """GXB R-38: beside each output that B10 wrote, a record of what B10's 1B terms mean at 7-8B (names, hashes and
+-    fixed texts only)."""
+-    for path, terms in outputs:
+-        if not path.exists():
++def write_terms(idx: Index, sub: str, code: int, outputs: list[tuple[Path, Path, object]], ea_sha: str) -> None:
++    """GXB R-38, R-41: beside each output that this command created, a record of what B10's 1B terms mean at 7-8B
++    (names, hashes and fixed texts only); none beside an output that existed before the call."""
++    for path, terms, before in outputs:
++        if not created(path, before):
+             continue
+         doc = {"kind": TERMS_KIND, "version": 1, "writer": "scripts/scale78b/refs_78b.py",
+                "writer_sha256": sha256_file(Path(__file__).resolve()), "b10": "scripts/stage1_s1/eval_adapter.py",
+--- reports/r2-r-scratch/prefix-fu/make_refs_settings_78b.py	2026-11-09 04:15:23
++++ ws-r/scripts/scale78b/make_refs_settings_78b.py	2026-11-09 05:04:08
+@@ -77,11 +77,12 @@
+ UNTUNED_SEED = 1101                      # theta0 is the init unit of seed 1101 (RK KIT a0_units["untuned"])
+ REFERENCE_SETS = {                       # DES F1: the 6-seed set; its pre-set fallback, the 3-seed set
+     "six_seed": {"seeds": (1102, 1103, 1104, 1105, 1106, 1107), "planned": [0.9, 0.75, 0.5],
+-                 "curve": [1.0, 0.9, 0.75, 0.5, 0.0]},
+-    "three_seed": {"seeds": (1102, 1103, 1104), "planned": [0.75, 0.5], "curve": [1.0, 0.75, 0.5, 0.0]},
++                 "curve": [1.0, 0.9, 0.75, 0.5, 0.0], "allowed": [1.0, 0.9, 0.75, 0.5, 0.0]},
++    # P2 sections 3.1-3.2 (GXB R-40 withdrawn; RRV-1): the fallback's grid is {1, 0.75, 0.5, 0}, so 0.9 is not allowed
++    "three_seed": {"seeds": (1102, 1103, 1104), "planned": [0.75, 0.5], "curve": [1.0, 0.75, 0.5, 0.0],
++                   "allowed": [1.0, 0.75, 0.5, 0.0]},
+ }
+ ALL_SEEDS = (UNTUNED_SEED,) + REFERENCE_SETS["six_seed"]["seeds"]
+-SCALE_ALLOWED = [1.0, 0.9, 0.75, 0.5, 0.0]
+ # Safe LoRA's points (DES F2; GXB R-37): K = 78 of 224 = 1B's share 39 of 112 (39 x 2; P2 section 3.2). Only default and
+ # certify run at 7-8B; the unchanged B11 validator needs an integer K for conditional, so it is 0 (it maps nothing) and
+ # refs_78b.py refuses that point by name. Certify maps nothing.
+@@ -338,7 +339,7 @@
+         doc["regeneration"]["rule"] = PROSE_B10_REGEN_RULE
+         doc["oext"]["rule"] = PROSE_B10_OEXT
+         scale = doc["adapter_scale"]
+-        scale.update(allowed=list(SCALE_ALLOWED), planned=list(self.set["planned"]), curve=list(self.set["curve"]),
++        scale.update(allowed=list(self.set["allowed"]), planned=list(self.set["planned"]), curve=list(self.set["curve"]),
+                      rule=("DES F2: lora_B <- lambda * lora_B in every adapted matrix of the regenerated a0 e1 adapter "
+                            "(accepted by its fingerprint); the curve is the planned points with lambda = 1 (the "
+                            "certification) and lambda = 0; matched on L as PR4 section 5.3 says"))
+diff -ruN reports/r2-r-scratch/prefix-fu/tests-refs/mutation_spec_refs_78b.json ws-r/scripts/scale78b/tests/refs/mutation_spec_refs_78b.json
+--- reports/r2-r-scratch/prefix-fu/tests-refs/mutation_spec_refs_78b.json	2026-11-09 04:20:42
++++ ws-r/scripts/scale78b/tests/refs/mutation_spec_refs_78b.json	2026-11-09 05:06:18
+@@ -1,6 +1,6 @@
+ {
+- "kind": "scale78b refs mutation spec (R2 Track R and its fix round)",
+- "note": "each mutant's find text occurs exactly once in its file (a path under scripts/scale78b); runner: tests/refs/run_mutants_refs_78b.py (the suite scripts/scale78b/tests/refs). Fix round: R-m-unit-waits' find updated; the verifier's 7 non-equivalent mutants (RV-x-*; RV-x-except-any is equivalent: the 1B mains catch their own refusals, so no Refusal reaches the wrapper's except branch outside check) and 21 new (F-*).",
++ "kind": "scale78b refs mutation spec (R2 Track R, its fix round and follow-up)",
++ "note": "each mutant's find text occurs exactly once in its file (a path under scripts/scale78b); runner: tests/refs/run_mutants_refs_78b.py (the suite scripts/scale78b/tests/refs). Fix round: R-m-unit-waits' find updated; the verifier's 7 non-equivalent mutants (RV-x-*; RV-x-except-any is equivalent: the 1B mains catch their own refusals, so no Refusal reaches the wrapper's except branch outside check) and 21 new (F-*). Follow-up: 2 finds updated (R-m-curve, F-w-terms-only-written) and 8 new (G-*: RRV-1, R-41, R-42).",
+  "mutants": [
+   {
+    "id": "R-w-ea-load",
+@@ -251,8 +251,8 @@
+    "id": "R-m-curve",
+    "describes": "the 6-seed curve keeps 1B's four points",
+    "file": "make_refs_settings_78b.py",
+-   "find": "\"curve\": [1.0, 0.9, 0.75, 0.5, 0.0]},",
+-   "replace": "\"curve\": [1.0, 0.75, 0.5, 0.0]},"
++   "find": "\"curve\": [1.0, 0.9, 0.75, 0.5, 0.0], \"allowed\": [1.0, 0.9",
++   "replace": "\"curve\": [1.0, 0.75, 0.5, 0.0], \"allowed\": [1.0, 0.9"
+   },
+   {
+    "id": "R-m-fallback",
+@@ -466,9 +466,9 @@
+   },
+   {
+    "id": "F-w-terms-only-written",
+-   "describes": "R-38: a terms record is written beside an output B10 did not write",
++   "describes": "R-38, R-41: a terms record is written beside an output this command did not create (no check at all)",
+    "file": "refs_78b.py",
+-   "find": "        if not path.exists():\n            continue\n",
++   "find": "        if not created(path, before):\n            continue\n",
+    "replace": ""
+   },
+   {
+@@ -561,6 +561,62 @@
+    "file": "make_refs_settings_78b.py",
+    "find": "                     or (settings_dir / n).read_bytes() != d) + stale",
+    "replace": "                     or (settings_dir / n).read_bytes() != d)"
++  },
++  {
++   "id": "G-m-fallback-allowed",
++   "describes": "RRV-1: the 3-seed fallback still allows lambda 0.9",
++   "file": "make_refs_settings_78b.py",
++   "find": "\"allowed\": [1.0, 0.75, 0.5, 0.0]},",
++   "replace": "\"allowed\": [1.0, 0.9, 0.75, 0.5, 0.0]},"
++  },
++  {
++   "id": "G-m-allowed-fixed",
++   "describes": "RRV-1: every set allows the 6-seed grid",
++   "file": "make_refs_settings_78b.py",
++   "find": "scale.update(allowed=list(self.set[\"allowed\"]),",
++   "replace": "scale.update(allowed=[1.0, 0.9, 0.75, 0.5, 0.0],"
++  },
++  {
++   "id": "G-w-terms-exists-only",
++   "describes": "R-41: a terms record is written beside any output that exists after the call",
++   "file": "refs_78b.py",
++   "find": "        if not created(path, before):\n",
++   "replace": "        if not path.exists():\n"
++  },
++  {
++   "id": "G-w-created-held",
++   "describes": "R-41: an output that held files before the call counts as created",
++   "file": "refs_78b.py",
++   "find": "return before in (None, \"empty\") and path.exists()",
++   "replace": "return path.exists()"
++  },
++  {
++   "id": "G-w-state-empty",
++   "describes": "R-41: an empty folder before the call counts as held",
++   "file": "refs_78b.py",
++   "find": "    return \"empty\" if path.is_dir() and not any(path.iterdir()) else \"held\"",
++   "replace": "    return \"held\""
++  },
++  {
++   "id": "G-w-lambda0",
++   "describes": "R-42: lambda = 0 runs",
++   "file": "refs_78b.py",
++   "find": "            if zero:\n                raise Refused(\"lambda = 0",
++   "replace": "            if False:\n                raise Refused(\"lambda = 0"
++  },
++  {
++   "id": "G-w-lambda0-evaluate",
++   "describes": "R-42: evaluate's --lambda is not read",
++   "file": "refs_78b.py",
++   "find": "scales = ox.flag_values(args, \"--lambda\") if sub == \"evaluate\" else [",
++   "replace": "scales = [] if sub == \"evaluate\" else ["
++  },
++  {
++   "id": "G-w-lambda0-run",
++   "describes": "R-42: run's scale specs are not read",
++   "file": "refs_78b.py",
++   "find": "            if spec.partition(\":\")[0] == \"scale\"]",
++   "replace": "            if False]"
+   }
+  ]
+ }
+diff -ruN reports/r2-r-scratch/prefix-fu/tests-refs/test_refs_78b_eval_adapter.py ws-r/scripts/scale78b/tests/refs/test_refs_78b_eval_adapter.py
+--- reports/r2-r-scratch/prefix-fu/tests-refs/test_refs_78b_eval_adapter.py	2026-11-09 04:19:28
++++ ws-r/scripts/scale78b/tests/refs/test_refs_78b_eval_adapter.py	2026-11-09 05:05:11
+@@ -416,3 +416,46 @@
+     code, _, err = rf.call(rw.main, ["check", "--family", "olmo2-7b", "--seed", "11o2", "--index", "x",
+                                      "--index-sha256", "0" * 64])
+     assert code == 2 and "--seed is required" in err
++
++
++
++# ----- the follow-up: GXB R-41 (RRV-2) and R-42 (RRV-3) -----------------------------------------------------------
++
++
++def test_no_terms_record_beside_an_output_that_existed_before_the_call(world, tmp_path):
++    """RRV-2, the re-verifier's probe: --out already holds an older file; B10 refuses (exit 2) and writes nothing, so
++    the wrapper writes no terms record there. An empty folder that B10 then fills does get one."""
++    held = tmp_path / "held"
++    held.mkdir()
++    (held / "older.txt").write_bytes(b"an older file")
++    code, _, _ = rf.wrapped(world, ["regenerate", *rf.common(world), "--seed", rf.SEED, "--out", held])
++    assert code == 2 and not (tmp_path / ("held" + rw.TERMS_SUFFIX)).exists()
++    assert sorted(p.name for p in held.iterdir()) == ["older.txt"]
++    empty = tmp_path / "empty"
++    empty.mkdir()
++    code, _, err = rf.wrapped(world, ["regenerate", *rf.common(world), "--seed", rf.SEED, "--out", empty])
++    assert code == 0, err[-300:]
++    assert json.loads((tmp_path / ("empty" + rw.TERMS_SUFFIX)).read_bytes())["output"] == "empty"
++
++
++@pytest.mark.parametrize("tail", [["--lambda", "0"], ["--lambda", "0.0"], ["--lambda=0"], ["--lambda=-0.0"]])
++def test_lambda_0_is_refused_in_evaluate(world, regenerated, tmp_path, tail):
++    """RRV-3 (GXB R-42)."""
++    code, _, err = rf.wrapped(world, ["evaluate", *rf.common(world), "--source-run", regenerated / "run", "--out",
++                                      tmp_path / "x", "--mode", "scale", *tail, *fb.cert_args(world.cert)])
++    assert code == 2 and "lambda = 0 is not run at 7-8B" in err and not (tmp_path / "x").exists()
++    assert not (tmp_path / ("x" + rw.TERMS_SUFFIX)).exists()
++
++
++@pytest.mark.parametrize("specs", ["certify,scale:0", "certify,scale:0.75,scale:0.0", "scale:0"])
++def test_lambda_0_is_refused_in_run(world, tmp_path, specs):
++    code, _, err = rf.wrapped(world, ["run", *rf.common(world), "--seed", rf.SEED, "--regen-out", tmp_path / "r",
++                                      "--eval-root", tmp_path / "e", "--evaluations", specs])
++    assert code == 2 and "lambda = 0 is not run at 7-8B" in err
++    assert not (tmp_path / "r").exists() and not (tmp_path / "e").exists()
++
++
++def test_a_nonzero_scale_still_runs(world, regenerated, tmp_path):
++    code, _, err = rf.wrapped(world, ["evaluate", *rf.common(world), "--source-run", regenerated / "run", "--out",
++                                      tmp_path / "x", "--mode", "scale", "--lambda", "0.5", *fb.cert_args(world.cert)])
++    assert code == 0, err[-300:]
+diff -ruN reports/r2-r-scratch/prefix-fu/tests-refs/test_refs_78b_settings.py ws-r/scripts/scale78b/tests/refs/test_refs_78b_settings.py
+--- reports/r2-r-scratch/prefix-fu/tests-refs/test_refs_78b_settings.py	2026-11-09 04:17:49
++++ ws-r/scripts/scale78b/tests/refs/test_refs_78b_settings.py	2026-11-09 05:05:11
+@@ -154,7 +154,8 @@
+                 assert e["reference_units"][s_]["fingerprint_prefixes"] == {"e1": u["e1_fingerprint"],
+                                                                             "q": u["q_fingerprint"]}
+             assert e["certification"]["expected_sampled_answers"] == 200 * rec["generation"]["harm_samples"]["count"] == 600
+-            assert e["adapter_scale"]["allowed"] == [1.0, 0.9, 0.75, 0.5, 0.0]
++            assert e["adapter_scale"]["allowed"] == ([1.0, 0.9, 0.75, 0.5, 0.0] if pins["reference_set"] == "six_seed"
++                                                     else [1.0, 0.75, 0.5, 0.0])               # RRV-1: P2 3.1-3.2
+             assert (e["adapter_scale"]["planned"], e["adapter_scale"]["curve"]) == (
+                 ([0.9, 0.75, 0.5], [1.0, 0.9, 0.75, 0.5, 0.0]) if pins["reference_set"] == "six_seed"
+                 else ([0.75, 0.5], [1.0, 0.75, 0.5, 0.0]))
+@@ -474,3 +475,24 @@
+         code, out, err = check(sdir, "olmo2-7b", 1102)
+         assert code == 2 and "which the file does not hold" in err and "Traceback" not in err
+         make(tmp_path, mk.load_pins()[0], sdir)
++
++
++def test_the_fallback_allows_no_scale_point_it_does_not_plan(tmp_path):
++    """RRV-1 (GXB R-40 withdrawn; P2 sections 3.1-3.2): under the 3-seed fallback B10 refuses lambda 0.9, which only
++    the 6-seed set plans; 0.75 and 0.5 still plan."""
++    pins = copy.deepcopy(mk.load_pins()[0])
++    pins["reference_set"] = "three_seed"
++    sdir = make(tmp_path, pins)
++    doc = load(sdir, mk.file_name("eval_adapter", "olmo2-7b", 1102))
++    assert 0.9 not in doc["adapter_scale"]["allowed"]
++    placeholder = copy.deepcopy(doc)
++    placeholder["overrefusal_bank"]["status"] = "dev100_recipe_cap"   # the pending O-ext branch admits certify only
++    for s_ in ("1101", "1102"):
++        placeholder["reference_units"][s_].update(unit="x", complete_sha256="0" * 64,
++                                                  fingerprint_prefixes={"e1": "0" * 64, "q": None})
++    with rf.ox.patched([(ea, "OEXT_SETTINGS_PATH", doc["oext"]["settings"]["path"])]):
++        settings = ea.settings_from_doc(placeholder)
++        for lam in (0.75, 0.5):
++            assert ea.make_plan(settings, "scale", adapter_scale=lam).mode == "scale"
++        with pytest.raises(ea.Refusal):
++            ea.make_plan(settings, "scale", adapter_scale=0.9)

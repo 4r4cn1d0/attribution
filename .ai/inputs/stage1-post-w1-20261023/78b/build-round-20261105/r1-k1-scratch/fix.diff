@@ -1,0 +1,2025 @@
+--- pre-fix/runkit/stage1-78b/RULES-78B.md
++++ fix/runkit/stage1-78b/RULES-78B.md
+@@ -290,7 +290,9 @@
+   refuses a null pin with its event (`METHOD_EDIT_EVENTS`).
+ - **Steps (GXB O1)**: ceil(rows / 128) of the arm's training rows (`steps_for_rows`, `arm_training_rows`,
+   `arm_steps`); a named arm whose derived steps differ from `ARM_STEPS` refuses; `STEPS["dose"] = 39`; s4_top
+-  ceil((4,800 + n) / 128), n in 48-191.
++  ceil((4,800 + n) / 128). **Dose arms (GXB K-5)**: `dose_arms_for(n)` from the kept S4 count: n >= 192 S4_96 and
++  S4_192; 97-191 S4_96 and s4_top (n); 96 S4_96 only; 49-95 s4_top (n) only; 48 none; fewer than 48 the build stop;
++  s4_top exists only for 49-95 and 97-191; `block_runs_78b(..., dose_seeds, kept)` takes n, never a list of arms.
+ - **Pods** (Part 2 §2.4): `deal_ab` (arm-major, seed-minor, run i to pod i mod P; at most 4; an arm twice refuses);
+   each job carries its own steps, train_scale input (`padded_tokens_per_step`, required for edit arms) and O-ext term;
+   `requirements()` and `job_decision` now read the job's own padded tokens and term.
+@@ -299,20 +301,35 @@
+   filled; `job_record(..., oext=True)` for arm, a0_arm and ref_train (4-arm caps 17.25 h / 19.25 h; four-pod need
+   $167.06 / $185.56); the references' E caps carry it per point. Block 0 never carries it. `check_keys(...,
+   oext_bank=)` holds the O-ext bank against `OEXT_78B[F]`.
+-- **W1-18 and the branch** (DES E2; DESO2 item 37; GXB O4): kind `w1_18` (E, X only, the scorer block's first O job,
+-  one record per family, [C] OLMo only; `W1_18_78B` null), `BRANCHES`, `BANK500_KINDS`, `bank500_job`,
+-  `branch_record_problem`, `branch_switch_problem`, `oext_flags`.
++- **W1-18 and the branch** (DES E2; DESO2 item 37; GXB O4, K-3): kind `w1_18` (E, X only, the scorer block's first
++  O job, in OLMo-2-7B's scorer-block copy, one record per family, [C] OLMo only; `W1_18_78B` null), `BRANCHES`,
++  `BANK500_KINDS`, `bank500_job`, `branch_record_problem`. The branch is read only from the family's pinned record
++  `BRANCH_78B[F]` (null until W1-18's record-done; K1V-5): `branch_record_or_refuse`, `bank500_problem`,
++  `branch_switch_problem`, `oext_flags`; c0, o_only and o_only_with_regenerate wait on it (GXB R-4).
+ - **N's units, keyed by (arm, seed)** (DES E5; the seed key): `sc_units`, `sc_unit_source`, `N_UNITS[F]` (null until
+-  block 0's record-done), `n_unit_or_refuse`; `stage1_rules.sc_input_names/sc_input_pins(kind, seed, arm)`.
+-- **Block A's re-judge list** (DESO item 26): `rejudged_pins` / `rejudged_or_refuse`, 7 per family, N's null until N runs;
+-  the side units carry their job.json SHA-256 (M, 8 Nov).
+-- **The gate and block B's plan** (GXB O14 corrected): `GATE_78B` (option, families, N's provisional plan, the noise
+-  reading, the balance; block A's init reads its families) and `PLAN_B_78B` (blinded_sigma.py's output and inputs
+-  hashes, SR-2, block B's plan; "review" plans nothing): both null, `block_init_or_refuse`.
+-- **The anchor stops** (GXB O6; item 14): `anchor_exit_kind` (exit 3, or exit 1 with the harmful-pair AnchorJobError
+-  message; else a crash), `anchor_stop_record`, `anchor_stop_problem`, `ANCHOR_STOP[F]` (null = no stop); on a stopped
+-  family `STOP_REFUSED_KINDS` refuse for good and the retrain runs under MAIN_F (`sc_recipe`, `check_keys`,
+-  `sc_needed_pins`, `sc_order_problem`, `job_decision`); `ENGINE_Y`'s event carries AM1's stopped-family clause.
++  block 0's record-done), `n_unit_or_refuse`; `stage1_rules.sc_unit_input_names/sc_unit_input_pins(kind, ..., arm,
++  seed)` refuse a missing arm (K1V-9); the seed-only `sc_input_names/sc_input_pins` stay only at the runner's, the
++  pack's and the planner's four call sites until K2/K3 move them (test_41 lists them).
++- **Block A's re-judge list** (DESO item 26): `rejudged_pins` / `rejudged_or_refuse`, 7 per family, N's null until N runs;
++  the side units carry their job.json SHA-256 (M, 8 Nov; GXB R-2). A malformed N_UNITS pin refuses at use, never at
++  import (K1V-8).
++- **The gate and block B's plan** (GXB O14 corrected, K-6, R-1): `GATE_78B` (option, families, N's provisional plan,
++  the noise reading, the balance; block A's init reads its families and refuses under a "review" provisional plan)
++  and `PLAN_B_78B` (plan, `sr2_adopted`; adopted: basis sigma_A and blinded_sigma.py's output and inputs hashes; not
++  adopted: `sr2_reason` and basis sigma_pool_N under [B] or sigma_F under [C], the hashes null; "review" plans
++  nothing): both null, `block_init_or_refuse`.
++- **The anchor stops** (GXB O6; item 14; the fourth set's form, the one Track S reads): kind `scale-78b anchor stop`,
++  `stop_kind` `safe_anchors_below_64` (exit 3) or `harmful_prompt_does_not_encode` (exit 1 with the AnchorJobError
++  message; any other end is a crash), JOB-DONE.json SHA-256, `counts`: `anchor_exit_kind`, `anchor_stop_record`,
++  `anchor_stop_problem`. `ANCHOR_STOP[F]` (null = no stop) marks a family stopped only after `anchor_stop_or_refuse`
++  read the record at the pin (K1V-6); on a stopped family `STOP_REFUSED_KINDS` refuse for good and the retrain runs
++  under MAIN_F (`sc_recipe`, `check_keys`, `sc_needed_pins`, `sc_order_problem`, `job_decision`); `ENGINE_Y`'s event
++  carries AM1's stopped-family clause.
+ - **ref_train** (Part 2 §3.2): a measured kind under `RECIPE_G` only. **The wrapper path**: `OEXT_UNIT_SCRIPT`,
+-  `C0_SCRIPT` and `W1_18_SCRIPT` are Track O's `scripts/scale78b/oext_78b.py`.
++  `C0_SCRIPT` and `W1_18_SCRIPT` are Track O's `scripts/scale78b/oext_78b.py` (`OEXT_WRAPPER_COMMANDS`: unit, lean,
++  w1_18; the runner's command lines are K3's). `OEXT_78B[F]` (engine X) and `OEXT_78B_Y[F]` (engine Y; null; filled
++  after ENGINE_Y and RECIPE_BQI) each pin the wrapper and exactly their own family's and engine's O-ext index
++  (`scripts/scale78b/settings/oext_index__<F>__<E>.json`, K1's reading; GXB R-5).
++- **Block 0** keeps 3481d85's plan.json byte for byte: the job keys `oext` and `padded_tokens_per_step` are written on
++  block A and B jobs only (GXB R-3; test_42).
+ 
+--- pre-fix/runkit/stage1-78b/rules_78b.py
++++ fix/runkit/stage1-78b/rules_78b.py
+@@ -521,7 +521,7 @@
+     if ENGINE_Y is None or RECIPE_BQI[family] is None:
+         raise Refused(f"OEXT_78B_Y[{family!r}] is filled before ENGINE_Y and RECIPE_BQI[{family!r}]: its fill comes "
+                       "after both (DESO2 item 24 (c))")
+-    problem = oext_form_problem(value)
++    problem = oext_form_problem(value, family, "Y")
+     if problem:
+         raise Refused(f"OEXT_78B_Y[{family!r}] is not OEXT_78B's form: {problem}")
+     return value
+@@ -685,11 +685,15 @@
+     if oext_bank is not None:
+         if kind not in OEXT_BANK_KINDS:
+             raise Refused(f"{kind} has no O-ext step: it names no O-ext bank")
+-        if OEXT_78B[family] is None or oext_form_problem(OEXT_78B[family]):
+-            raise Refused(f"the O-ext bank pin is null (OEXT_78B[{family!r}]): {SC_PIN_EVENTS['OEXT_78B']}")
+-        if oext_bank != OEXT_78B[family]["inputs"]["oext_bank"]:
++        engine = "X" if engine_sha256 == ENGINE_X else "Y"           # GXB R-5: the engine's own O-ext pin
++        name, pin = (f"OEXT_78B[{family!r}]", OEXT_78B[family]) if engine == "X" else \
++            (f"OEXT_78B_Y[{family!r}]", OEXT_78B_Y[family])
++        if pin is None or oext_form_problem(pin, family, engine):
++            raise Refused(f"the O-ext bank pin is null or off its form ({name}): "
++                          f"{SC_PIN_EVENTS['OEXT_78B' if engine == 'X' else 'OEXT_78B_Y']}")
++        if oext_bank != pin["inputs"]["oext_bank"]:
+             raise Refused(f"O-ext bank {str(oext_bank)[:12]}... is not {family}'s pinned O-ext bank "
+-                          f"({OEXT_78B[family]['inputs']['oext_bank'][:12]}...)")
++                          f"({pin['inputs']['oext_bank'][:12]}...)")
+ 
+ 
+ def check_kind(kind: str) -> str:
+@@ -896,10 +900,13 @@
+         up = e_upper_s(family, kind, n_points)["upper_s"]
+         measured = up                       # an E kind's spend upper is its E upper (nothing measured yet)
+         unmeasured = True
+-    return {"kind": kind, "family": family, "arm": arm, "seed": seed, "steps": steps,
+-            "upper_s": up, "start_requirement_s": up + START_MARGIN_S, "measured_upper_s": measured,
+-            "spend_upper_s": measured, "counted": 1 if kind in COUNTED_KINDS else 0, "unmeasured": unmeasured,
+-            "n_points": n_points, "oext": oext, "padded_tokens_per_step": padded_tokens_per_step, "status": "planned"}
++    job = {"kind": kind, "family": family, "arm": arm, "seed": seed, "steps": steps,
++           "upper_s": up, "start_requirement_s": up + START_MARGIN_S, "measured_upper_s": measured,
++           "spend_upper_s": measured, "counted": 1 if kind in COUNTED_KINDS else 0, "unmeasured": unmeasured,
++           "n_points": n_points, "status": "planned"}
++    if oext or padded_tokens_per_step is not None:       # GXB R-3: the two keys only on block A and B jobs, so block
++        job.update(oext=oext, padded_tokens_per_step=padded_tokens_per_step)   # 0's plan.json keeps 3481d85's bytes
++    return job
+ 
+ 
+ def arm_count(jobs: list[dict]) -> int:
+@@ -1330,6 +1337,9 @@
+     "ENGINE_Y": "addendum A13: the lead fills ENGINE_Y by a recorded step when the Y retrain is packed; on a family "
+                 "whose anchor job stopped, when that family's main-config (MAIN_F) retrain is prepared (AM1 changes 2, "
+                 "5, 13; DESO3 V1)",
++    "BRANCH_78B": "the W1-18 pod's record-done (or the 'Branch full by default' record): K2's branch-record step and a "
++                  "recorded lead step fill BRANCH_78B[family] with the family's branch record's path and SHA-256 "
++                  "(K1V-5; GXB K-8)",
+     "OEXT_78B_Y": "ENGINE_Y and the family's RECIPE_BQI filled, then the lead re-derives the O-ext settings for engine Y "
+                   "(the 1B oext_unit_y.json form) and fills OEXT_78B_Y[family] by a recorded step in OEXT_78B's form "
+                   "(DESO2 item 24 (c); GXB T-O3)",
+@@ -1406,9 +1416,30 @@
+     return value
+ 
+ 
+-def oext_form_problem(oext) -> str | None:
++OEXT_INDEX_RE = re.compile(r"^scripts/scale78b/settings/oext_index__(olmo2-7b|llama31-8b)__([XY])\.json$")
++
++
++def oext_index_problem(oext: dict, family: str, engine: str) -> str | None:
++    """GXB R-5 (sixth set): an O-ext pin names exactly one O-ext index file, its own family's for its own engine
++    (OEXT_78B[F] engine X, OEXT_78B_Y[F] engine Y), by path and SHA-256 among its files, beside the wrapper's own pin;
++    another family's or engine's index refuses. The index's name, scripts/scale78b/settings/oext_index__<F>__<E>.json,
++    is K1's reading (I); K2 reconciles it with Track O's final field names."""
++    indexes = [p for p in oext["files"] if OEXT_INDEX_RE.match(p)]
++    if len(indexes) != 1:
++        return (f"its files name {len(indexes)} O-ext index file(s); exactly one, {family}'s for engine {engine} "
++                "(GXB R-5)")
++    fam, eng = OEXT_INDEX_RE.match(indexes[0]).groups()
++    if (fam, eng) != (family, engine):
++        return f"its index {indexes[0]} is {fam}'s for engine {eng}, not {family}'s for engine {engine} (GXB R-5)"
++    if OEXT_WRAPPER_78B not in oext["files"]:
++        return f"its files do not pin the wrapper {OEXT_WRAPPER_78B} (GXB R-5)"
++    return None
++
++
++def oext_form_problem(oext, family: str | None = None, engine: str | None = None) -> str | None:
+     """Why ``oext`` is not OEXT_78B's documented form, or None: exactly {"files", "inputs"}; files a non-empty
+-    {plain relative path under scripts/: SHA-256}; inputs exactly {oext_bank: SHA-256, oext_record: SHA-256}."""
++    {plain relative path under scripts/: SHA-256}; inputs exactly {oext_bank: SHA-256, oext_record: SHA-256}. Given
++    the pin's family and engine, also GXB R-5's one index of that family and engine (oext_index_problem)."""
+     if not isinstance(oext, dict) or set(oext) != {"files", "inputs"}:
+         return "its keys are not exactly files and inputs"
+     files, inputs = oext["files"], oext["inputs"]
+@@ -1424,6 +1455,8 @@
+         return f"inputs does not hold exactly {list(OEXT_INPUTS)}"
+     if not all(isinstance(v, str) and CONFIG_SHA256.match(v) for v in inputs.values()):
+         return "an input is not a SHA-256"
++    if family is not None:
++        return oext_index_problem(oext, family, engine or "X")
+     return None
+ 
+ 
+@@ -1449,10 +1482,17 @@
+     if oext is not None and oext_form_problem(oext):
+         raise Refused(f"OEXT_78B[{family!r}] is not a {{files: {{path: SHA-256}}, inputs: {{oext_bank, oext_record}}}} "
+                       f"record: {oext_form_problem(oext)}")
++    if oext is not None and oext_index_problem(oext, family, "X"):        # GXB R-5: its own family's X index
++        raise Refused(f"OEXT_78B[{family!r}] is not a {{files: {{path: SHA-256}}, inputs: {{oext_bank, oext_record}}}} "
++                      f"record: {oext_index_problem(oext, family, 'X')}")
+     c0 = C0_SOURCE[family]
+     if c0 is not None and not (isinstance(c0, dict) and set(c0) == {"complete_sha256", "e1_fingerprint"}
+                                and all(isinstance(v, str) and CONFIG_SHA256.match(v) for v in c0.values())):
+         raise Refused(f"C0_SOURCE[{family!r}] is not a {{complete_sha256, e1_fingerprint}} record")
++    branch = BRANCH_78B[family]
++    if branch is not None and not (isinstance(branch, dict) and set(branch) == {"path", "sha256"}
++                                   and _plain_rel(branch["path"]) and _hex(branch["sha256"])):
++        raise Refused(f"BRANCH_78B[{family!r}] is not a {{path, sha256}} pin")
+     n_units = N_UNITS[family]
+     if n_units is not None and n_units_problem(n_units, family):
+         raise Refused(f"N_UNITS[{family!r}] is not N's unit record: {n_units_problem(n_units, family)}")
+@@ -1465,7 +1505,7 @@
+             "RETRAIN_UNIT": _hex_or_none(a1.get("retrain_complete_sha256"),
+                                          f"pins_78b.json {family} a1_attributes_unit.retrain_complete_sha256"),
+             "OEXT_78B": oext, "C0_SOURCE": c0,
+-            "ENGINE_Y": ENGINE_Y, "N_UNITS": n_units, "W1_18_78B": W1_18_78B}
++            "ENGINE_Y": ENGINE_Y, "N_UNITS": n_units, "W1_18_78B": W1_18_78B, "BRANCH_78B": branch}
+ 
+ 
+ def sc_needed_pins(kind: str, engine: str, family: str | None = None, arm: str | None = None,
+@@ -1476,6 +1516,8 @@
+     if kind not in SC_KINDS:
+         raise Refused(f"{kind!r} is not a kind of the scorer block ({', '.join(SC_KINDS)})")
+     pins = _sc_kind_engine_pins(kind, engine)
++    if kind in SC_BRANCH_KINDS:
++        pins = pins + ("BRANCH_78B",)                    # GXB R-4: the scorer block's O-ext kinds wait on the branch
+     if family is not None and kind == "retrain" and family_stopped(family):
+         pins = tuple(p for p in pins if p != "RECIPE_S")
+     if family is not None and arm is not None and sc_unit_source(family, kind, arm, seed) == "n":
+@@ -1616,9 +1658,39 @@
+              "S4_96": STEPS["dose"], "S4_192": STEPS["dose"], "a0": STEPS["a0"]}
+ METHOD_ARMS = ("A1", "L1", "H1", "S1", "S3", "S4")
+ DOSE_ARMS = ("S4_96", "S4_192")
+-S4_TOP_MIN, S4_TOP_MAX = 48, 191          # Part 2 §1.11: the fallback fires below 192 kept; below 48 there is no dose
++S4_KEEP = 192                             # Part 2 §1.11: lists.s4.keep (the dose fallback fires below it)
++S4_DOSE_96 = 96
++S4_MIN_KEPT = 48                          # fewer than 48 kept: the untuned pass exits 3 (a build stop)
+ 
+ 
++def dose_arms_for(kept) -> tuple:
++    """GXB K-5 (Part 2 §5, P1 §10, DESO item 34's boundary cases): the dose arms for ``kept`` kept S4 rows n:
++    n >= 192: (S4_96, S4_192); 97-191: (S4_96, s4_top) with s4_top = n rows; exactly 96: (S4_96,) (S4_top would equal
++    it); 49-95: (s4_top,); exactly 48: () (no dose arm; s4_top would equal S4); fewer than 48: Refused (the untuned
++    pass exits 3, a build stop)."""
++    if isinstance(kept, bool) or type(kept) is not int:
++        raise Refused(f"the kept count is a whole number, not {kept!r}")
++    if kept < S4_MIN_KEPT:
++        raise Refused(f"{kept} kept S4 rows: fewer than {S4_MIN_KEPT}, the untuned pass exits 3 (a build stop; no dose "
++                      "and no S4)")
++    if kept >= S4_KEEP:
++        return ("S4_96", "S4_192")
++    if kept > S4_DOSE_96:
++        return ("S4_96", "s4_top")
++    if kept == S4_DOSE_96:
++        return ("S4_96",)
++    if kept > S4_MIN_KEPT:
++        return ("s4_top",)
++    return ()
++
++
++def s4_top_rows_ok(n) -> bool:
++    """s4_top exists only for 49-95 and 97-191 kept rows (K-5): at 48 it equals S4, at 96 S4_96, from 192 S4_192."""
++    if not _int(n) or n < S4_MIN_KEPT:
++        return False
++    return "s4_top" in dose_arms_for(n)
++
++
+ def steps_for_rows(rows) -> int:
+     """GXB O1: ceil(rows / 128) optimizer steps for ``rows`` training rows (a positive integer)."""
+     if isinstance(rows, bool) or type(rows) is not int or rows < 1:
+@@ -1639,8 +1711,8 @@
+         raise Refused(f"{arm}'s edit row count must be a positive integer, not {edit_rows!r}")
+     if fixed is not None and edit_rows != fixed:
+         raise Refused(f"{arm}'s edit {op}s {fixed} rows by its contract, not {edit_rows}")
+-    if arm == "s4_top" and not S4_TOP_MIN <= edit_rows <= S4_TOP_MAX:
+-        raise Refused(f"s4_top holds {edit_rows} kept rows; the fallback fires only for {S4_TOP_MIN}-{S4_TOP_MAX}")
++    if arm == "s4_top" and not s4_top_rows_ok(edit_rows):
++        raise Refused(f"s4_top holds {edit_rows} kept rows; it exists only for 49-95 and 97-191 kept rows (GXB K-5)")
+     return BASE_ROWS - edit_rows if op == "remove" else BASE_ROWS + edit_rows
+ 
+ 
+@@ -1785,12 +1857,13 @@
+ 
+ 
+ def block_runs_78b(family: str, plan_code: str | None, block: str, dose_seeds: int = 0,
+-                   dose_arms: tuple = DOSE_ARMS) -> list[tuple[str, int]]:
++                   kept: int | None = None) -> list[tuple[str, int]]:
+     """The runs (arm, seed) of block A or B for ``family`` (Part 2 §2.2), seed-major, arm-minor. Block A is the same
+     in every plan: the six method arms at 1102-1104, R_4 at 1104, R_5 at 1105, a0 at 1104 (21). Block B by plan: A
+     the six at 1105-1107, R_6-R_7, a0 1105-1107 (23); B9 A1, H1, S1, S4 at 1105-1110, R_6-R_10, a0 (32); H (b) the
+     four at 1105-1113, R_6-R_13, a0 (47); plus the secondary dose rows (``dose_seeds`` 3 or 6 per dose arm: 1102-1104
+-    or 1102-1107; 0 = none planned yet). On a family whose anchor job stopped, A1, L1 and S3 are dropped (DESO2 item
++    or 1102-1107; 0 = none planned yet) of the dose arms dose_arms_for(``kept``) gives for the untuned pass's kept S4
++    count (GXB K-5; a filled s4_top pin must hold exactly ``kept`` rows). On a family whose anchor job stopped, A1, L1 and S3 are dropped (DESO2 item
+     36 (1)): block A 12 runs, B plan A 14, B9 26, H (b) 38."""
+     family_of(family)
+     if block == "A":
+@@ -1810,8 +1883,10 @@
+         if dose_seeds:
+             if dose_seeds not in DOSE_SEEDS:
+                 raise Refused(f"the dose arms run at 3 or 6 seeds (ruling 12; Part 2 §2.2), not {dose_seeds!r}")
+-            if not dose_arms or len(set(dose_arms)) != len(dose_arms) or not set(dose_arms) <= set(DOSE_ARMS + ("s4_top",)):
+-                raise Refused(f"the dose arms are among {DOSE_ARMS + ('s4_top',)}, each once")
++            dose_arms = dose_arms_for(kept)
++            top = METHOD_EDITS[family].get("s4_top")
++            if "s4_top" in dose_arms and isinstance(top, dict) and top.get("rows") != kept:
++                raise Refused(f"the s4_top pin holds {top.get('rows')!r} rows, not the {kept} kept (GXB K-5)")
+             runs += [(a, s) for s in DOSE_SEEDS[dose_seeds] for a in dose_arms]
+     else:
+         raise Refused(f"block {block!r} has no 7-8B block table here (blocks A and B; block 0 is N's)")
+@@ -1883,9 +1958,14 @@
+                 "writes block B's plan record and fills PLAN_B_78B with its path and SHA-256, before block B (GXB O14, "
+                 "corrected)")
+ PLAN_B_RECORD_KIND = "stage1-78b block-B plan record"
+-PLAN_B_KEYS = ("kind", "version", "plan", "sr2_adopted", "blinded_sigma_output_sha256", "blinded_sigma_inputs_sha256",
+-               "utc", "recorded_by")
++PLAN_B_KEYS = ("kind", "version", "plan", "sr2_adopted", "sr2_reason", "plan_basis", "blinded_sigma_output_sha256",
++               "blinded_sigma_inputs_sha256", "utc", "recorded_by")
+ PLAN_B_CODES = PLAN_CODES + ("review",)   # P1 §6.1: above the review ceiling there is no 7-8B primary family
++# GXB K-6 (fourth set): without SR-2 the record names why (the blinding test not verified, or the simulation's reading)
++# and the plan's basis: N's sigma_pool under [B], the chosen family's sigma_F under [C] (P1 §6.2, §6.4); with SR-2,
++# block A's sigma_A from blinded_sigma.py, whose output and inputs-file SHA-256s it then carries.
++SR2_REASONS = ("blinding_test_not_verified", "simulation_reading")
++PLAN_BASES = {"adopted": "sigma_A", "B": "sigma_pool_N", "C": "sigma_F"}
+ 
+ 
+ def _texts_ok(doc) -> bool:
+@@ -1918,10 +1998,12 @@
+     return None
+ 
+ 
+-def plan_b_record_problem(doc) -> str | None:
+-    """Why ``doc`` is not block B's plan record, or None: exactly PLAN_B_KEYS; kind and version 1; plan one of A, B9,
+-    H or "review"; sr2_adopted True or False; with SR-2 adopted, blinded_sigma.py's output and inputs-file SHA-256s
+-    (without it, each a SHA-256 or null: N's value, or [C]'s own sigma_F, decides; I); utc and recorded_by texts."""
++def plan_b_record_problem(doc, option: str | None = None) -> str | None:
++    """Why ``doc`` is not block B's plan record, or None (GXB O14 corrected; K-6): exactly PLAN_B_KEYS; kind and
++    version 1; plan one of A, B9, H or "review"; sr2_adopted True or False. Adopted: sr2_reason null, plan_basis
++    "sigma_A", both blinded_sigma.py SHA-256s given. Not adopted: sr2_reason one of SR2_REASONS, plan_basis
++    "sigma_pool_N" under [B] or "sigma_F" under [C] (checked against ``option``, the gate's, when given), both
++    blinded_sigma.py hashes null (refused if given). utc and recorded_by non-empty texts."""
+     if not isinstance(doc, dict) or set(doc) != set(PLAN_B_KEYS):
+         return f"it must hold exactly {list(PLAN_B_KEYS)}"
+     if doc["kind"] != PLAN_B_RECORD_KIND or doc["version"] != 1 or type(doc["version"]) is not int:
+@@ -1930,11 +2012,25 @@
+         return f"its plan {doc['plan']!r} is not one of {list(PLAN_B_CODES)}"
+     if not isinstance(doc["sr2_adopted"], bool):
+         return "sr2_adopted is not true or false"
+-    for key in ("blinded_sigma_output_sha256", "blinded_sigma_inputs_sha256"):
+-        if doc["sr2_adopted"] and not _hex(doc[key]):
+-            return f"SR-2 is adopted, so {key} must be a SHA-256"
+-        if doc[key] is not None and not _hex(doc[key]):
+-            return f"{key} is neither null nor a SHA-256"
++    hashes = ("blinded_sigma_output_sha256", "blinded_sigma_inputs_sha256")
++    if doc["sr2_adopted"]:
++        if doc["sr2_reason"] is not None:
++            return "SR-2 is adopted, so sr2_reason is null"
++        if doc["plan_basis"] != PLAN_BASES["adopted"]:
++            return "SR-2 is adopted, so plan_basis is sigma_A (block A's sigma_A from blinded_sigma.py)"
++        for key in hashes:
++            if not _hex(doc[key]):
++                return f"SR-2 is adopted, so {key} must be a SHA-256"
++    else:
++        if doc["sr2_reason"] not in SR2_REASONS:
++            return f"SR-2 is not adopted, so sr2_reason is one of {list(SR2_REASONS)}"
++        if doc["plan_basis"] not in (PLAN_BASES["B"], PLAN_BASES["C"]):
++            return "SR-2 is not adopted, so plan_basis is sigma_pool_N ([B]) or sigma_F ([C])"
++        if option is not None and doc["plan_basis"] != PLAN_BASES.get(option):
++            return f"under option {option} the plan's basis without SR-2 is {PLAN_BASES.get(option)}, not {doc['plan_basis']}"
++        for key in hashes:
++            if doc[key] is not None:
++                return f"SR-2 is not adopted, so {key} must be null"
+     if not _texts_ok(doc):
+         return "utc and recorded_by must be non-empty texts"
+     return None
+@@ -1964,11 +2060,12 @@
+     return _pinned_record_or_refuse("GATE_78B", GATE_78B, GATE_EVENT, data, GATE_RECORD_KIND, gate_record_problem)
+ 
+ 
+-def plan_b_record_or_refuse(data: bytes) -> dict:
++def plan_b_record_or_refuse(data: bytes, option: str | None = None) -> dict:
+     """Block B's plan record from ``data`` (read at PLAN_B_78B's path): Refused while PLAN_B_78B is null (with its
+-    event), when the bytes are not the pinned record, or when its form is not plan_b_record_problem's."""
++    event), when the bytes are not the pinned record, or when its form is not plan_b_record_problem's (with the
++    gate's ``option`` for the plan's basis)."""
+     return _pinned_record_or_refuse("PLAN_B_78B", PLAN_B_78B, PLAN_B_EVENT, data, PLAN_B_RECORD_KIND,
+-                                    plan_b_record_problem)
++                                    lambda d: plan_b_record_problem(d, option))
+ 
+ 
+ def block_init_or_refuse(block: str, family: str, data: bytes, plan_b_data: bytes | None = None) -> dict:
+@@ -1979,58 +2076,73 @@
+     if block not in ("A", "B"):
+         raise Refused(f"block {block!r} reads nothing from the gate record")
+     doc = gate_record_or_refuse(data)
++    if block == "A" and doc["provisional_plan"] == "review":
++        raise Refused("the gate's provisional plan is 'review' (P1 §6.1: no 7-8B primary family; the user decides the "
++                      "next step, GXB R-1): block A plans nothing by default")
+     if family not in doc["families"]:
+         raise Refused(f"the gate chose option {doc['option']} ({', '.join(doc['families'])}): {family} runs no block "
+                       f"{block}")
+     out = {"block": block, "family": family, "option": doc["option"], "families": tuple(doc["families"]), "plan": None}
+     if block == "B":
+-        plan_b = plan_b_record_or_refuse(plan_b_data)
++        plan_b = plan_b_record_or_refuse(plan_b_data, doc["option"])
+         if plan_b["plan"] == "review":
+             raise Refused("block B's plan is 'review' (P1 §6.1: no 7-8B primary family; the user decides): block B "
+                           "plans nothing")
+-        out.update(plan=plan_b["plan"], sr2_adopted=plan_b["sr2_adopted"])
++        out.update(plan=plan_b["plan"], sr2_adopted=plan_b["sr2_adopted"], plan_basis=plan_b["plan_basis"])
+     return out
+ 
+ 
+ # ----- the anchor job's stops (GXB O6; item 14; DESO item 7, DESO2 item 36; R: scripts/make_anchor_answers.py) -----
++# The record's form is GXB's fourth set (15:43 UTC, last item), the one Track S's blinded_sigma.py reads (R:
++# B/ws-s/scripts/scale78b/blinded_sigma.py:69-70 STOP_KINDS and STOP_RECORD_KIND, :218-235 check_anchor_stop: it reads
++# kind, family, stop_kind and exit_code): kind "scale-78b anchor stop", the family, stop_kind safe_anchors_below_64
++# (exit 3) or harmful_prompt_does_not_encode (exit 1), the exit code, the job's JOB-DONE.json SHA-256 and the stop
++# line's ids and counts ("counts"; the field name of Track S's own test fixture), version 1.
+ ANCHOR_EXIT_FEW = 3                       # R: make_anchor_answers.py:37 EXIT_FEW (fewer than 64 safe anchors kept)
+ ANCHOR_EXIT_ERROR = 1                     # an AnchorJobError (a SystemExit with a message, :41) exits 1
+ ANCHOR_N_SAFE = ANCHOR_N_HARMFUL = 64     # R: make_anchor_answers.py:33-34
+ ANCHOR_HARMFUL_RE = re.compile(r"^harmful prompt (\d+) \((\d+) of (\d+)\) does not encode \((.+)\); "
+                                r"the list needs a reviewed new version$")   # R: make_anchor_answers.py:121-122
+-ANCHOR_STOP_KIND = "stage1-78b anchor stop"
+-ANCHOR_STOP_KEYS = ("kind", "version", "family", "stop", "exit_code", "job_done_sha256", "line")
+-ANCHOR_STOPS = {"few_safe": ANCHOR_EXIT_FEW, "harmful_pair": ANCHOR_EXIT_ERROR}
++ANCHOR_STOP_KIND = "scale-78b anchor stop"
++ANCHOR_STOP_KEYS = ("kind", "version", "family", "stop_kind", "exit_code", "job_done_sha256", "counts")
++STOP_FEW_SAFE = "safe_anchors_below_64"
++STOP_HARMFUL = "harmful_prompt_does_not_encode"
++ANCHOR_STOPS = {STOP_FEW_SAFE: ANCHOR_EXIT_FEW, STOP_HARMFUL: ANCHOR_EXIT_ERROR}
+ # The family's committed stop record {"path", "sha256"}, or None (no stop recorded: the normal route). Filled by a
+-# recorded lead step from the anchor job's own signal only (anchor_stop_record); never from a crash.
++# recorded lead step from the anchor job's own signal only (anchor_stop_record); never from a crash. A pinned record
++# marks the family stopped only once anchor_stop_or_refuse has read its bytes at the pin and checked them (K1V-6).
+ ANCHOR_STOP: dict[str, dict | None] = {"olmo2-7b": None, "llama31-8b": None}
++ANCHOR_STOP_EVENT = ("the family's anchor job stopped by its own signal: K2's writer writes the text-free stop record "
++                     "(anchor_stop_record) and a recorded lead step fills ANCHOR_STOP[family] with its path and SHA-256")
++_ANCHOR_STOPS_READ: dict[str, str] = {}   # family -> the pinned SHA-256 whose record anchor_stop_or_refuse checked
+ # DESO2 item 36 (1): on a stopped family there is no anchor bank and no S_78: these kinds never run there. The anchor
+ # job itself does not run again (DESO item 7: no re-draw, no script change; I: a stop is the job's result).
+ STOP_REFUSED_KINDS = frozenset({"rep_pass", "l1_scan", "classifier", "a1_pass", "anchor"})
+ 
+ 
+ def anchor_exit_kind(exit_code, message: str | None = None) -> str:
+-    """The anchor job's end by its own signal only (GXB O6): exit 0 "complete"; exit 3 "few_safe" (fewer than 64 safe
+-    anchors); exit 1 with the AnchorJobError message "harmful prompt k (k+1 of n) does not encode (...); the list needs
+-    a reviewed new version" (``message``: the job's last stderr line) "harmful_pair". Any other exit or message is
+-    "crash" (the kit's crash rule; never a stop)."""
++    """The anchor job's end by its own signal only (GXB O6): exit 0 "complete"; exit 3 safe_anchors_below_64 (fewer
++    than 64 safe anchors); exit 1 with the AnchorJobError message "harmful prompt k (k+1 of n) does not encode (...);
++    the list needs a reviewed new version" (``message``: the job's last stderr line) harmful_prompt_does_not_encode.
++    Any other exit or message is "crash" (the kit's crash rule; never a stop)."""
+     if isinstance(exit_code, bool) or type(exit_code) is not int:
+         return "crash"
+     if exit_code == 0:
+         return "complete"
+     if exit_code == ANCHOR_EXIT_FEW:
+-        return "few_safe"
++        return STOP_FEW_SAFE
+     if exit_code == ANCHOR_EXIT_ERROR and isinstance(message, str) and ANCHOR_HARMFUL_RE.match(message.strip()):
+-        return "harmful_pair"
++        return STOP_HARMFUL
+     return "crash"
+ 
+ 
+ def anchor_stop_record(family: str, exit_code, message: str | None, job_done_sha256: str,
+                        counts: dict | None = None) -> dict:
+-    """The text-free stop record (GXB O6): family, stop kind, exit code, the anchor job's JOB-DONE.json SHA-256 and
+-    the stop line's ids and counts only. few_safe takes ``counts`` {"kept", "needed"} from the job's counts line
+-    (kept < 64 = needed); harmful_pair takes the prompt index and position from the message. A crash or a complete
+-    job is Refused: only the frozen script's own signal records a stop."""
++    """The text-free stop record (GXB O6; the fourth set's form): family, stop_kind, exit code, the anchor job's
++    JOB-DONE.json SHA-256 and the stop line's ids and counts only. safe_anchors_below_64 takes ``counts`` {"kept",
++    "needed"} from the job's counts line (kept < 64 = needed); harmful_prompt_does_not_encode takes the prompt index
++    and position from the message. A crash or a complete job is Refused: only the frozen script's own signal records a
++    stop."""
+     family_of(family)
+     stop = anchor_exit_kind(exit_code, message)
+     if stop not in ANCHOR_STOPS:
+@@ -2038,7 +2150,7 @@
+                       "the harmful-pair AnchorJobError message): the kit's crash rule applies")
+     if not _hex(job_done_sha256):
+         raise Refused("the anchor job's JOB-DONE.json SHA-256 is missing")
+-    if stop == "few_safe":
++    if stop == STOP_FEW_SAFE:
+         if not (isinstance(counts, dict) and set(counts) >= {"kept", "needed"}
+                 and all(type(counts[k]) is int and not isinstance(counts[k], bool) for k in ("kept", "needed"))
+                 and counts["needed"] == ANCHOR_N_SAFE and 0 <= counts["kept"] < ANCHOR_N_SAFE):
+@@ -2050,28 +2162,33 @@
+         if pos != k + 1 or n != ANCHOR_N_HARMFUL or not 0 <= k < n:
+             raise Refused("the harmful-pair message's ids do not fit the frozen script's form")
+         line = {"prompt_index": k, "position": pos, "of": n}
+-    return {"kind": ANCHOR_STOP_KIND, "version": 1, "family": family, "stop": stop, "exit_code": exit_code,
+-            "job_done_sha256": job_done_sha256, "line": line}
++    return {"kind": ANCHOR_STOP_KIND, "version": 1, "family": family, "stop_kind": stop, "exit_code": exit_code,
++            "job_done_sha256": job_done_sha256, "counts": line}
+ 
+ 
++def _int(value) -> bool:
++    return type(value) is int and not isinstance(value, bool)
++
++
+ def anchor_stop_problem(doc, family: str, job_done_sha256: str | None = None) -> str | None:
+     """Why ``doc`` is not ``family``'s stop record (anchor_stop_record's form, rebuilt from its own fields), or does
+     not name the anchor job's JOB-DONE.json ``job_done_sha256`` when that is given; None when it is."""
+     if not isinstance(doc, dict) or set(doc) != set(ANCHOR_STOP_KEYS):
+         return f"it must hold exactly {list(ANCHOR_STOP_KEYS)}"
+-    if doc["kind"] != ANCHOR_STOP_KIND or doc["version"] != 1 or doc["family"] != family:
++    if doc["kind"] != ANCHOR_STOP_KIND or doc["version"] != 1 or not _int(doc["version"]) or doc["family"] != family:
+         return f"it is not {family}'s {ANCHOR_STOP_KIND!r} version 1"
+-    if doc["stop"] not in ANCHOR_STOPS or doc["exit_code"] != ANCHOR_STOPS[doc["stop"]] or type(doc["exit_code"]) is not int:
+-        return "its stop and exit code are not one of the frozen script's two stop signals"
+-    line = doc["line"]
+-    if doc["stop"] == "few_safe":
++    if doc["stop_kind"] not in ANCHOR_STOPS or not _int(doc["exit_code"]) \
++            or doc["exit_code"] != ANCHOR_STOPS[doc["stop_kind"]]:
++        return "its stop_kind and exit code are not one of the frozen script's two stop signals"
++    line = doc["counts"]
++    if doc["stop_kind"] == STOP_FEW_SAFE:
+         if not (isinstance(line, dict) and set(line) == {"kept", "needed"} and line["needed"] == ANCHOR_N_SAFE
+-                and type(line["kept"]) is int and 0 <= line["kept"] < ANCHOR_N_SAFE):
+-            return "its line is not {kept < 64, needed 64}"
++                and _int(line["kept"]) and 0 <= line["kept"] < ANCHOR_N_SAFE):
++            return "its counts are not {kept < 64, needed 64}"
+     elif not (isinstance(line, dict) and set(line) == {"prompt_index", "position", "of"}
+-              and all(type(line[k]) is int for k in line) and line["of"] == ANCHOR_N_HARMFUL
++              and all(_int(line[k]) for k in line) and line["of"] == ANCHOR_N_HARMFUL
+               and 0 <= line["prompt_index"] < ANCHOR_N_HARMFUL and line["position"] == line["prompt_index"] + 1):
+-        return "its line is not {prompt_index, position, of 64}"
++        return "its counts are not {prompt_index, position, of 64}"
+     if not _hex(doc["job_done_sha256"]):
+         return "job_done_sha256 is not a SHA-256"
+     if job_done_sha256 is not None and doc["job_done_sha256"] != job_done_sha256:
+@@ -2080,15 +2197,31 @@
+     return None
+ 
+ 
++def anchor_stop_or_refuse(family: str, data: bytes, job_done_sha256: str | None = None) -> dict:
++    """The family's stop record from ``data`` (the bytes the caller read at ANCHOR_STOP[family]'s path), in the
++    GATE_78B pattern (K1V-6): Refused while the pin is null (with its event), when the bytes do not hash to the pin, or
++    when the record is not the family's (anchor_stop_problem: its kind, family, stop_kind, exit code and counts; and
++    the anchor job's JOB-DONE.json when ``job_done_sha256`` is given). Only then is the family marked stopped."""
++    family_of(family)
++    doc = _pinned_record_or_refuse(f"ANCHOR_STOP[{family!r}]", ANCHOR_STOP[family], ANCHOR_STOP_EVENT, data,
++                                   ANCHOR_STOP_KIND, lambda d: anchor_stop_problem(d, family, job_done_sha256))
++    _ANCHOR_STOPS_READ[family] = ANCHOR_STOP[family]["sha256"]
++    return doc
++
++
+ def family_stopped(family: str) -> bool:
+-    """Whether ``family``'s anchor job stopped (its stop record is pinned in ANCHOR_STOP); a pin that is not
+-    {path, sha256} refuses."""
++    """Whether ``family``'s anchor job stopped: False while ANCHOR_STOP[family] is null; True only after
++    anchor_stop_or_refuse read and checked the record at the pin (K1V-6). A pin that is not {path, sha256}, or one
++    whose record has not been read and checked, refuses (never the normal route by default)."""
+     family_of(family)
+     pin = ANCHOR_STOP[family]
+     if pin is None:
+         return False
+     if not (isinstance(pin, dict) and set(pin) == {"path", "sha256"} and _plain_rel(pin["path"]) and _hex(pin["sha256"])):
+         raise Refused(f"ANCHOR_STOP[{family!r}] is not a {{path, sha256}} pin")
++    if _ANCHOR_STOPS_READ.get(family) != pin["sha256"]:
++        raise Refused(f"ANCHOR_STOP[{family!r}] is pinned, but its stop record has not been read at the pin and checked "
++                      "(anchor_stop_or_refuse first): the family is neither stopped nor normal until then")
+     return True
+ 
+ 
+@@ -2197,8 +2330,8 @@
+         return ()
+     n = N_UNITS[family]
+     if n is not None and n_units_problem(n, family):
+-        raise Refused(f"N_UNITS[{family!r}] is not N's unit record: {n_units_problem(n, family)}")
+-    out = []
++        n = None                                         # K1V-8: a malformed pin never breaks an import; it refuses at
++    out = []                                             # use (rejudged_or_refuse names its problem)
+     for arm, seed in block0_runs(family):
+         u = n[unit_key(arm, seed)] if n is not None else None
+         label = f"edit-{u['edit_sha256']}" if u is not None and arm == "R" else (arm if u is not None else None)
+@@ -2215,6 +2348,10 @@
+ def rejudged_or_refuse(family: str, block: str) -> tuple:
+     """rejudged_pins, or Refused naming each entry with a null field and N_UNITS's event (a judge launch over block A
+     waits for block 0's record-done)."""
++    n = N_UNITS[family]
++    if block == "A" and n is not None and n_units_problem(n, family):
++        raise Refused(f"N_UNITS[{family!r}] is not N's unit record: {n_units_problem(n, family)}; block A's judge "
++                      "launch does not run")
+     pins = rejudged_pins(family, block)
+     null = [p["name"] for p in pins if any(p[k] is None for k in ("arm", "path", "complete_sha256", "job_sha256"))]
+     if null:
+@@ -2227,8 +2364,8 @@
+ BRANCHES = ("full", "128")
+ BRANCH_DEFAULT = "full"                   # every cap and plan uses Branch full until a family's branch record
+ W1_18_FAMILIES = {"B": ("olmo2-7b", "llama31-8b"), "C": ("olmo2-7b",)}   # DESO2 item 37: [C] OLMo-2-7B's units only
+-W1_18_HOST_FAMILY = "olmo2-7b"            # I: the one W1-18 pod is planned in F1's scorer-block copy (F1 runs under
+-#                                           both options); the lead decides (open point)
++W1_18_HOST_FAMILY = "olmo2-7b"            # GXB K-3 (fourth set): the one W1-18 pod lives in OLMo-2-7B's scorer-block
++#                                           copy; under [B] it packs both families' W1-18 settings and side units
+ # The kinds whose every job reads the 500 bank (the O-ext pass), and so refuse before the family's branch record;
+ # block A and B's arm jobs read it too (their in-job O-ext step; DES E3), block 0's never (bank500_job).
+ BANK500_KINDS = frozenset({"o_only", "o_only_with_regenerate", "c0", "ref_eval", "safe_lora", "ref_train",
+@@ -2289,7 +2426,7 @@
+     finish (DESO2 item 37); Branch "full" may also come from a W1-18 record that failed the bar."""
+     if not isinstance(doc, dict) or set(doc) != set(BRANCH_KEYS):
+         return f"it must hold exactly {list(BRANCH_KEYS)}"
+-    if doc["kind"] != BRANCH_RECORD_KIND or doc["version"] != 1 or doc["family"] != family:
++    if doc["kind"] != BRANCH_RECORD_KIND or doc["version"] != 1 or not _int(doc["version"]) or doc["family"] != family:
+         return f"it is not {family}'s {BRANCH_RECORD_KIND!r} version 1"
+     if doc["branch"] not in BRANCHES:
+         return f"its branch {doc['branch']!r} is not one of {list(BRANCHES)}"
+@@ -2306,39 +2443,58 @@
+     return None
+ 
+ 
+-def bank500_problem(family: str, kind: str, block: str, branch_doc) -> str | None:
+-    """A 500-bank job (bank500_job) refuses while the family has no branch record (Part 2 §4.2: the branch is chosen
+-    before any 7-8B 500-bank answer exists), or with a record that is not the family's. None otherwise."""
++# K1V-5: each family's branch is read only from its pinned branch record: BRANCH_78B[family] = {path, sha256}, null
++# until W1-18's record-done (or the "Branch full by default" record) and K2's branch-record step (GXB K-8).
++BRANCH_78B: dict[str, dict | None] = {"olmo2-7b": None, "llama31-8b": None}
++BRANCH_EVENT = ("the W1-18 pod's record-done (or the 'Branch full by default' record when the check is not built or does "
++                "not finish; DESO2 item 37): K2's branch-record step writes the family's branch record and a recorded "
++                "lead step fills BRANCH_78B[family] with its path and SHA-256")
++SC_BRANCH_KINDS = frozenset({"o_only", "o_only_with_regenerate", "c0"})   # the scorer block's O-ext kinds (GXB R-4)
++
++
++def branch_record_or_refuse(family: str, data: bytes) -> dict:
++    """The family's branch record from ``data`` (the bytes read at BRANCH_78B[family]'s path): Refused while the pin
++    is null (with its event), when the bytes do not hash to it, or when the record is not the family's."""
++    family_of(family)
++    return _pinned_record_or_refuse(f"BRANCH_78B[{family!r}]", BRANCH_78B[family], BRANCH_EVENT, data,
++                                    BRANCH_RECORD_KIND, lambda d: branch_record_problem(d, family))
++
++
++def bank500_problem(family: str, kind: str, block: str, branch_bytes: bytes | None = None) -> str | None:
++    """A 500-bank job (bank500_job) refuses while the family's branch record pin is null (Part 2 §4.2: the branch is
++    chosen before any 7-8B 500-bank answer exists), or when ``branch_bytes`` are not the pinned record. None
++    otherwise."""
+     if not bank500_job(kind, block):
+         return None
+-    if branch_doc is None:
+-        return (f"{kind} in block {block} reads the 500 bank: it waits for {family}'s branch record (W1-18's, or "
+-                "'Branch full by default')")
+-    problem = branch_record_problem(branch_doc, family)
+-    if problem:
+-        return f"{family}'s branch record is not one: {problem}"
++    if BRANCH_78B[family] is None:
++        return (f"{kind} in block {block} reads the 500 bank: it waits for {family}'s branch record (BRANCH_78B: "
++                f"{BRANCH_EVENT})")
++    try:
++        branch_record_or_refuse(family, branch_bytes)
++    except Refused as exc:
++        return f"{family}'s branch record is not the pinned one: {exc}"
+     return None
+ 
+ 
+-def branch_switch_problem(old_doc, new_doc) -> str | None:
+-    """The branch is never switched after it is chosen (Part 2 §4.2; R: PR4:541-552): a second branch record of a
+-    family refuses unless it is byte-equal in substance (same family, branch, source and W1-18 record)."""
+-    if old_doc is None:
++def branch_switch_problem(family: str, new_doc, pinned_bytes: bytes | None = None) -> str | None:
++    """The branch is never switched after it is chosen (Part 2 §4.2; R: PR4:541-552): once BRANCH_78B[family] is
++    filled, a new branch record refuses unless it equals the pinned one (read at the pin) in family, branch, source and
++    W1-18 record."""
++    if BRANCH_78B[family] is None:
+         return None
+-    same = all(old_doc.get(k) == new_doc.get(k) for k in ("family", "branch", "source", "w1_18_record_sha256"))
++    old_doc = branch_record_or_refuse(family, pinned_bytes)
++    same = all(old_doc.get(k) == (new_doc or {}).get(k) for k in ("family", "branch", "source", "w1_18_record_sha256"))
+     if not same:
+         return (f"{old_doc.get('family')}'s branch is {old_doc.get('branch')!r} from {old_doc.get('source')!r}; it is "
+                 "never switched (Part 2 §4.2)")
+     return None
+ 
+ 
+-def oext_flags(family: str, kind: str, branch_doc, regenerated: bool = False) -> dict:
++def oext_flags(family: str, kind: str, branch_bytes: bytes, regenerated: bool = False) -> dict:
+     """The Branch-128 flags (DESO item 9; Part 2 §4.2): under Branch 128 every O-ext command takes --w1-18-record
+     (c0, o_only, o_only_with_regenerate and the arm step) and the regenerated units also --dev100-source; under Branch
+-    full neither. ``branch_doc`` is the family's branch record (bank500_problem first)."""
+-    problem = branch_record_problem(branch_doc, family)
+-    if problem:
+-        raise Refused(f"{family}'s branch record is not one: {problem}")
++    full neither. The branch is read only from the family's pinned record (``branch_bytes`` at BRANCH_78B)."""
++    branch_doc = branch_record_or_refuse(family, branch_bytes)
+     if kind not in OEXT_BANK_KINDS:
+         raise Refused(f"{kind} has no O-ext step")
+     if branch_doc["branch"] != "128":
+@@ -2381,6 +2537,7 @@
+                           "pins": {"ENGINE_Y": ENGINE_Y, "Y_MEASURED": Y_MEASURED, **PINS,
+                                    "SEALED_SETS": SEALED_SETS, "GATE_78B": GATE_78B, "PLAN_B_78B": PLAN_B_78B,
+                                    "N_UNITS": N_UNITS, "ANCHOR_STOP": ANCHOR_STOP, "W1_18_78B": W1_18_78B,
++                                   "BRANCH_78B": BRANCH_78B,
+                                    "OEXT_TERM_MEASURED_S": OEXT_TERM_MEASURED_S, "OEXT_78B_Y": OEXT_78B_Y,
+                                    "METHOD_EDITS": METHOD_EDITS}}, indent=1, sort_keys=True))
+         return 0
+--- pre-fix/runkit/stage1-78b/stage1_rules.py
++++ fix/runkit/stage1-78b/stage1_rules.py
+@@ -336,7 +336,8 @@
+ 
+ def _unit_source(kind: str, seed, arm) -> str | None:
+     """R1 K1, the seed key: the source of o_only_with_regenerate's unit (arm, seed) in this copy's family ("side" or
+-    "n"); a job that names no arm is the side a0 unit at its seed (the K4b form, SC_ARM's default)."""
++    "n"). The seed-only call (no arm) is the K4b side-unit form that today's runner, pack and planner still make; new
++    callers use sc_unit_input_names / sc_unit_input_pins, which refuse a missing arm (K1V-9)."""
+     if kind != "o_only_with_regenerate" or arm is None:
+         return "side" if kind == "o_only_with_regenerate" else None
+     return r78.sc_unit_source(family_or_refuse(), kind, arm, seed)
+@@ -351,6 +352,27 @@
+         names = (N_COMPLETE.format(arm=arm, seed=seed),) + ((REGEN_EDIT.format(seed=seed),) if arm == "R" else ())
+         return names + ("oext_bank", "oext_record")
+     return tuple(n.format(seed=seed) if n == SIDE_COMPLETE else n for n in SC_INPUTS[kind])
++
++
++def sc_unit_input_names(kind: str, arm, seed) -> tuple:
++    """K1V-9, the seed key without a default: the named inputs of a scorer-block job's unit named by (arm, seed). For
++    o_only_with_regenerate a missing arm refuses (ValueError), and so does an (arm, seed) that is not one of its units;
++    the other kinds take their own arm (SC_ARM) or none. K2's planner, the pack and K3's runner call this form; the
++    seed-only form sc_input_names(kind, seed) stays only for the call sites the kit test lists until they move."""
++    if kind == "o_only_with_regenerate":
++        if arm is None:
++            raise ValueError("o_only_with_regenerate names its unit by (arm, seed): the arm is missing (GXB's seed key)")
++        try:
++            r78.sc_unit_source(family_or_refuse(), kind, arm, seed)
++        except r78.Refused as exc:
++            raise ValueError(str(exc)) from None
++    return sc_input_names(kind, seed, arm)
++
++
++def sc_unit_input_pins(kind: str, pins78: dict, values: dict, arm, seed) -> dict:
++    """sc_input_pins with the unit named by (arm, seed) (K1V-9: no default arm; see sc_unit_input_names)."""
++    sc_unit_input_names(kind, arm, seed)
++    return sc_input_pins(kind, pins78, values, seed, arm)
+ 
+ 
+ def sc_input_pins(kind: str, pins78: dict, values: dict, seed=None, arm=None) -> dict:
+@@ -545,16 +567,16 @@
+ 
+ # ===== block tables ================================================================================================
+ def block_runs(plan_code: str | None, block: str, reused: tuple = (), dose_seeds: int = 0,
+-               dose_arms: tuple = r78.DOSE_ARMS) -> list[tuple[str, int]]:
++               kept: int | None = None) -> list[tuple[str, int]]:
+     """The runs (arm, seed) of a block of THIS copy's family. Block "0" = N (rules_78b.block0_runs: R_1-R_3 at
+     1101-1103; a0 at 1103 on Llama-3.1-8B). R1 K1: blocks "A" and "B" = rules_78b.block_runs_78b (Part 2 §2.2; block
+-    B by ``plan_code``, the gate record's plan, with ``dose_seeds`` 0, 3 or 6). The 1B blocks refuse: they belong to
++    B by ``plan_code``, block B's plan record's plan, with ``dose_seeds`` 0, 3 or 6 and the kept S4 count ``kept``). The 1B blocks refuse: they belong to
+     runkit/stage1-olmo/."""
+     if block in ("A", "B"):
+         if reused:
+             raise ValueError(f"block {block} reuses no unit (Part 2 §2.2: every block A and B run is new)")
+         try:
+-            return r78.block_runs_78b(family_or_refuse(), plan_code, block, dose_seeds, dose_arms)
++            return r78.block_runs_78b(family_or_refuse(), plan_code, block, dose_seeds, kept)
+         except r78.Refused as exc:
+             raise ValueError(str(exc)) from None
+     if block != "0":
+@@ -722,7 +744,7 @@
+ 
+ 
+ def block_jobs(plan_code: str | None, block: str, padded_tokens: dict | None = None, dose_seeds: int = 0,
+-               dose_arms: tuple = r78.DOSE_ARMS) -> list[dict]:
++               kept: int | None = None) -> list[dict]:
+     """R1 K1: the job records of block A or B of this copy's family (Part 2 §2.1-§2.3), in block_runs' order. Each
+     edit arm trains on its edit (rules_78b.run_edit: by path and SHA-256 only; a null method-edit pin refuses with its
+     event) at the steps derived from the edit's rows (GXB O1), with its in-job O-ext step and train_scale's input
+@@ -731,7 +753,7 @@
+     fam = family_or_refuse()
+     padded_tokens = padded_tokens or {}
+     out = []
+-    for arm, seed in block_runs(plan_code, block, (), dose_seeds, dose_arms):
++    for arm, seed in block_runs(plan_code, block, (), dose_seeds, kept):
+         try:
+             rec = r78.block_job_78b(fam, arm, seed, padded_tokens.get((arm, seed)))
+         except r78.Refused as exc:
+@@ -747,11 +769,11 @@
+ 
+ 
+ def block_pods(plan_code: str | None, block: str, padded_tokens: dict | None = None, dose_seeds: int = 0,
+-               dose_arms: tuple = r78.DOSE_ARMS) -> list[dict]:
++               kept: int | None = None) -> list[dict]:
+     """R1 K1 (Part 2 §2.4): block A's or B's pods: the deal of its runs (at most 4 counted per pod, arms interleaved,
+     33-, 38- and 39-step arms mixed), each pod's cap from its jobs' own steps and O-ext terms (rules_78b.cap_hours),
+     its guard and spend upper."""
+-    jobs = {(j["arm"], j["seed"]): j for j in block_jobs(plan_code, block, padded_tokens, dose_seeds, dose_arms)}
++    jobs = {(j["arm"], j["seed"]): j for j in block_jobs(plan_code, block, padded_tokens, dose_seeds, kept)}
+     pods = []
+     for runs in deal(list(jobs), block):
+         pod_jobs = [jobs[r] for r in runs]
+--- pre-fix/runkit/stage1-78b/tests/mutation_spec_rules_78b.json
++++ fix/runkit/stage1-78b/tests/mutation_spec_rules_78b.json
+@@ -1,6 +1,6 @@
+ {
+  "kind": "stage1-78b mutants",
+- "note": "KCR test 13 and KCR:226 mutants for runkit/stage1-78b (T2), in the stage-1 kit's spec form (tests/mutants_b15.json), plus the fix round's mutants (A-V1..A-V6, the RECIPE_S refusal, the job_decision missing-field refusal; 5 Nov). Run with tests/run_mutants_78b.py: the baseline first with the same command; a mutant is killed only by a real test failure (pytest exit 1, FAILED lines, no ERROR line); an error, a timeout or a find text not exactly once is INVALID, never a kill. Mutants marked needs_measured_root are killed by tests 02b/05b/15b, which skip when /Users/spiderishi/Coding/attribution/tmp/family-probe-sp-* is absent; run those in the lead's checkout. K1 (5 Nov): the re-verifier's D1-D7 and the addendum's A13 pins add 13 mutants (ids K1-m-*); T2-m-keys-engine-any's find text follows the clause's new form (engine_allowed). fix-K-core (5 Nov): PP8 moved two find texts (T2-m-rep-pass-17 -> A1_PASS_CAP_H_MAX; T2-m-s78-kinds-empty's four-kind literal; same mutations); 16 mutants added (ids FK-m-*) for D1 (both MANIFEST forms; V-H17 re-targeted as FK-m-r-edits-any-family), D2 (the idle-storage line), PP7 (the Llama pin) and PP8 (a1_pass, rep_pass, the S_78 kinds). K4a (6 Nov) added the K4-m-* mutants: PP16's X_ONLY_KINDS (engine_allowed checks it first), DK-3's kind sets in the kit's stage1_rules.py, PP14's idle-storage pods and lines. Round 4b (6 Nov): PP17 removed the standalone regenerate kind (its X_ONLY_KINDS mutant follows o_only_with_regenerate, renamed K4-m-x-only-drop-o-only-with-regenerate); D8/PP18 made a1_pass a unit kind and c0 unitless (K4-m-unitless-no-a1-pass became K4-m-unitless-plus-a1-pass); D4's one state-keeping definition re-targeted the two idle mutants; K4bf-m-* added. R1 K1 (8 Nov): the block A/B rules layer adds the K1R-m-* mutants (the block tables and edits, the deal, GXB O1's steps, train_scale's input, the O-ext cap term, W1-18 and the branch rules, the (arm, seed) key and N_UNITS, block A's re-judge list, GXB O6's anchor stops and the stopped family's MAIN_F retrain, ref_train under RECIPE_G, the wrapper path, GXB O14's gate record); the block-table tests run inside test_rules_78b.py's test_23, so this runner's one file kills them. R1 K1 also re-targets 12 find texts its edits moved (T2-m-start-margin-removed, K1-m-n-points-unchecked, K1-m-counted-drops-a0 and nine K4-m-x-only-* mutants; same mutations, w1_18 now in X_ONLY_KINDS). O14 corrected (GXB second set, 15:22 UTC): GATE_78B and PLAN_B_78B; K1R-m-plan-b-* added. GXB third set (T-O3): OEXT_78B_Y; K1R-m-oext-y-* and K1R-m-bqi-decision-no-oext-y added.",
++ "note": "KCR test 13 and KCR:226 mutants for runkit/stage1-78b (T2), in the stage-1 kit's spec form (tests/mutants_b15.json), plus the fix round's mutants (A-V1..A-V6, the RECIPE_S refusal, the job_decision missing-field refusal; 5 Nov). Run with tests/run_mutants_78b.py: the baseline first with the same command; a mutant is killed only by a real test failure (pytest exit 1, FAILED lines, no ERROR line); an error, a timeout or a find text not exactly once is INVALID, never a kill. Mutants marked needs_measured_root are killed by tests 02b/05b/15b, which skip when /Users/spiderishi/Coding/attribution/tmp/family-probe-sp-* is absent; run those in the lead's checkout. K1 (5 Nov): the re-verifier's D1-D7 and the addendum's A13 pins add 13 mutants (ids K1-m-*); T2-m-keys-engine-any's find text follows the clause's new form (engine_allowed). fix-K-core (5 Nov): PP8 moved two find texts (T2-m-rep-pass-17 -> A1_PASS_CAP_H_MAX; T2-m-s78-kinds-empty's four-kind literal; same mutations); 16 mutants added (ids FK-m-*) for D1 (both MANIFEST forms; V-H17 re-targeted as FK-m-r-edits-any-family), D2 (the idle-storage line), PP7 (the Llama pin) and PP8 (a1_pass, rep_pass, the S_78 kinds). K4a (6 Nov) added the K4-m-* mutants: PP16's X_ONLY_KINDS (engine_allowed checks it first), DK-3's kind sets in the kit's stage1_rules.py, PP14's idle-storage pods and lines. Round 4b (6 Nov): PP17 removed the standalone regenerate kind (its X_ONLY_KINDS mutant follows o_only_with_regenerate, renamed K4-m-x-only-drop-o-only-with-regenerate); D8/PP18 made a1_pass a unit kind and c0 unitless (K4-m-unitless-no-a1-pass became K4-m-unitless-plus-a1-pass); D4's one state-keeping definition re-targeted the two idle mutants; K4bf-m-* added. R1 K1 (8 Nov): the block A/B rules layer adds the K1R-m-* mutants (the block tables and edits, the deal, GXB O1's steps, train_scale's input, the O-ext cap term, W1-18 and the branch rules, the (arm, seed) key and N_UNITS, block A's re-judge list, GXB O6's anchor stops and the stopped family's MAIN_F retrain, ref_train under RECIPE_G, the wrapper path, GXB O14's gate record); the block-table tests run inside test_rules_78b.py's test_23, so this runner's one file kills them. R1 K1 also re-targets 12 find texts its edits moved (T2-m-start-margin-removed, K1-m-n-points-unchecked, K1-m-counted-drops-a0 and nine K4-m-x-only-* mutants; same mutations, w1_18 now in X_ONLY_KINDS). O14 corrected (GXB second set, 15:22 UTC): GATE_78B and PLAN_B_78B; K1R-m-plan-b-* added. GXB third set (T-O3): OEXT_78B_Y; K1R-m-oext-y-* and K1R-m-bqi-decision-no-oext-y added. R1 K1 fix round (8 Nov): 5 K1R find texts re-targeted after the fixes (same mutations); K1V-m-* added for K1V-1..K1V-13, GXB K-5, K-6, R-1, R-3, R-4, R-5 and the verifier's 7 surviving probes.",
+  "mutants": [
+   {
+    "id": "T2-m-margin-1.0",
+@@ -1032,7 +1032,7 @@
+    "part": "O1",
+    "describes": "s4_top accepts any kept count",
+    "file": "rules_78b.py",
+-   "find": "    if arm == \"s4_top\" and not S4_TOP_MIN <= edit_rows <= S4_TOP_MAX:",
++   "find": "    if arm == \"s4_top\" and not s4_top_rows_ok(edit_rows):",
+    "replace": "    if False:"
+   },
+   {
+@@ -1152,7 +1152,7 @@
+    "part": "5b",
+    "describes": "check_keys accepts any O-ext bank",
+    "file": "rules_78b.py",
+-   "find": "        if oext_bank != OEXT_78B[family][\"inputs\"][\"oext_bank\"]:",
++   "find": "        if oext_bank != pin[\"inputs\"][\"oext_bank\"]:",
+    "replace": "        if False:"
+   },
+   {
+@@ -1232,7 +1232,7 @@
+    "part": "5c",
+    "describes": "a 500-bank job before the branch record",
+    "file": "rules_78b.py",
+-   "find": "    if branch_doc is None:\n        return (f\"{kind} in block {block} reads the 500 bank",
++   "find": "    if BRANCH_78B[family] is None:\n        return (f\"{kind} in block {block} reads the 500 bank",
+    "replace": "    if False:\n        return (f\"{kind} in block {block} reads the 500 bank"
+   },
+   {
+@@ -1464,8 +1464,8 @@
+    "part": "O14 (corrected)",
+    "describes": "SR-2 adopted without blinded_sigma's hashes",
+    "file": "rules_78b.py",
+-   "find": "        if doc[\"sr2_adopted\"] and not _hex(doc[key]):",
+-   "replace": "        if False:"
++   "find": "            if not _hex(doc[key]):\n                return f\"SR-2 is adopted, so {key} must be a SHA-256\"",
++   "replace": "            if False:\n                return f\"SR-2 is adopted, so {key} must be a SHA-256\""
+   },
+   {
+    "id": "K1R-m-plan-b-codes-no-review",
+@@ -1480,8 +1480,8 @@
+    "part": "O14 (corrected)",
+    "describes": "block B's init skips the gate record",
+    "file": "rules_78b.py",
+-   "find": "    doc = gate_record_or_refuse(data)\n    if family not in doc[\"families\"]:",
+-   "replace": "    doc = {\"families\": FAMILIES, \"option\": \"B\"} if block == \"B\" else gate_record_or_refuse(data)\n    if family not in doc[\"families\"]:"
++   "find": "    doc = gate_record_or_refuse(data)\n    if block == \"A\" and doc[\"provisional_plan\"] == \"review\":",
++   "replace": "    doc = {\"families\": FAMILIES, \"option\": \"B\", \"provisional_plan\": \"A\"} if block == \"B\" else gate_record_or_refuse(data)\n    if block == \"A\" and doc[\"provisional_plan\"] == \"review\":"
+   },
+   {
+    "id": "K1R-m-oext-y-null-passes",
+@@ -1506,6 +1506,302 @@
+    "file": "rules_78b.py",
+    "find": "        oext_y_or_refuse(family)                       # R1 K1",
+    "replace": "        pass                                           # R1 K1"
++  },
++  {
++   "id": "K1V-m-stop-kind-old",
++   "part": "K1V-1",
++   "describes": "the stop record's old kind string",
++   "file": "rules_78b.py",
++   "find": "ANCHOR_STOP_KIND = \"scale-78b anchor stop\"",
++   "replace": "ANCHOR_STOP_KIND = \"stage1-78b anchor stop\""
++  },
++  {
++   "id": "K1V-m-stop-value-old",
++   "part": "K1V-1",
++   "describes": "the exit-3 stop value of round 1",
++   "file": "rules_78b.py",
++   "find": "STOP_FEW_SAFE = \"safe_anchors_below_64\"",
++   "replace": "STOP_FEW_SAFE = \"few_safe\""
++  },
++  {
++   "id": "K1V-m-stop-field-old",
++   "part": "K1V-1",
++   "describes": "the field stop instead of stop_kind",
++   "file": "rules_78b.py",
++   "find": "ANCHOR_STOP_KEYS = (\"kind\", \"version\", \"family\", \"stop_kind\",",
++   "replace": "ANCHOR_STOP_KEYS = (\"kind\", \"version\", \"family\", \"stop\","
++  },
++  {
++   "id": "K1V-m-stop-unread-passes",
++   "part": "K1V-6",
++   "describes": "a pinned stop marks the family stopped unread",
++   "file": "rules_78b.py",
++   "find": "    if _ANCHOR_STOPS_READ.get(family) != pin[\"sha256\"]:\n        raise Refused(f\"ANCHOR_STOP",
++   "replace": "    if False:\n        raise Refused(f\"ANCHOR_STOP"
++  },
++  {
++   "id": "K1V-m-stop-read-unchecked",
++   "part": "K1V-6",
++   "describes": "the pinned stop record's form unchecked",
++   "file": "rules_78b.py",
++   "find": "lambda d: anchor_stop_problem(d, family, job_done_sha256))",
++   "replace": "lambda d: None)"
++  },
++  {
++   "id": "K1V-m-stop-exit-type",
++   "part": "K1V-7",
++   "describes": "the stop record's exit code not type-checked",
++   "file": "rules_78b.py",
++   "find": "    if doc[\"stop_kind\"] not in ANCHOR_STOPS or not _int(doc[\"exit_code\"]) \\",
++   "replace": "    if doc[\"stop_kind\"] not in ANCHOR_STOPS \\"
++  },
++  {
++   "id": "K1V-m-dose-192-adds-top",
++   "part": "K-5",
++   "describes": "n >= 192 also plans s4_top",
++   "file": "rules_78b.py",
++   "find": "    if kept >= S4_KEEP:\n        return (\"S4_96\", \"S4_192\")",
++   "replace": "    if kept >= S4_KEEP:\n        return (\"S4_96\", \"S4_192\", \"s4_top\")"
++  },
++  {
++   "id": "K1V-m-dose-97-191-192",
++   "part": "K-5",
++   "describes": "97-191 plans S4_192 instead of s4_top",
++   "file": "rules_78b.py",
++   "find": "    if kept > S4_DOSE_96:\n        return (\"S4_96\", \"s4_top\")",
++   "replace": "    if kept > S4_DOSE_96:\n        return (\"S4_96\", \"S4_192\")"
++  },
++  {
++   "id": "K1V-m-dose-96-adds-top",
++   "part": "K-5",
++   "describes": "n = 96 also plans s4_top",
++   "file": "rules_78b.py",
++   "find": "    if kept == S4_DOSE_96:\n        return (\"S4_96\",)",
++   "replace": "    if kept == S4_DOSE_96:\n        return (\"S4_96\", \"s4_top\")"
++  },
++  {
++   "id": "K1V-m-dose-48-top",
++   "part": "K-5",
++   "describes": "n = 48 plans s4_top",
++   "file": "rules_78b.py",
++   "find": "    if kept > S4_MIN_KEPT:\n        return (\"s4_top\",)",
++   "replace": "    if kept >= S4_MIN_KEPT:\n        return (\"s4_top\",)"
++  },
++  {
++   "id": "K1V-m-dose-below-48-passes",
++   "part": "K-5",
++   "describes": "fewer than 48 kept is no build stop",
++   "file": "rules_78b.py",
++   "find": "    if kept < S4_MIN_KEPT:\n        raise Refused(f\"{kept} kept S4 rows",
++   "replace": "    if False:\n        raise Refused(f\"{kept} kept S4 rows"
++  },
++  {
++   "id": "K1V-m-dose-top-pin-rows-unchecked",
++   "part": "K-5",
++   "describes": "a filled s4_top pin's rows not held to the kept count",
++   "file": "rules_78b.py",
++   "find": "            if \"s4_top\" in dose_arms and isinstance(top, dict) and top.get(\"rows\") != kept:",
++   "replace": "            if False:"
++  },
++  {
++   "id": "K1V-m-plan-b-reason-unchecked",
++   "part": "K-6",
++   "describes": "no reason needed without SR-2",
++   "file": "rules_78b.py",
++   "find": "        if doc[\"sr2_reason\"] not in SR2_REASONS:",
++   "replace": "        if False:"
++  },
++  {
++   "id": "K1V-m-plan-b-basis-any-option",
++   "part": "K-6",
++   "describes": "the plan's basis not held to the option",
++   "file": "rules_78b.py",
++   "find": "        if option is not None and doc[\"plan_basis\"] != PLAN_BASES.get(option):",
++   "replace": "        if False:"
++  },
++  {
++   "id": "K1V-m-plan-b-hashes-without-sr2",
++   "part": "K-6",
++   "describes": "blinded_sigma hashes allowed without SR-2",
++   "file": "rules_78b.py",
++   "find": "            if doc[key] is not None:\n                return f\"SR-2 is not adopted, so {key} must be null\"",
++   "replace": "            if False:\n                return f\"SR-2 is not adopted, so {key} must be null\""
++  },
++  {
++   "id": "K1V-m-plan-b-no-option",
++   "part": "K-6",
++   "describes": "block B's init passes no option",
++   "file": "rules_78b.py",
++   "find": "plan_b_record_or_refuse(plan_b_data, doc[\"option\"])",
++   "replace": "plan_b_record_or_refuse(plan_b_data)"
++  },
++  {
++   "id": "K1V-m-review-plans-a",
++   "part": "R-1",
++   "describes": "block A plans under a review provisional plan",
++   "file": "rules_78b.py",
++   "find": "    if block == \"A\" and doc[\"provisional_plan\"] == \"review\":",
++   "replace": "    if False:"
++  },
++  {
++   "id": "K1V-m-gate-version-type",
++   "part": "K1V-7",
++   "describes": "the gate's version not type-checked",
++   "file": "rules_78b.py",
++   "find": "    if doc[\"kind\"] != GATE_RECORD_KIND or doc[\"version\"] != 1 or type(doc[\"version\"]) is not int:",
++   "replace": "    if doc[\"kind\"] != GATE_RECORD_KIND or doc[\"version\"] != 1:"
++  },
++  {
++   "id": "K1V-m-bank500-unpinned-bytes",
++   "part": "K1V-5",
++   "describes": "a 500-bank job accepts bytes that are not the pinned branch record",
++   "file": "rules_78b.py",
++   "find": "    try:\n        branch_record_or_refuse(family, branch_bytes)\n    except Refused as exc:",
++   "replace": "    try:\n        pass\n    except Refused as exc:"
++  },
++  {
++   "id": "K1V-m-flags-unpinned",
++   "part": "K1V-5",
++   "describes": "the flags read an unpinned branch document",
++   "file": "rules_78b.py",
++   "find": "    branch_doc = branch_record_or_refuse(family, branch_bytes)",
++   "replace": "    branch_doc = json.loads(branch_bytes)"
++  },
++  {
++   "id": "K1V-m-branch-version-type",
++   "part": "K1V-7",
++   "describes": "the branch record's version not type-checked",
++   "file": "rules_78b.py",
++   "find": "    if doc[\"kind\"] != BRANCH_RECORD_KIND or doc[\"version\"] != 1 or not _int(doc[\"version\"]) or doc[\"family\"] != family:",
++   "replace": "    if doc[\"kind\"] != BRANCH_RECORD_KIND or doc[\"version\"] != 1 or doc[\"family\"] != family:"
++  },
++  {
++   "id": "K1V-m-branch-switch-branch-only",
++   "part": "K1V-7",
++   "describes": "the switch check compares family and branch only",
++   "file": "rules_78b.py",
++   "find": "for k in (\"family\", \"branch\", \"source\", \"w1_18_record_sha256\"))",
++   "replace": "for k in (\"family\", \"branch\"))"
++  },
++  {
++   "id": "K1V-m-oext-kinds-no-branch",
++   "part": "R-4",
++   "describes": "the scorer block's O-ext kinds do not wait on BRANCH_78B",
++   "file": "rules_78b.py",
++   "find": "    if kind in SC_BRANCH_KINDS:\n        pins = pins + (\"BRANCH_78B\",)",
++   "replace": "    if False:\n        pins = pins + (\"BRANCH_78B\",)"
++  },
++  {
++   "id": "K1V-m-n-units-import-raises",
++   "part": "K1V-8",
++   "describes": "a malformed N_UNITS pin raises at import",
++   "file": "rules_78b.py",
++   "find": "        n = None                                         # K1V-8",
++   "replace": "        raise Refused(str(n_units_problem(n, family)))  # K1V-8"
++  },
++  {
++   "id": "K1V-m-rejudged-malformed-unnamed",
++   "part": "K1V-8",
++   "describes": "the judge launch does not name a malformed N_UNITS",
++   "file": "rules_78b.py",
++   "find": "    if block == \"A\" and n is not None and n_units_problem(n, family):",
++   "replace": "    if False:"
++  },
++  {
++   "id": "K1V-m-missing-arm-passes",
++   "part": "K1V-9",
++   "describes": "a missing arm names the side unit by default",
++   "file": "stage1_rules.py",
++   "find": "        if arm is None:\n            raise ValueError(\"o_only_with_regenerate names its unit",
++   "replace": "        if False:\n            raise ValueError(\"o_only_with_regenerate names its unit"
++  },
++  {
++   "id": "K1V-m-block0-new-keys",
++   "part": "R-3",
++   "describes": "block 0's job records gain the two new keys",
++   "file": "rules_78b.py",
++   "find": "    if oext or padded_tokens_per_step is not None:",
++   "replace": "    if True:"
++  },
++  {
++   "id": "K1V-m-index-any-family",
++   "part": "R-5",
++   "describes": "an O-ext pin accepts another family's or engine's index",
++   "file": "rules_78b.py",
++   "find": "    if (fam, eng) != (family, engine):",
++   "replace": "    if False:"
++  },
++  {
++   "id": "K1V-m-index-count-any",
++   "part": "R-5",
++   "describes": "an O-ext pin may name two indexes",
++   "file": "rules_78b.py",
++   "find": "    if len(indexes) != 1:",
++   "replace": "    if len(indexes) < 1:"
++  },
++  {
++   "id": "K1V-m-index-no-wrapper",
++   "part": "R-5",
++   "describes": "an O-ext pin need not pin the wrapper",
++   "file": "rules_78b.py",
++   "find": "    if OEXT_WRAPPER_78B not in oext[\"files\"]:\n        return f\"its files do not pin",
++   "replace": "    if False:\n        return f\"its files do not pin"
++  },
++  {
++   "id": "K1V-m-index-not-checked",
++   "part": "R-5",
++   "describes": "OEXT_78B's index not checked at planning",
++   "file": "rules_78b.py",
++   "find": "    if oext is not None and oext_index_problem(oext, family, \"X\"):",
++   "replace": "    if False:"
++  },
++  {
++   "id": "K1V-m-y-pin-engine-x",
++   "part": "R-5",
++   "describes": "OEXT_78B_Y checked for engine X's index",
++   "file": "rules_78b.py",
++   "find": "    problem = oext_form_problem(value, family, \"Y\")",
++   "replace": "    problem = oext_form_problem(value, family, \"X\")"
++  },
++  {
++   "id": "K1V-m-check-keys-y-reads-x",
++   "part": "R-5",
++   "describes": "check_keys reads OEXT_78B for an engine-Y job",
++   "file": "rules_78b.py",
++   "find": "name, pin = (f\"OEXT_78B[{family!r}]\", OEXT_78B[family]) if engine == \"X\" else \\",
++   "replace": "name, pin = (f\"OEXT_78B[{family!r}]\", OEXT_78B[family]) if True else \\"
++  },
++  {
++   "id": "K1V-m-edit-pin-any-suffix",
++   "part": "K1V-7",
++   "describes": "an edit pin of any suffix",
++   "file": "rules_78b.py",
++   "find": "and pin[\"path\"].endswith(\".json\")):",
++   "replace": "):"
++  },
++  {
++   "id": "K1V-m-files-form-any-dir",
++   "part": "K1V-7",
++   "describes": "W1_18_78B files outside scripts/",
++   "file": "rules_78b.py",
++   "find": "        if not _plain_rel(path, \"scripts/\"):",
++   "replace": "        if not _plain_rel(path):"
++  },
++  {
++   "id": "K1V-m-n-units-keys-loose",
++   "part": "K1V-7",
++   "describes": "an N unit with extra keys",
++   "file": "rules_78b.py",
++   "find": "        if not isinstance(u, dict) or set(u) != keys:",
++   "replace": "        if not isinstance(u, dict) or not keys <= set(u):"
++  },
++  {
++   "id": "K1V-m-n-units-r-only",
++   "part": "K1V-7",
++   "describes": "N_UNITS needed for R units only (Llama's N a0-1103 not)",
++   "file": "rules_78b.py",
++   "find": "    if family is not None and arm is not None and sc_unit_source(family, kind, arm, seed) == \"n\":",
++   "replace": "    if family is not None and arm is not None and arm == \"R\":"
+   }
+  ]
+ }
+diff --git a/runkit/stage1-78b/tests/mutation_spec_scorer_78b.json b/runkit/stage1-78b/tests/mutation_spec_scorer_78b.json
+index 5f9c82b..3a80280 100644
+--- pre-fix(3481d85)/runkit/stage1-78b/tests/mutation_spec_scorer_78b.json
++++ fix/runkit/stage1-78b/tests/mutation_spec_scorer_78b.json
+@@ -1,6 +1,6 @@
+ {
+  "kind": "stage1-78b scorer-block mutation spec (K4b)",
+- "note": "each mutant's find text occurs exactly once in its file; runner: tests/run_mutants_scorer_78b.py (test_scorer_block_78b.py) Round 4b (6 Nov): K4bf-m-* for the core verifier's D1-D8 (c0 unitless, the engine verify, the anchor and s3_orig binding, OEXT_78B's form, HM4, HM5, HM8, HM12, HM14, a1_pass's unit), PP17's o_only_with_regenerate and the pack's input scan (security D5). K5 (round 5) added 22 mutants (K5-c0-fp-from-plan ... K5-pack-data-scanned).",
++ "note": "each mutant's find text occurs exactly once in its file; runner: tests/run_mutants_scorer_78b.py (test_scorer_block_78b.py) Round 4b (6 Nov): K4bf-m-* for the core verifier's D1-D8 (c0 unitless, the engine verify, the anchor and s3_orig binding, OEXT_78B's form, HM4, HM5, HM8, HM12, HM14, a1_pass's unit), PP17's o_only_with_regenerate and the pack's input scan (security D5). K5 (round 5) added 22 mutants (K5-c0-fp-from-plan ... K5-pack-data-scanned). R1 K1 fix (8 Nov): K4bf-m-c0-needs-oext-script re-targeted from plan_tool.py's script check (equivalent once c0 and the O-ext kinds share oext_78b.py) to rules_78b.OEXT_WRAPPER_COMMANDS' c0 command word; K2 re-targets it at plan_tool's command-word check (GXB K-1). R1 K1 fix: K4bf-m-hm14-script-unlisted-ok re-targeted from plan_tool.py's 'does not list' check (now behind rules_78b's R-5 wrapper check, so equivalent) to that wrapper check.",
+  "mutants": [
+   {
+    "id": "K4b-m-untuned-one-call",
+@@ -805,18 +805,18 @@
+   {
+    "id": "K4bf-m-hm14-script-unlisted-ok",
+    "part": "HM14",
+-   "describes": "an O-ext kind plans without its script in OEXT_78B",
+-   "file": "plan_tool.py",
+-   "find": "        if need not in (values[\"OEXT_78B\"] or {}).get(\"files\", {}):\n",
+-   "replace": "        if False:\n"
++   "describes": "an O-ext kind plans without its script in OEXT_78B (R1 K1 fix: re-targeted from plan_tool.py's 'does not list' check, which GXB R-5's form check in rules_78b now precedes, to that form check)",
++   "file": "rules_78b.py",
++   "find": "    if OEXT_WRAPPER_78B not in oext[\"files\"]:\n        return f\"its files do not pin",
++   "replace": "    if False:\n        return f\"its files do not pin"
+   },
+   {
+    "id": "K4bf-m-c0-needs-oext-script",
+    "part": "HM14",
+-   "describes": "c0 is checked for the O-ext unit script instead of B17's",
+-   "file": "plan_tool.py",
+-   "find": "        need = r78.C0_SCRIPT if kind == \"c0\" else r78.OEXT_UNIT_SCRIPT\n",
+-   "replace": "        need = r78.OEXT_UNIT_SCRIPT\n"
++   "describes": "c0 is given the O-ext unit command instead of B17's lean one (R1 K1 fix: re-targeted from plan_tool.py:1303, equivalent under one wrapper path; K2 moves it to plan_tool's command-word check, GXB K-1)",
++   "file": "rules_78b.py",
++   "find": "\"c0\": \"lean\"",
++   "replace": "\"c0\": \"unit\""
+   },
+   {
+    "id": "K4bf-m-d6-form-unchecked",
+--- pre-fix/runkit/stage1-78b/tests/test_kit_78b_shell.py
++++ fix/runkit/stage1-78b/tests/test_kit_78b_shell.py
+@@ -280,7 +280,7 @@
+     for kind in ("anchor", "untuned_answers", "rep_pass", "evalonly"):
+         with pytest.raises(SystemExit, match="does not belong to block 0|not written yet"):
+             w.init(launches=[{"hosts": [rk.n_layout(w.family) + [{"kind": kind}]]}], dry_run=True)
+-    with pytest.raises(SystemExit, match="unknown kind|does not belong to block 0"):     # R1 K1: w1_18 is a kind now
++    with pytest.raises(SystemExit, match="does not belong to block 0"):     # R1 K1: w1_18 is a kind now (K1V-12)
+         w.init(launches=[{"hosts": [[{"kind": "w1_18"}]]}], dry_run=True)
+ 
+ 
+--- pre-fix/runkit/stage1-78b/tests/test_rules_78b.py
++++ fix/runkit/stage1-78b/tests/test_rules_78b.py
+@@ -576,8 +576,7 @@
+         R.job_decision("olmo2-7b", *docs["olmo2-7b"], R.job_record("olmo2-7b", "ref_train_bqi"), 20 * 3600.0, 20.0)
+     engine_y_before = R.ENGINE_Y
+     monkeypatch.setattr(R, "ENGINE_Y", "d3" * 32)
+-    monkeypatch.setitem(R.OEXT_78B_Y, "olmo2-7b", {"files": {R.OEXT_UNIT_SCRIPT: "e" * 64},
+-                                                   "inputs": {"oext_bank": "b" * 64, "oext_record": "c" * 64}})
++    monkeypatch.setitem(R.OEXT_78B_Y, "olmo2-7b", oext_pin("olmo2-7b", "Y"))
+     assert R.job_decision("olmo2-7b", *docs["olmo2-7b"], R.job_record("olmo2-7b", "ref_train_bqi"), 20 * 3600.0, 20.0)["action"] == "run"
+     monkeypatch.setitem(R.OEXT_78B_Y, "olmo2-7b", None)
+     monkeypatch.setattr(R, "ENGINE_Y", engine_y_before)
+@@ -1051,9 +1050,23 @@
+                 "K1R-m-ref-train-decision-unpinned", "K1R-m-oext-script-1b", "K1R-m-sr78-blocks-no-b",
+                 "K1R-m-plan-b-from-gate", "K1R-m-plan-b-review-plans", "K1R-m-plan-b-sr2-hashes-optional",
+                 "K1R-m-plan-b-codes-no-review", "K1R-m-plan-b-ignores-gate-families",
+-                "K1R-m-oext-y-null-passes", "K1R-m-oext-y-before-engine-y", "K1R-m-bqi-decision-no-oext-y"}
++                "K1R-m-oext-y-null-passes", "K1R-m-oext-y-before-engine-y", "K1R-m-bqi-decision-no-oext-y",
++                # R1 K1 fix round (8 Nov): the verifier's K1V-1..K1V-13 and GXB's fourth to sixth sets
++                "K1V-m-stop-kind-old", "K1V-m-stop-value-old", "K1V-m-stop-field-old", "K1V-m-stop-unread-passes",
++                "K1V-m-stop-read-unchecked", "K1V-m-stop-exit-type", "K1V-m-dose-192-adds-top", "K1V-m-dose-97-191-192",
++                "K1V-m-dose-96-adds-top", "K1V-m-dose-48-top", "K1V-m-dose-below-48-passes",
++                "K1V-m-dose-top-pin-rows-unchecked", "K1V-m-plan-b-reason-unchecked", "K1V-m-plan-b-basis-any-option",
++                "K1V-m-plan-b-hashes-without-sr2", "K1V-m-plan-b-no-option", "K1V-m-review-plans-a",
++                "K1V-m-gate-version-type", "K1V-m-bank500-unpinned-bytes", "K1V-m-flags-unpinned",
++                "K1V-m-branch-version-type", "K1V-m-branch-switch-branch-only", "K1V-m-oext-kinds-no-branch",
++                "K1V-m-n-units-import-raises", "K1V-m-rejudged-malformed-unnamed", "K1V-m-missing-arm-passes",
++                "K1V-m-block0-new-keys", "K1V-m-index-any-family", "K1V-m-index-count-any", "K1V-m-index-no-wrapper",
++                "K1V-m-index-not-checked", "K1V-m-y-pin-engine-x", "K1V-m-check-keys-y-reads-x",
++                "K1V-m-edit-pin-any-suffix", "K1V-m-files-form-any-dir", "K1V-m-n-units-keys-loose",
++                "K1V-m-n-units-r-only"}
+     assert required <= set(ids)
+     assert len([i for i in ids if i.startswith("K1R-m-")]) >= 79
++    assert len([i for i in ids if i.startswith("K1V-m-")]) >= 37
+ 
+ 
+ # ----------------------------------------------------------------------------------------------------- test 14
+@@ -1603,6 +1616,14 @@
+     return hashlib.sha256(label.encode()).hexdigest()
+ 
+ 
++def oext_pin(family: str, engine: str = "X", bank: str | None = None) -> dict:
++    """A synthetic OEXT_78B[F] (engine X) or OEXT_78B_Y[F] (engine Y) record in GXB R-5's form: the wrapper and the
++    family's own index for its engine among the files, by path and SHA-256."""
++    index = f"scripts/scale78b/settings/oext_index__{family}__{engine}.json"
++    return {"files": {R.OEXT_WRAPPER_78B: hx("wrapper"), index: hx(f"index-{family}-{engine}")},
++            "inputs": {"oext_bank": bank or hx("b"), "oext_record": hx("r")}}
++
++
+ def kit_copy(tmp_path: pathlib.Path, family: str, block: str):
+     """stage1_rules.py in a KD7 working copy (tmp/family-probe-s78-<family>-<block>/); it imports this rules_78b."""
+     folder = tmp_path / f"family-probe-s78-{family}-{block}"
+@@ -1712,7 +1733,8 @@
+         pods = [{"cap_hours": cap, "spend_usd": 0.0}] * 4
+         assert R.funding_need_usd([pods], R.CONTINGENCY_FACTOR)["need_usd"] == need
+         assert R.cap_hours(R.block0_jobs(family)) == R.KIT[family]["block0"]["cap_hours"]   # N: no O-ext step
+-        assert not any(j["oext"] for j in R.block0_jobs(family))
++        assert not any(j.get("oext") for j in R.block0_jobs(family))
++        assert not {"oext", "padded_tokens_per_step"} & set(R.block0_jobs(family)[0])   # GXB R-3
+         for kind in ("a0_arm", "ref_train"):
+             assert R.job_record(family, kind, oext=True)["upper_s"] == pytest.approx(
+                 R.job_record(family, kind)["upper_s"] + R.oext_term_s(family))
+@@ -1758,8 +1780,7 @@
+     R.check_keys(**keys_of(family))                                     # no O-ext bank named: as before
+     with pytest.raises(R.Refused, match="O-ext bank pin is null"):
+         R.check_keys(**keys_of(family), oext_bank=hx("bank"))
+-    monkeypatch.setitem(R.OEXT_78B, family, {"files": {R.OEXT_UNIT_SCRIPT: hx("w")},
+-                                             "inputs": {"oext_bank": hx("bank"), "oext_record": hx("rec")}})
++    monkeypatch.setitem(R.OEXT_78B, family, oext_pin(family, "X", bank=hx("bank")))
+     R.check_keys(**keys_of(family), oext_bank=hx("bank"))
+     R.check_keys(**keys_of(family, kind="a0_arm"), oext_bank=hx("bank"))
+     with pytest.raises(R.Refused, match="not olmo2-7b's pinned O-ext bank"):
+@@ -1814,22 +1835,33 @@
+             "w1_18_record_sha256": record, "utc": "2026-11-12T10:00:00Z", "recorded_by": "GI XI"}
+ 
+ 
+-def test_29_the_branch_record_the_500_bank_kinds_and_the_flags():
+-    """Part 2 §4.2; DES E2; DESO item 9: BRANCHES ("full", "128"), Branch full by default; every 500-bank job (o_only,
+-    o_only_with_regenerate, c0, the references, ref_train, and arm and a0_arm in blocks A and B, never block 0) refuses
+-    before the family's branch record; 128 only from that family's W1-18 record; the branch never switches; under 128
+-    every O-ext command takes --w1-18-record and the regenerated units --dev100-source."""
++def test_29_the_branch_record_the_500_bank_kinds_and_the_flags(monkeypatch):
++    """Part 2 §4.2; DES E2; DESO item 9; K1V-5: BRANCHES ("full", "128"), Branch full by default; each family's branch
++    is read only from its pinned branch record (BRANCH_78B[family] = {path, sha256}, null until W1-18's record-done);
++    every 500-bank job (o_only, o_only_with_regenerate, c0, the references, ref_train, and arm and a0_arm in blocks A
++    and B, never block 0) refuses before the pin, and with bytes that are not the pinned record; 128 only from that
++    family's W1-18 record; the branch never switches; under 128 every O-ext command takes --w1-18-record and the
++    regenerated units --dev100-source."""
+     assert R.BRANCHES == ("full", "128") and R.BRANCH_DEFAULT == "full"
++    assert R.BRANCH_78B == {"olmo2-7b": None, "llama31-8b": None}
+     assert R.BANK500_KINDS == frozenset({"o_only", "o_only_with_regenerate", "c0", "ref_eval", "safe_lora", "ref_train",
+                                          "ref_train_bqi"})
+     assert not R.bank500_job("arm", "0") and not R.bank500_job("a0_arm", "0") and not R.bank500_job("anchor", "sc")
+     assert R.bank500_job("arm", "A") and R.bank500_job("a0_arm", "B") and R.bank500_job("o_only", "sc")
+     f = "llama31-8b"
++    full = json.dumps(branch_doc(f)).encode()
+     for kind, block in (("o_only", "sc"), ("c0", "sc"), ("arm", "A"), ("ref_eval", "B")):
+-        assert "waits for llama31-8b's branch record" in R.bank500_problem(f, kind, block, None)
+-        assert R.bank500_problem(f, kind, block, branch_doc(f)) is None
++        assert "waits for llama31-8b's branch record (BRANCH_78B" in R.bank500_problem(f, kind, block, full)
+     assert R.bank500_problem(f, "arm", "0", None) is None
+-    assert "not one" in R.bank500_problem(f, "o_only", "sc", branch_doc("olmo2-7b"))
++    pin_of_item(monkeypatch, R.BRANCH_78B, f, full)
++    for kind, block in (("o_only", "sc"), ("c0", "sc"), ("arm", "A"), ("ref_eval", "B")):
++        assert R.bank500_problem(f, kind, block, full) is None
++    assert "not the pinned one" in R.bank500_problem(f, "o_only", "sc", json.dumps(branch_doc(f, "128", "w1_18",
++                                                                                              hx("w1"))).encode())
++    assert "not the pinned one" in R.bank500_problem(f, "o_only", "sc", None)
++    other = json.dumps(branch_doc("olmo2-7b")).encode()
++    pin_of_item(monkeypatch, R.BRANCH_78B, f, other)
++    assert "not the pinned one" in R.bank500_problem(f, "o_only", "sc", other)            # another family's record
+     assert R.branch_record_problem(branch_doc(f, "128", "w1_18", hx("w1")), f) is None
+     assert R.branch_record_problem(branch_doc(f, "full", "w1_18", hx("w1")), f) is None   # the bar failed: full
+     assert "names its W1-18 record" in R.branch_record_problem(branch_doc(f, "128", "w1_18"), f)
+@@ -1837,20 +1869,66 @@
+     assert "default record is Branch full" in R.branch_record_problem(branch_doc(f, "full", "default", hx("w1")), f)
+     assert R.branch_record_problem({**branch_doc(f), "branch": "64"}, f)
+     assert R.branch_record_problem({**branch_doc(f), "source": "lead"}, f)
+-    assert R.branch_switch_problem(None, branch_doc(f)) is None
+-    assert R.branch_switch_problem(branch_doc(f), branch_doc(f)) is None
+-    assert "never switched" in R.branch_switch_problem(branch_doc(f), branch_doc(f, "128", "w1_18", hx("w1")))
+-    assert "never switched" in R.branch_switch_problem(branch_doc(f, "128", "w1_18", hx("w1")), branch_doc(f))
+-    assert R.oext_flags(f, "o_only", branch_doc(f)) == {"w1_18_record": None, "dev100_source": False}
++    assert R.branch_record_problem({**branch_doc(f), "version": True}, f)
++    # never switched: the pinned record is the old one
++    monkeypatch.setitem(R.BRANCH_78B, f, None)
++    assert R.branch_switch_problem(f, branch_doc(f)) is None                        # no record yet: the first one
+     b128 = branch_doc(f, "128", "w1_18", hx("w1"))
++    data128 = json.dumps(b128).encode()
++    pin_of_item(monkeypatch, R.BRANCH_78B, f, data128)
++    assert R.branch_switch_problem(f, b128, data128) is None
++    for new in (branch_doc(f), branch_doc(f, "128", "w1_18", hx("w2")), {**b128, "source": "default"},
++                {**b128, "family": "olmo2-7b"}):
++        assert "never switched" in R.branch_switch_problem(f, new, data128), new
++    with pytest.raises(R.Refused, match="do not hash"):
++        R.branch_switch_problem(f, b128, full)
++    # the flags, from the pinned record only
++    assert R.oext_flags(f, "c0", data128)["w1_18_record"] == hx("w1")
+     for kind in ("c0", "o_only", "o_only_with_regenerate", "arm", "a0_arm"):
+-        assert R.oext_flags(f, kind, b128)["w1_18_record"] == hx("w1")
+-    assert R.oext_flags(f, "o_only_with_regenerate", b128, regenerated=True)["dev100_source"] is True
+-    assert R.oext_flags(f, "o_only", b128)["dev100_source"] is False                # theta0 is never regenerated
++        assert R.oext_flags(f, kind, data128)["w1_18_record"] == hx("w1")
++    assert R.oext_flags(f, "o_only_with_regenerate", data128, regenerated=True)["dev100_source"] is True
++    assert R.oext_flags(f, "o_only", data128)["dev100_source"] is False              # theta0 is never regenerated
+     with pytest.raises(R.Refused, match="no O-ext step"):
+-        R.oext_flags(f, "anchor", b128)
++        R.oext_flags(f, "anchor", data128)
++    with pytest.raises(R.Refused, match="do not hash"):
++        R.oext_flags(f, "o_only", full)
++    pin_of_item(monkeypatch, R.BRANCH_78B, f, full)
++    assert R.oext_flags(f, "o_only_with_regenerate", full, regenerated=True) == {"w1_18_record": None,
++                                                                                   "dev100_source": False}
++    monkeypatch.setitem(R.BRANCH_78B, f, None)
++    with pytest.raises(R.Refused, match="BRANCH_78B\\['llama31-8b'\\] is null"):
++        R.oext_flags(f, "o_only", full)
+ 
+ 
++def test_29b_every_oext_kind_refuses_its_job_while_oext_78b_or_the_branch_record_is_null(monkeypatch):
++    """GXB R-4 (K1V-10): until K3 wires `oext_78b.py <command> --family F`, no test asserts an O-ext command line;
++    instead every scorer-block O-ext kind (c0, o_only, o_only_with_regenerate) refuses to build its job while
++    OEXT_78B or the family's branch record (BRANCH_78B) is null, and w1_18 while its own route pin W1_18_78B is null
++    (I: T-O2 fills OEXT_78B and the branch only after the W1-18 pod, so W1-18 cannot wait on them)."""
++    f = "olmo2-7b"
++    oext = oext_pin(f)
++    monkeypatch.setitem(R.C0_SOURCE, f, {"complete_sha256": hx("c"), "e1_fingerprint": hx("e")})
++    units = {"o_only": (None, None), "c0": ("R", 1101), "o_only_with_regenerate": ("a0", 1102)}
++    for o, b in ((None, None), (oext, None), (None, {"path": "records/branch.json", "sha256": hx("br")})):
++        monkeypatch.setitem(R.OEXT_78B, f, o)
++        monkeypatch.setitem(R.BRANCH_78B, f, b)
++        for kind, (arm, seed) in units.items():
++            want = ([] if o else ["OEXT_78B"]) + ([] if b else ["BRANCH_78B"])
++            with pytest.raises(R.Refused, match=" ".join(f"{p} waits for" for p in want[:1])):
++                R.sc_pins_or_refuse(f, kind, "X", pins78_doc(), arm, seed)
++            missing = [p for p, _ in R.sc_missing_pins(f, kind, "X", pins78_doc(), arm, seed)]
++            assert set(want) <= set(missing), (kind, missing)
++    monkeypatch.setitem(R.OEXT_78B, f, oext)
++    monkeypatch.setitem(R.BRANCH_78B, f, {"path": "records/branch.json", "sha256": hx("br")})
++    for kind, (arm, seed) in units.items():
++        R.sc_pins_or_refuse(f, kind, "X", pins78_doc(), arm, seed)
++    with pytest.raises(R.Refused, match="W1_18_78B waits for"):
++        R.sc_pins_or_refuse(f, "w1_18", "X", pins78_doc())
++    monkeypatch.setitem(R.BRANCH_78B, f, {"path": "/abs.json", "sha256": hx("br")})
++    with pytest.raises(R.Refused, match="BRANCH_78B\\['olmo2-7b'\\] is not a .path, sha256. pin"):
++        R.sc_pin_values(f, pins78_doc())
++
++
+ def n_units_doc(family: str) -> dict:
+     out = {}
+     for arm, seed in R.block0_runs(family):
+@@ -1879,8 +1957,13 @@
+         with pytest.raises(R.Refused, match="not one of its units"):
+             R.sc_unit_source("olmo2-7b", "o_only_with_regenerate", *bad)
+     assert R.SC_ARMS == {"o_only_with_regenerate": ("a0", "R")} and R.SC_ARM["o_only_with_regenerate"] == "a0"
+-    assert R.sc_needed_pins("o_only_with_regenerate", "X", "olmo2-7b", "R", 1101) == ("OEXT_78B", "N_UNITS")
+-    assert R.sc_needed_pins("o_only_with_regenerate", "X", "olmo2-7b", "a0", 1101) == ("OEXT_78B",)
++    assert R.sc_needed_pins("o_only_with_regenerate", "X", "olmo2-7b", "R", 1101) == ("OEXT_78B", "BRANCH_78B",
++                                                                                        "N_UNITS")
++    assert R.sc_needed_pins("o_only_with_regenerate", "X", "olmo2-7b", "a0", 1101) == ("OEXT_78B", "BRANCH_78B")
++    for arm, seed in (("R", 1102), ("R", 1103), ("a0", 1103)):                    # K1V-7: Llama's N a0-1103 too
++        assert "N_UNITS" in R.sc_needed_pins("o_only_with_regenerate", "X", "llama31-8b", arm, seed), (arm, seed)
++    for seed in (1101, 1102):
++        assert "N_UNITS" not in R.sc_needed_pins("o_only_with_regenerate", "X", "llama31-8b", "a0", seed)
+     sr = kit_copy(tmp_path, "olmo2-7b", "sc")
+     side, n = sr.sc_input_names("o_only_with_regenerate", 1101, "a0"), sr.sc_input_names("o_only_with_regenerate", 1101, "R")
+     assert side == ("side_complete:a0:1101", "oext_bank", "oext_record") == sr.sc_input_names("o_only_with_regenerate", 1101)
+@@ -1906,8 +1989,8 @@
+     regenerations refuse until then (sc_pins_or_refuse names N_UNITS and its event); a filled pin holds exactly N's
+     units under block 0's working copy."""
+     assert R.N_UNITS == {"olmo2-7b": None, "llama31-8b": None}
+-    monkeypatch.setitem(R.OEXT_78B, "olmo2-7b", {"files": {R.OEXT_UNIT_SCRIPT: hx("w")},
+-                                                 "inputs": {"oext_bank": hx("b"), "oext_record": hx("r")}})
++    monkeypatch.setitem(R.OEXT_78B, "olmo2-7b", oext_pin("olmo2-7b"))
++    monkeypatch.setitem(R.BRANCH_78B, "olmo2-7b", {"path": "records/branch.json", "sha256": hx("br")})
+     with pytest.raises(R.Refused, match="N_UNITS waits for block 0 \\(N\\)"):
+         R.sc_pins_or_refuse("olmo2-7b", "o_only_with_regenerate", "X", pins78_doc(), "R", 1102)
+     R.sc_pins_or_refuse("olmo2-7b", "o_only_with_regenerate", "X", pins78_doc(), "a0", 1102)   # the side unit runs
+@@ -1975,8 +2058,8 @@
+ 
+ 
+ def plan_b_doc(**changes) -> dict:
+-    doc = {"kind": R.PLAN_B_RECORD_KIND, "version": 1, "plan": "H", "sr2_adopted": True,
+-           "blinded_sigma_output_sha256": hx("bs-out"), "blinded_sigma_inputs_sha256": hx("bs-in"),
++    doc = {"kind": R.PLAN_B_RECORD_KIND, "version": 1, "plan": "H", "sr2_adopted": True, "sr2_reason": None,
++           "plan_basis": "sigma_A", "blinded_sigma_output_sha256": hx("bs-out"), "blinded_sigma_inputs_sha256": hx("bs-in"),
+            "utc": "2026-12-01T10:00:00Z", "recorded_by": "GI XI"}
+     doc.update(changes)
+     return doc
+@@ -1986,6 +2069,12 @@
+     monkeypatch.setattr(R, name, {"path": f"records/{name.lower()}.json", "sha256": hashlib.sha256(data).hexdigest()})
+ 
+ 
++def pin_of_item(monkeypatch, table: dict, family: str, data: bytes) -> None:
++    """A per-family {path, sha256} pin of ``data`` (test-local)."""
++    monkeypatch.setitem(table, family, {"path": f"records/{family}-record.json",
++                                        "sha256": hashlib.sha256(data).hexdigest()})
++
++
+ def test_33_o14_gate_78b_is_null_and_block_a_reads_its_families_only(monkeypatch):
+     """GXB O14 (corrected, second set): GATE_78B (the gate record's path and SHA-256; option, families, N's
+     provisional plan, the noise reading's output hash, the balance) is null until the gate; block A's init reads its
+@@ -2047,12 +2136,13 @@
+     pin_of(monkeypatch, "PLAN_B_78B", review)
+     with pytest.raises(R.Refused, match="plans nothing"):
+         R.block_init_or_refuse("B", "olmo2-7b", gate, review)
+-    no_sr2 = json.dumps(plan_b_doc(plan="B9", sr2_adopted=False, blinded_sigma_output_sha256=None,
++    no_sr2 = json.dumps(plan_b_doc(plan="B9", sr2_adopted=False, sr2_reason="simulation_reading",
++                                   plan_basis="sigma_pool_N", blinded_sigma_output_sha256=None,
+                                    blinded_sigma_inputs_sha256=None)).encode()
+     pin_of(monkeypatch, "PLAN_B_78B", no_sr2)
+     assert R.block_init_or_refuse("B", "olmo2-7b", gate, no_sr2) == {
+         "block": "B", "family": "olmo2-7b", "option": "B", "families": ("olmo2-7b", "llama31-8b"), "plan": "B9",
+-        "sr2_adopted": False}
++        "sr2_adopted": False, "plan_basis": "sigma_pool_N"}
+     c_gate = json.dumps(gate_doc(option="C", families=["olmo2-7b"])).encode()
+     pin_of(monkeypatch, "GATE_78B", c_gate)
+     with pytest.raises(R.Refused, match="llama31-8b runs no block B"):
+@@ -2060,26 +2150,102 @@
+     for change, match in (({"plan": "B10"}, "plan"), ({"sr2_adopted": 1}, "true or false"),
+                           ({"blinded_sigma_output_sha256": None}, "must be a SHA-256"),
+                           ({"blinded_sigma_inputs_sha256": None}, "must be a SHA-256"),
+-                          ({"sr2_adopted": False, "blinded_sigma_output_sha256": "x"}, "neither null"),
++                          ({"sr2_reason": "simulation_reading"}, "sr2_reason is null"),
++                          ({"plan_basis": "sigma_pool_N"}, "plan_basis is sigma_A"),
+                           ({"kind": "plan"}, "kind"), ({"recorded_by": " "}, "recorded_by"), ({"extra": 1}, "exactly")):
+         assert match in (R.plan_b_record_problem(plan_b_doc(**change)) or ""), change
+     assert R.plan_b_record_problem(plan_b_doc()) is None
++
++
++def test_33c_k6_plan_b_without_sr2_names_its_reason_and_basis_and_carries_no_blinded_sigma_hash(monkeypatch):
++    """GXB K-6 (K1V-3): without SR-2, PLAN_B_78B's record names the reason (the blinding test not verified, or the
++    simulation's reading) and the plan's basis: N's sigma_pool under [B], the chosen family's sigma_F under [C]; both
++    blinded_sigma.py hashes are null (refused if given). With SR-2: no reason, basis sigma_A, both hashes required."""
++    assert R.SR2_REASONS == ("blinding_test_not_verified", "simulation_reading")
++    assert R.PLAN_BASES == {"adopted": "sigma_A", "B": "sigma_pool_N", "C": "sigma_F"}
++    no = dict(sr2_adopted=False, blinded_sigma_output_sha256=None, blinded_sigma_inputs_sha256=None)
++    for reason in R.SR2_REASONS:
++        for basis, option in (("sigma_pool_N", "B"), ("sigma_F", "C")):
++            doc = plan_b_doc(**no, sr2_reason=reason, plan_basis=basis)
++            assert R.plan_b_record_problem(doc) is None and R.plan_b_record_problem(doc, option) is None
++            other = "C" if option == "B" else "B"
++            assert "basis without SR-2" in R.plan_b_record_problem(doc, other)
++    for change, match in (({"sr2_reason": None}, "sr2_reason is one of"), ({"sr2_reason": "lead"}, "sr2_reason is one of"),
++                          ({"plan_basis": "sigma_A"}, "sigma_pool_N ([B]) or sigma_F ([C])"),
++                          ({"blinded_sigma_output_sha256": hx("o")}, "must be null"),
++                          ({"blinded_sigma_inputs_sha256": hx("i")}, "must be null")):
++        doc = plan_b_doc(**{**no, "sr2_reason": "simulation_reading", "plan_basis": "sigma_pool_N", **change})
++        assert match in (R.plan_b_record_problem(doc) or ""), change
++    assert R.plan_b_record_problem(plan_b_doc()) is None
++    gate_c = json.dumps(gate_doc(option="C", families=["olmo2-7b"])).encode()
++    pin_of(monkeypatch, "GATE_78B", gate_c)
++    bad = json.dumps(plan_b_doc(**no, sr2_reason="blinding_test_not_verified", plan_basis="sigma_pool_N")).encode()
++    pin_of(monkeypatch, "PLAN_B_78B", bad)
++    with pytest.raises(R.Refused, match="under option C the plan's basis without SR-2 is sigma_F"):
++        R.block_init_or_refuse("B", "olmo2-7b", gate_c, bad)
++    good = json.dumps(plan_b_doc(**no, sr2_reason="blinding_test_not_verified", plan_basis="sigma_F", plan="B9")).encode()
++    pin_of(monkeypatch, "PLAN_B_78B", good)
++    got = R.block_init_or_refuse("B", "olmo2-7b", gate_c, good)
++    assert (got["plan"], got["sr2_adopted"], got["plan_basis"]) == ("B9", False, "sigma_F")
+ 
+ 
++def test_33d_r1_block_a_refuses_under_a_review_provisional_plan(monkeypatch):
++    """GXB R-1 (P1 §6.1): under a "review" provisional plan there is no 7-8B primary family and the user decides the
++    next step, so block A's init refuses; nothing starts by default. Other provisional plans let block A plan."""
++    review = json.dumps(gate_doc(provisional_plan="review")).encode()
++    pin_of(monkeypatch, "GATE_78B", review)
++    for family in R.FAMILIES:
++        with pytest.raises(R.Refused, match="provisional plan is 'review'.*the user decides"):
++            R.block_init_or_refuse("A", family, review)
++    for plan in R.PLAN_CODES:
++        data = json.dumps(gate_doc(provisional_plan=plan)).encode()
++        pin_of(monkeypatch, "GATE_78B", data)
++        assert R.block_init_or_refuse("A", "olmo2-7b", data)["families"] == ("olmo2-7b", "llama31-8b")
++
++
+ HARMFUL = "harmful prompt 7 (8 of 64) does not encode (encode_train: too long); the list needs a reviewed new version"
++# The fourth set's record form as Track S's reader takes it, copied by hand (R: B/ws-s/scripts/scale78b/blinded_sigma.py
++# :69-70 STOP_KINDS, STOP_RECORD_KIND; :218-235 check_anchor_stop reads kind, family, stop_kind and exit_code; its
++# test fixture adds version, job_done_sha256 and counts, test_blinded_sigma.py:191-192).
++TRACK_S_STOP_FORM = {"kind": "scale-78b anchor stop",
++                     "stop_kinds": {"safe_anchors_below_64": 3, "harmful_prompt_does_not_encode": 1},
++                     "read_keys": ("kind", "family", "stop_kind", "exit_code"),
++                     "fixture_keys": ("kind", "version", "family", "stop_kind", "exit_code", "job_done_sha256", "counts")}
+ 
+ 
++def track_s_accepts(doc: dict, family: str) -> bool:
++    """Track S's check_anchor_stop on a parsed record, restated from its literal form above."""
++    kinds = TRACK_S_STOP_FORM["stop_kinds"]
++    return (isinstance(doc, dict) and doc.get("kind") == TRACK_S_STOP_FORM["kind"] and doc.get("family") == family
++            and doc.get("stop_kind") in kinds and type(doc.get("exit_code")) is int
++            and doc["exit_code"] == kinds[doc["stop_kind"]])
++
++
++def stop_family(monkeypatch, family: str, stop: str = "few") -> bytes:
++    """Pin a family's stop record and read it through anchor_stop_or_refuse (K1V-6), test-locally."""
++    done = hx(f"job-done-{family}")
++    doc = (R.anchor_stop_record(family, 3, None, done, {"kept": 60, "needed": 64}) if stop == "few"
++           else R.anchor_stop_record(family, 1, HARMFUL, done))
++    data = json.dumps(doc).encode()
++    monkeypatch.setattr(R, "_ANCHOR_STOPS_READ", {})
++    pin_of_item(monkeypatch, R.ANCHOR_STOP, family, data)
++    R.anchor_stop_or_refuse(family, data, done)
++    return data
++
++
+ def test_34_o6_a_stop_only_from_the_anchor_scripts_own_signal():
+-    """GXB O6 and item 14: a stop is recorded only from exit 3 (fewer than 64 safe anchors) or exit 1 with the
++    """GXB O6, item 14, fourth set: a stop is recorded only from exit 3 (fewer than 64 safe anchors) or exit 1 with the
+     AnchorJobError message "harmful prompt ... does not encode" (R: scripts/make_anchor_answers.py:121); any other exit
+-    or message is a crash. The stop record is text-free: family, stop kind, exit code, JOB-DONE.json SHA-256 and the
+-    stop line's ids and counts; it must name the anchor job's JOB-DONE.json."""
++    or message is a crash. The record is text-free, in the fourth set's form: kind "scale-78b anchor stop", family,
++    stop_kind safe_anchors_below_64 or harmful_prompt_does_not_encode, exit code, JOB-DONE.json SHA-256 and the stop
++    line's ids and counts; it must name the anchor job's JOB-DONE.json."""
+     source = (ROOT / "scripts" / "make_anchor_answers.py").read_text()
+     assert "EXIT_FEW = 3" in source and "class AnchorJobError(SystemExit)" in source
+     assert 'raise AnchorJobError(f"harmful prompt {k} ({k + 1} of {n_harmful}) does not encode ({failure}); "' in source
+     assert '"the list needs a reviewed new version")' in source
+-    assert R.anchor_exit_kind(0) == "complete" and R.anchor_exit_kind(3) == "few_safe"
+-    assert R.anchor_exit_kind(1, HARMFUL) == "harmful_pair" and R.anchor_exit_kind(1, HARMFUL + "\n") == "harmful_pair"
++    assert R.anchor_exit_kind(0) == "complete" and R.anchor_exit_kind(3) == "safe_anchors_below_64"
++    assert R.anchor_exit_kind(1, HARMFUL) == "harmful_prompt_does_not_encode"
++    assert R.anchor_exit_kind(1, HARMFUL + "\n") == "harmful_prompt_does_not_encode"
+     for code, message in ((1, None), (1, "the prompt list's SHA-256 is not the pinned value"),
+                           (1, "prompt 3 (4 of 128) does not encode as a generation prompt (ValueError); the list needs "
+                               "a reviewed new version"), (2, HARMFUL), (137, None), (-9, None), (None, None),
+@@ -2087,10 +2253,12 @@
+         assert R.anchor_exit_kind(code, message) == "crash", (code, message)
+     done = hx("job-done")
+     few = R.anchor_stop_record("olmo2-7b", 3, None, done, {"kept": 61, "needed": 64, "drops": {"capped": 3}})
+-    assert few == {"kind": R.ANCHOR_STOP_KIND, "version": 1, "family": "olmo2-7b", "stop": "few_safe", "exit_code": 3,
+-                   "job_done_sha256": done, "line": {"kept": 61, "needed": 64}}
++    assert few == {"kind": "scale-78b anchor stop", "version": 1, "family": "olmo2-7b",
++                   "stop_kind": "safe_anchors_below_64", "exit_code": 3, "job_done_sha256": done,
++                   "counts": {"kept": 61, "needed": 64}}
+     pair = R.anchor_stop_record("llama31-8b", 1, HARMFUL, done)
+-    assert pair["stop"] == "harmful_pair" and pair["line"] == {"prompt_index": 7, "position": 8, "of": 64}
++    assert pair["stop_kind"] == "harmful_prompt_does_not_encode" and pair["exit_code"] == 1
++    assert pair["counts"] == {"prompt_index": 7, "position": 8, "of": 64}
+     assert "encode_train" not in json.dumps(pair) and "too long" not in json.dumps(pair)     # text-free
+     for args in ((0, None, done, None), (1, "boom", done, None), (2, HARMFUL, done, None)):
+         with pytest.raises(R.Refused, match="crash rule applies"):
+@@ -2105,16 +2273,71 @@
+     assert R.anchor_stop_problem(few, "olmo2-7b", done) is None and R.anchor_stop_problem(pair, "llama31-8b") is None
+     assert "names JOB-DONE.json" in R.anchor_stop_problem(few, "olmo2-7b", hx("other job"))
+     assert R.anchor_stop_problem(few, "llama31-8b")
+-    assert R.anchor_stop_problem({**few, "exit_code": 1}, "olmo2-7b")
+-    assert R.anchor_stop_problem({**few, "line": {"kept": 64, "needed": 64}}, "olmo2-7b")
+-    assert R.anchor_stop_problem({**pair, "line": {"prompt_index": 7, "position": 7, "of": 64}}, "llama31-8b")
++    for bad in ({**few, "exit_code": 1}, {**few, "exit_code": True}, {**pair, "exit_code": True},
++                {**few, "version": True}, {**few, "kind": "stage1-78b anchor stop"},
++                {**few, "stop_kind": "few_safe"}, {**few, "counts": {"kept": 64, "needed": 64}}):
++        assert R.anchor_stop_problem(bad, bad["family"]), bad
++    assert R.anchor_stop_problem({**pair, "counts": {"prompt_index": 7, "position": 7, "of": 64}}, "llama31-8b")
+     assert R.ANCHOR_STOP == {"olmo2-7b": None, "llama31-8b": None}
+ 
+ 
++def test_34b_the_stop_record_form_is_the_one_track_s_reads():
++    """GXB fourth set: one record form, written by K2's writer on K1's anchor_stop_record and read by Track S's
++    blinded_sigma.py. K1's kind, field names and stop values equal Track S's literal (TRACK_S_STOP_FORM, copied from
++    blinded_sigma.py:69-70), its field set equals Track S's fixture's, and Track S's check accepts both K1 records
++    (and refuses K1's records of round 1's old form)."""
++    assert R.ANCHOR_STOP_KIND == TRACK_S_STOP_FORM["kind"]
++    assert R.ANCHOR_STOPS == TRACK_S_STOP_FORM["stop_kinds"]
++    assert R.ANCHOR_STOP_KEYS == TRACK_S_STOP_FORM["fixture_keys"]
++    assert set(TRACK_S_STOP_FORM["read_keys"]) <= set(R.ANCHOR_STOP_KEYS)
++    done = hx("job-done")
++    for family, rec in (("olmo2-7b", R.anchor_stop_record("olmo2-7b", 3, None, done, {"kept": 1, "needed": 64})),
++                        ("llama31-8b", R.anchor_stop_record("llama31-8b", 1, HARMFUL, done))):
++        assert track_s_accepts(json.loads(json.dumps(rec)), family) and R.anchor_stop_problem(rec, family) is None
++    old = {"kind": "stage1-78b anchor stop", "version": 1, "family": "olmo2-7b", "stop": "few_safe", "exit_code": 3,
++           "job_done_sha256": done, "line": {"kept": 1, "needed": 64}}
++    assert not track_s_accepts(old, "olmo2-7b") and R.anchor_stop_problem(old, "olmo2-7b")
++
++
++def test_34c_k1v6_a_family_is_stopped_only_after_its_pinned_record_is_read(monkeypatch):
++    """K1V-6: a pinned ANCHOR_STOP marks the family stopped only after anchor_stop_or_refuse read the record at the
++    pin and checked its kind, family, stop_kind, exit code (and JOB-DONE.json); before that, and for bytes that do not
++    hash to the pin or a record of another family, it refuses (never the normal route by default)."""
++    f = "olmo2-7b"
++    done = hx("job-done")
++    rec = R.anchor_stop_record(f, 3, None, done, {"kept": 2, "needed": 64})
++    data = json.dumps(rec).encode()
++    monkeypatch.setattr(R, "_ANCHOR_STOPS_READ", {})
++    assert not R.family_stopped(f)
++    with pytest.raises(R.Refused, match="ANCHOR_STOP\\['olmo2-7b'\\] is null"):
++        R.anchor_stop_or_refuse(f, data)
++    pin_of_item(monkeypatch, R.ANCHOR_STOP, f, data)
++    with pytest.raises(R.Refused, match="has not been read at the pin"):
++        R.family_stopped(f)
++    with pytest.raises(R.Refused, match="has not been read"):
++        R.block_runs_78b(f, None, "A")
++    with pytest.raises(R.Refused, match="do not hash"):
++        R.anchor_stop_or_refuse(f, data + b" ")
++    with pytest.raises(R.Refused, match="names JOB-DONE.json"):
++        R.anchor_stop_or_refuse(f, data, hx("other"))
++    with pytest.raises(R.Refused, match="has not been read"):
++        R.family_stopped(f)
++    other = json.dumps(R.anchor_stop_record("llama31-8b", 3, None, done, {"kept": 2, "needed": 64})).encode()
++    pin_of_item(monkeypatch, R.ANCHOR_STOP, f, other)
++    with pytest.raises(R.Refused, match="is not 'scale-78b anchor stop'"):
++        R.anchor_stop_or_refuse(f, other)
++    pin_of_item(monkeypatch, R.ANCHOR_STOP, f, data)
++    assert R.anchor_stop_or_refuse(f, data, done) == rec and R.family_stopped(f)
++    assert len(R.block_runs_78b(f, None, "A")) == 12
++    pin_of_item(monkeypatch, R.ANCHOR_STOP, f, json.dumps({**rec, "counts": {"kept": 3, "needed": 64}}).encode())
++    with pytest.raises(R.Refused, match="has not been read"):               # a re-pinned record must be read again
++        R.family_stopped(f)
++
++
+ def test_35_a_stopped_family_s78_kinds_refuse_for_good_and_the_retrain_runs_under_main_f(monkeypatch):
+     """DESO2 item 36 (1), (2); AM1 changes 2, 5, 13 (DESO3 V1); GXB O6, item 14: once a family's stop record is
+-    pinned, rep_pass, l1_scan, the classifier, a1_pass (and the anchor job) refuse for good there (at the key check,
+-    the runner's gate, the pins and the order), the a0-1101 retrain is planned under MAIN_F (recipe "B") without
++    pinned and read, rep_pass, l1_scan, the classifier, a1_pass (and the anchor job) refuse for good there (at the key
++    check, the runner's gate, the pins and the order), the a0-1101 retrain is planned under MAIN_F (recipe "B") without
+     RECIPE_S or a complete anchor job, on Y with ENGINE_Y (filled when that retrain is prepared), and the X retrain
+     under MAIN_F after the Y one. An unstopped family refuses a main-config retrain."""
+     f, main = "olmo2-7b", R.CONFIGS["olmo2-7b"]["main"][1]
+@@ -2122,7 +2345,7 @@
+         R.check_keys(**keys_of(f, kind="retrain", recipe_sha256=main))        # unstopped: S_78 only
+     assert R.sc_recipe(f, "retrain") == "S" and R.sc_needed_pins("retrain", "Y", f) == ("RECIPE_S", "ENGINE_Y")
+     assert "after anchor" in R.sc_order_problem("retrain", [], f)
+-    monkeypatch.setitem(R.ANCHOR_STOP, f, {"path": "records/anchor-stop.json", "sha256": hx("stop")})
++    stop_family(monkeypatch, f)
+     assert R.family_stopped(f) and not R.family_stopped("llama31-8b")
+     for kind in ("rep_pass", "l1_scan", "classifier", "a1_pass", "anchor"):
+         recipe = R.CONFIGS[f]["main"][1]
+@@ -2160,12 +2383,12 @@
+ 
+ 
+ def test_35b_a_stopped_familys_kit_copy_plans_the_main_f_retrain(tmp_path, monkeypatch):
+-    """The kit copy's retrain_job: on a stopped family it plans recipe "B" (MAIN_F) with RECIPE_S null; unstopped, it
+-    still refuses while RECIPE_S is null."""
++    """The kit copy's retrain_job: on a stopped family (its record read at the pin) it plans recipe "B" (MAIN_F) with
++    RECIPE_S null; unstopped, it still refuses while RECIPE_S is null."""
+     sr = kit_copy(tmp_path, "llama31-8b", "sc")
+     with pytest.raises(R.Refused, match="not written yet"):
+         sr.retrain_job()
+-    monkeypatch.setitem(R.ANCHOR_STOP, "llama31-8b", {"path": "records/stop.json", "sha256": hx("stop")})
++    stop_family(monkeypatch, "llama31-8b", "harmful")
+     job = sr.retrain_job()
+     assert job["kind"] == "retrain" and job["recipe"] == "B" and job["seed"] == 1101 and job["unmeasured"]
+ 
+@@ -2199,8 +2422,7 @@
+     scripts/scale78b/oext_78b.py (its unit, lean and w1_18 commands); the 1B scripts are not named."""
+     assert R.OEXT_UNIT_SCRIPT == R.C0_SCRIPT == R.W1_18_SCRIPT == R.OEXT_WRAPPER_78B == "scripts/scale78b/oext_78b.py"
+     assert R.OEXT_WRAPPER_COMMANDS == {"o_only": "unit", "o_only_with_regenerate": "unit", "c0": "lean", "w1_18": "w1_18"}
+-    assert R.oext_form_problem({"files": {R.OEXT_UNIT_SCRIPT: hx("w")},
+-                                "inputs": {"oext_bank": hx("b"), "oext_record": hx("r")}}) is None
++    assert R.oext_form_problem(oext_pin("olmo2-7b")) is None
+ 
+ 
+ def test_37b_oext_78b_y_is_a_null_pin_per_family_for_bqis_oext_on_y(monkeypatch):
+@@ -2208,8 +2430,8 @@
+     form) is null per family; B+Qi's O-ext on Y refuses until it is filled, which comes after ENGINE_Y and the
+     family's RECIPE_BQI; a filled value has OEXT_78B's form."""
+     assert R.OEXT_78B_Y == {"olmo2-7b": None, "llama31-8b": None}
+-    rec = {"files": {R.OEXT_UNIT_SCRIPT: hx("wy")}, "inputs": {"oext_bank": hx("b"), "oext_record": hx("r")}}
+     for family in R.FAMILIES:
++        rec = oext_pin(family, "Y")
+         with pytest.raises(R.Refused, match="OEXT_78B_Y.* is null: .*ENGINE_Y and the family's RECIPE_BQI filled"):
+             R.oext_y_or_refuse(family)
+         monkeypatch.setitem(R.OEXT_78B_Y, family, rec)
+@@ -2233,6 +2455,144 @@
+     assert "OEXT_78B_Y" in R.SC_PIN_EVENTS
+ 
+ 
++def test_37c_r5_one_oext_index_per_family_and_engine(monkeypatch):
++    """GXB R-5 (sixth set): OEXT_78B[F] (engine X) and OEXT_78B_Y[F] (engine Y) each pin exactly one O-ext index, their
++    own family's for their own engine, beside the wrapper's pin; another family's or engine's index, two indexes, none,
++    or no wrapper refuses. A fill of one family's pin leaves the other family's form untouched."""
++    for family in R.FAMILIES:
++        other = [f for f in R.FAMILIES if f != family][0]
++        assert R.oext_form_problem(oext_pin(family, "X"), family, "X") is None
++        assert R.oext_form_problem(oext_pin(family, "Y"), family, "Y") is None
++        assert "not " + family in R.oext_form_problem(oext_pin(other, "X"), family, "X") or \
++            "is " + other in R.oext_form_problem(oext_pin(other, "X"), family, "X")
++        assert "for engine Y, not" in R.oext_form_problem(oext_pin(family, "Y"), family, "X")
++        assert "for engine X, not" in R.oext_form_problem(oext_pin(family, "X"), family, "Y")
++        two = oext_pin(family)
++        two["files"].update(oext_pin(other)["files"])
++        assert "2 O-ext index file(s)" in R.oext_form_problem(two, family, "X")
++        none = {"files": {R.OEXT_WRAPPER_78B: hx("w")}, "inputs": oext_pin(family)["inputs"]}
++        assert "0 O-ext index file(s)" in R.oext_form_problem(none, family, "X")
++        nowrap = oext_pin(family)
++        nowrap["files"].pop(R.OEXT_WRAPPER_78B)
++        assert "do not pin the wrapper" in R.oext_form_problem(nowrap, family, "X")
++        assert R.oext_form_problem(oext_pin(other, "Y")) is None              # the form alone: no family named
++        monkeypatch.setitem(R.OEXT_78B, family, oext_pin(other))
++        with pytest.raises(R.Refused, match="GXB R-5"):
++            R.sc_pin_values(family, pins78_doc())
++        monkeypatch.setitem(R.OEXT_78B, family, oext_pin(family))
++        assert R.sc_pin_values(family, pins78_doc())["OEXT_78B"] == oext_pin(family)
++        assert R.OEXT_78B[other] is None                                       # fill once per family (T-O2)
++        monkeypatch.setitem(R.OEXT_78B, family, None)
++    monkeypatch.setattr(R, "ENGINE_Y", "d3" * 32)
++    monkeypatch.setitem(R.RECIPE_BQI, "llama31-8b", "cd" * 32)
++    monkeypatch.setitem(R.OEXT_78B_Y, "llama31-8b", oext_pin("llama31-8b", "X"))
++    with pytest.raises(R.Refused, match="for engine X, not llama31-8b's for engine Y"):
++        R.oext_y_or_refuse("llama31-8b")
++    monkeypatch.setitem(R.OEXT_78B_Y, "llama31-8b", oext_pin("llama31-8b", "Y", bank=hx("ybank")))
++    R.check_keys(**keys_of("llama31-8b", kind="ref_train_bqi", recipe_sha256="cd" * 32, engine_sha256="d3" * 32),
++                 oext_bank=hx("ybank"))                                        # engine Y reads its own pin
++    with pytest.raises(R.Refused, match="not llama31-8b's pinned O-ext bank"):
++        R.check_keys(**keys_of("llama31-8b", kind="ref_train_bqi", recipe_sha256="cd" * 32, engine_sha256="d3" * 32),
++                     oext_bank=hx("b"))
++
++
++def test_39_k1v7_the_verifiers_surviving_probes(monkeypatch):
++    """K1V-7: the checks the verifier's probes found untested: an edit pin's .json suffix; W1_18_78B's scripts/ prefix;
++    the gate's int version; an N unit with an extra key (and Llama's N a0-1103 needing N_UNITS: test_30; the stop
++    record's int exit code: test_34; the branch switch's source and W1-18 hash: test_29)."""
++    monkeypatch.setitem(R.METHOD_EDITS["olmo2-7b"], "A1", {"path": "tmp/a1.edit.txt", "sha256": hx("a1"), "rows": 600})
++    with pytest.raises(R.Refused, match="plain relative .json path"):
++        R.run_edit("olmo2-7b", "A1", 1102)
++    for files in ({"experiments/w.py": hx("w")}, {"tmp/scripts/w.py": hx("w")}, {"scripts/../w.py": hx("w")}):
++        assert "under scripts/" in R.files_form_problem({"files": files})
++    assert R.files_form_problem({"files": {R.W1_18_SCRIPT: hx("w")}}) is None
++    for version in (True, 1.0, "1"):
++        assert "kind and version" in R.gate_record_problem(gate_doc(version=version))
++        assert "kind and version" in R.plan_b_record_problem(plan_b_doc(version=version))
++    doc = n_units_doc("olmo2-7b")
++    doc["R-1102"] = {**doc["R-1102"], "note": "extra"}
++    assert "must hold exactly" in R.n_units_problem(doc, "olmo2-7b")
++    llama = n_units_doc("llama31-8b")
++    llama["a0-1103"] = {**llama["a0-1103"], "edit_sha256": hx("e")}           # an a0 unit holds no edit
++    assert "must hold exactly" in R.n_units_problem(llama, "llama31-8b")
++
++
++def test_40_k1v8_a_malformed_n_units_pin_refuses_at_use_never_at_import(tmp_path, monkeypatch):
++    """K1V-8: a malformed N_UNITS pin never breaks an import of the kit's stage1_rules (block 0, sc and A copies
++    import; REJUDGED_PINS["A"] keeps N's entries null); it refuses at use, with a clear message, in
++    rejudged_or_refuse (the judge launch) and sc_pin_values (the scorer block's planning)."""
++    bad = n_units_doc("olmo2-7b")
++    bad.pop("R-1103")
++    monkeypatch.setitem(R.N_UNITS, "olmo2-7b", bad)
++    for block in ("0", "sc", "A"):
++        sr = kit_copy(tmp_path / block, "olmo2-7b", block)
++        assert [p["complete_sha256"] for p in sr.REJUDGED_PINS["A"][:3]] == [None] * 3
++    with pytest.raises(R.Refused, match="N_UNITS\\['olmo2-7b'\\] is not N's unit record: its keys are not N's units"):
++        R.rejudged_or_refuse("olmo2-7b", "A")
++    with pytest.raises(R.Refused, match="is not N's unit record"):
++        R.sc_pin_values("olmo2-7b", pins78_doc())
++    assert R.rejudged_pins("olmo2-7b", "B") == ()
++
++
++def test_41_k1v9_a_unit_is_named_by_arm_and_seed_and_a_missing_arm_refuses(tmp_path):
++    """K1V-9 (GXB's seed key): sc_unit_input_names / sc_unit_input_pins name o_only_with_regenerate's unit by (arm,
++    seed) and refuse a missing arm or a pair that is not one of its units. The seed-only form remains only at the four
++    call sites K2 and K3 own (the runner :466, :483; the pack :432; the planner :1306), listed here so that no new
++    caller uses it; when they move, this test's list shrinks (a K2/K3 acceptance item)."""
++    sr = kit_copy(tmp_path, "olmo2-7b", "sc")
++    with pytest.raises(ValueError, match="the arm is missing"):
++        sr.sc_unit_input_names("o_only_with_regenerate", None, 1101)
++    with pytest.raises(ValueError, match="not one of its units"):
++        sr.sc_unit_input_names("o_only_with_regenerate", "R", 1104)
++    assert sr.sc_unit_input_names("o_only_with_regenerate", "R", 1101) == (
++        "n_complete:R:1101", "regen_edit:R:1101", "oext_bank", "oext_record")
++    assert sr.sc_unit_input_names("o_only_with_regenerate", "a0", 1101) == (
++        "side_complete:a0:1101", "oext_bank", "oext_record")
++    assert sr.sc_unit_input_names("o_only", "theta0", None) == ("oext_bank", "oext_record")
++    values = R.sc_pin_values("olmo2-7b", pins78_doc())
++    with pytest.raises(ValueError, match="the arm is missing"):
++        sr.sc_unit_input_pins("o_only_with_regenerate", pins78_doc(), values, None, 1101)
++    assert set(sr.sc_unit_input_pins("o_only_with_regenerate", pins78_doc(), values, "R", 1101)) == {
++        "n_complete:R:1101", "regen_edit:R:1101", "oext_bank", "oext_record"}
++    legacy = {}
++    for rel in ("setup/job_runner_stage1.py", "pack_setup.py", "plan_tool.py", "judge_units_stage1.py", "seal.py",
++                "finisher.py", "orchestrate.py"):
++        text = (KIT / rel).read_text()
++        legacy[rel] = text.count("rules.sc_input_names(") + text.count("rules.sc_input_pins(")
++    assert legacy == {"setup/job_runner_stage1.py": 2, "pack_setup.py": 1, "plan_tool.py": 1,
++                      "judge_units_stage1.py": 0, "seal.py": 0, "finisher.py": 0, "orchestrate.py": 0}
++
++
++# Block 0's plan.json at 3481d85 (M, 8 Nov 2026: r1-k1-scratch/plan0.py on `git archive 3481d85 runkit/stage1-78b`, the
++# World of tests/test_stage1_runkit.py, a real init-block 0, the clock fixed at 2026-11-08T00:00:00+00:00, the tmp
++# path replaced by "<TMP>"): its byte count and SHA-256 per family. GXB R-3 holds K1's block 0 to these bytes.
++BLOCK0_PLAN_3481D85 = {"olmo2-7b": (14106, "263e2541dc556209ae27441cc0ca94ca328010490b971bb5bf8a077de63915bf"),
++                       "llama31-8b": (14605, "ceff076129ba87a17c6ff38f450d5fb81a8dfd30762ec3e0b9c6f1082a578555")}
++
++
++def test_42_r3_block_0s_plan_json_is_3481d85s_byte_for_byte(tmp_path, monkeypatch):
++    """GXB R-3 (K1V-13): the two new job keys (oext, padded_tokens_per_step) are written only on block A and B jobs;
++    block 0's plan.json (a real init through the kit's own test World, the clock fixed, the tmp path normalised) is
++    byte for byte the one 3481d85's kit writes."""
++    runkit = load_by_path("test_stage1_runkit_for_r3", HERE / "test_stage1_runkit.py")
++    try:
++        for family, (size, digest) in BLOCK0_PLAN_3481D85.items():
++            root = tmp_path / family
++            root.mkdir()
++            with pytest.MonkeyPatch.context() as mp:
++                w = runkit.World(root, mp, family)
++                mp.setattr(w.mac, "utc", lambda: "2026-11-08T00:00:00+00:00")
++                w.init()
++                data = (w.root / "plan.json").read_bytes().replace(str(root).encode(), b"<TMP>")
++                assert (len(data), hashlib.sha256(data).hexdigest()) == (size, digest), family
++                assert b'"oext"' not in data and b'"padded_tokens_per_step"' not in data
++                for name in runkit.MODULES:
++                    sys.modules.pop(name, None)
++    finally:
++        sys.modules.pop("test_stage1_runkit_for_r3", None)
++    assert sys.modules.get("rules_78b") is R or "rules_78b" not in sys.modules
++
++
+ def test_38_every_new_k1_pin_is_null_and_names_its_event():
+     """A13's pattern for every pin R1 K1 adds: GATE_78B, N_UNITS, W1_18_78B, ANCHOR_STOP (null = no stop), the O-ext
+     term's measured value, and the null method edits; each refusal names the event that fills it."""
+--- pre-fix/runkit/stage1-78b/tests/test_scorer_block_78b.py
++++ fix/runkit/stage1-78b/tests/test_scorer_block_78b.py
+@@ -129,8 +129,12 @@
+         if oext:
+             files = {r78.OEXT_UNIT_SCRIPT: sha(write(self.repo / r78.OEXT_UNIT_SCRIPT, "# synthetic O-ext unit runner\n")),
+                      r78.C0_SCRIPT: sha(write(self.repo / r78.C0_SCRIPT, "# synthetic lean job\n"))}
++            index = f"scripts/scale78b/settings/oext_index__{fam}__X.json"           # R1 K1 fix (GXB R-5): the
++            files[index] = sha(write(self.repo / index, {"index": f"synthetic {fam} X"}))   # family's own index
+             self.mp.setitem(r78.OEXT_78B, fam, {"files": files, "inputs": {"oext_bank": sha(self.oext("bank")),
+                                                                            "oext_record": sha(self.oext("record"))}})
++            self.mp.setitem(r78.BRANCH_78B, fam, {"path": f"records/branch-{fam}.json",   # R1 K1 fix (GXB R-4): the
++                                                  "sha256": hx(f"branch-{fam}")})         # O-ext kinds wait on it
+         if c0:
+             self.mp.setitem(r78.C0_SOURCE, fam, {"complete_sha256": sha(self.c0_source()), "e1_fingerprint": hx("e1-R-1101")})
+         changed[r.PINS_78B] = doc
+@@ -351,8 +355,9 @@
+     assert r78.sc_needed_pins("retrain", "Y") == ("RECIPE_S", "ENGINE_Y") and r78.sc_needed_pins("retrain", "X") == ("RECIPE_S",)
+     assert r78.sc_needed_pins("a1_pass", "X") == ("RECIPE_S", "ANCHOR_BANK", "RETRAIN_UNIT")
+     assert r78.sc_needed_pins("rep_pass", "X") == ("RECIPE_S", "ANCHOR_BANK", "S3_ORIG_POOL")
+-    assert r78.sc_needed_pins("o_only", "X") == ("OEXT_78B",) and r78.sc_needed_pins("c0", "X") == ("OEXT_78B", "C0_SOURCE")
+-    assert r78.sc_needed_pins("o_only_with_regenerate", "X") == ("OEXT_78B",)           # PP17: it waits on OEXT_78B
++    assert r78.sc_needed_pins("o_only", "X") == ("OEXT_78B", "BRANCH_78B") and r78.sc_needed_pins("c0", "X") == (
++        "OEXT_78B", "C0_SOURCE", "BRANCH_78B")                         # R1 K1 fix (GXB R-4): + the branch record
++    assert r78.sc_needed_pins("o_only_with_regenerate", "X") == ("OEXT_78B", "BRANCH_78B")   # R1 K1 fix: + the branch           # PP17: it waits on OEXT_78B
+     assert r78.sc_needed_pins("l1_scan", "X") == ("ANCHOR_BANK",) and r78.sc_needed_pins("classifier", "X") == (
+         "RECIPE_S", "ANCHOR_BANK")
+     for kind in ("anchor", "untuned_answers"):
+@@ -1595,6 +1600,7 @@
+ def test_an_oext_kind_refuses_when_oext_78b_does_not_list_its_script(so, monkeypatch):
+     """HM14: o_only and o_only_with_regenerate need OEXT_UNIT_SCRIPT, c0 needs C0_SCRIPT, among OEXT_78B's files."""
+     w = so
++    assert w.r78.OEXT_WRAPPER_COMMANDS["c0"] == "lean" and w.r78.OEXT_WRAPPER_COMMANDS["o_only"] == "unit"   # R1 K1 fix
+     w.fill(oext=True, c0=True)
+     full = w.r78.OEXT_78B[w.family]
+     for drop, kinds in ((w.r78.OEXT_UNIT_SCRIPT, ({"kind": "o_only"}, REGEN)), (w.r78.C0_SCRIPT, ({"kind": "c0"},))):
+@@ -1602,9 +1608,11 @@
+         monkeypatch.setitem(w.r78.OEXT_78B, w.family, {"files": kept,      # R1 K1: one wrapper path; keep files non-empty
+                                                        "inputs": full["inputs"]})
+         for job in kinds:
+-            with pytest.raises(SystemExit, match=f"does not list {drop}"):
++            with pytest.raises(SystemExit, match=f"do not pin the wrapper {drop}"):   # R1 K1 fix: GXB R-5's form check comes first
+                 w.init([job], amount=None, dry_run=True)
+     monkeypatch.setitem(w.r78.OEXT_78B, w.family, full)
++    for kind in ("o_only", "o_only_with_regenerate", "c0"):          # R1 K1 fix: each O-ext kind packs OEXT_78B's files
++        assert w.rules.scorer_code(kind) == sorted(full["files"]), kind
+     assert len(w.init([{"kind": "o_only"}, REGEN, {"kind": "c0"}], amount=None, dry_run=True)["pods"]) == 3
+ 
+ 
+--- pre-fix/runkit/stage1-78b/tests/test_block_tables_78b.py
++++ fix/runkit/stage1-78b/tests/test_block_tables_78b.py
+@@ -70,6 +70,16 @@
+                                                           "sha256": hx(f"{family}-{arm}"), "rows": rows[arm]})
+ 
+ 
++def stop_family(monkeypatch, family: str) -> None:
++    """A test-local anchor stop: the family's stop record pinned in ANCHOR_STOP and read at the pin (K1V-6)."""
++    done = hx(f"job-done-{family}")
++    data = json.dumps(R.anchor_stop_record(family, 3, None, done, {"kept": 60, "needed": 64})).encode()
++    monkeypatch.setattr(R, "_ANCHOR_STOPS_READ", {})
++    monkeypatch.setitem(R.ANCHOR_STOP, family, {"path": f"records/{family}-anchor-stop.json",
++                                                "sha256": hashlib.sha256(data).hexdigest()})
++    R.anchor_stop_or_refuse(family, data, done)
++
++
+ def padded_for(runs, value: float = 40000.0) -> dict:
+     return {(a, s): value for a, s in runs if a != "a0"}
+ 
+@@ -133,7 +143,7 @@
+             for arm in arms:
+                 assert sorted(s for a, s in runs if a == arm) == list(range(1105, last + 1))
+             for k, extra in ((3, 6), (6, 12)):
+-                with_doses = R.block_runs_78b(family, code, "B", dose_seeds=k)
++                with_doses = R.block_runs_78b(family, code, "B", dose_seeds=k, kept=192)
+                 assert len(with_doses) == n + extra
+                 doses = sorted(r for r in with_doses if r[0] in R.DOSE_ARMS)
+                 assert doses == sorted((a, s) for a in R.DOSE_ARMS for s in R.DOSE_SEEDS[k])
+@@ -142,12 +152,10 @@
+                 R.block_runs_78b(family, bad, "B")
+         for bad in (1, 2, 4, 12):
+             with pytest.raises(R.Refused, match="3 or 6 seeds"):
+-                R.block_runs_78b(family, "A", "B", dose_seeds=bad)
+-        with pytest.raises(R.Refused, match="each once"):
+-            R.block_runs_78b(family, "A", "B", dose_seeds=3, dose_arms=("S4_96", "S4_96"))
+-        with pytest.raises(R.Refused, match="each once"):
+-            R.block_runs_78b(family, "A", "B", dose_seeds=3, dose_arms=("S4",))
+-        top = R.block_runs_78b(family, "A", "B", dose_seeds=3, dose_arms=("S4_96", "s4_top"))
++                R.block_runs_78b(family, "A", "B", dose_seeds=bad, kept=192)
++        with pytest.raises(R.Refused, match="whole number"):
++            R.block_runs_78b(family, "A", "B", dose_seeds=3)                 # the dose rows need the kept count
++        top = R.block_runs_78b(family, "A", "B", dose_seeds=3, kept=150)
+         assert sorted(a for a, _ in top if a in ("S4_96", "s4_top", "S4_192")) == ["S4_96"] * 3 + ["s4_top"] * 3
+         sr = kit_copy(tmp_path / family, family, "B")
+         assert sr.block_runs("B9", "B") == R.block_runs_78b(family, "B9", "B")
+@@ -260,13 +268,13 @@
+     """DESO2 item 36 (1); Part 2 §2.2: on a family whose anchor job stopped, A1, L1 and S3 are not run: block A 18 -> 9
+     method runs (12 in all), block B plan A 14, B9 26 (A1's 6 dropped), H (b) 38; the dose rows stay; the other family
+     keeps its full tables."""
+-    monkeypatch.setitem(R.ANCHOR_STOP, "olmo2-7b", {"path": "records/anchor-stop.json", "sha256": hx("stop")})
++    stop_family(monkeypatch, "olmo2-7b")
+     a = R.block_runs_78b("olmo2-7b", None, "A")
+     assert len(a) == 12 and not {"A1", "L1", "S3"} & {x for x, _ in a}
+     assert sorted(r for r in a if r[0] in R.METHOD_ARMS) == sorted((x, s) for x in ("H1", "S1", "S4")
+                                                                     for s in (1102, 1103, 1104))
+     assert [len(R.block_runs_78b("olmo2-7b", c, "B")) for c in ("A", "B9", "H")] == [14, 26, 38]
+-    assert len(R.block_runs_78b("olmo2-7b", "A", "B", dose_seeds=6)) == 14 + 12
++    assert len(R.block_runs_78b("olmo2-7b", "A", "B", dose_seeds=6, kept=192)) == 14 + 12
+     assert len(R.block_runs_78b("llama31-8b", None, "A")) == 21
+     for pods in (R.deal_ab(a), R.deal_ab(R.block_runs_78b("olmo2-7b", "H", "B"))):
+         assert all(len(p) <= 4 for p in pods)
+@@ -293,10 +301,11 @@
+     for family in FAMILIES:
+         for block, code in (("A", None), ("B", "A"), ("B", "B9"), ("B", "H")):
+             for k in ((0,) if block == "A" else (0, 3, 6)):
+-                pods = R.deal_ab(R.block_runs_78b(family, code, block, dose_seeds=k))
++                pods = R.deal_ab(R.block_runs_78b(family, code, block, dose_seeds=k, kept=192 if k else None))
+                 for pod in pods:
+                     assert len({a for a, _ in pod}) == len(pod)
+-                assert sum(len(p) for p in pods) == len(R.block_runs_78b(family, code, block, dose_seeds=k))
++                assert sum(len(p) for p in pods) == len(R.block_runs_78b(family, code, block, dose_seeds=k,
++                                                                         kept=192 if k else None))
+     with pytest.raises(R.Refused, match="one arm twice"):
+         R.deal_ab([("A1", s) for s in range(1102, 1107)])
+     with pytest.raises(R.Refused, match="listed twice"):
+@@ -324,7 +333,8 @@
+     """KD2: at most 4 counted arms per pod in every dealt pod; cap_hours refuses a fifth."""
+     for family in FAMILIES:
+         for block, code in (("A", None), ("B", "A"), ("B", "B9"), ("B", "H")):
+-            for pod in R.deal_ab(R.block_runs_78b(family, code, block, dose_seeds=0 if block == "A" else 6)):
++            for pod in R.deal_ab(R.block_runs_78b(family, code, block, dose_seeds=0 if block == "A" else 6,
++                                                  kept=None if block == "A" else 192)):
+                 assert len(pod) <= R.MAX_ARMS_PER_POD_78B == 4
+         with pytest.raises(R.Refused, match="at most 4"):
+             R.cap_hours(R.arm_pod(family, [33] * 5, oext=True))
+@@ -367,20 +377,55 @@
+ 
+ 
+ def test_s4_top_steps_rule(monkeypatch):
+-    """GXB O1: s4_top with n kept rows takes ceil((4,800 + n) / 128) steps: 38 for n <= 64, 39 for n >= 65; the
+-    fallback holds 48-191 rows (Part 2 §1.11), so n outside refuses."""
+-    for n in range(48, 192):
++    """GXB O1 and K-5: s4_top with n kept rows takes ceil((4,800 + n) / 128) steps: 38 for n <= 64, 39 for n >= 65;
++    s4_top exists only for 49-95 and 97-191 kept rows, so n = 48 (it would equal S4), 96 (S4_96), 192 and more
++    (S4_192) and fewer than 48 refuse."""
++    for n in list(range(49, 96)) + list(range(97, 192)):
+         rows = R.arm_training_rows("s4_top", n)
+         assert rows == 4800 + n and R.arm_steps("s4_top", rows) == (38 if n <= 64 else 39)
+-    for n in (47, 192, 0):
+-        with pytest.raises(R.Refused):
++    for n in (47, 48, 96, 192, 250):
++        with pytest.raises(R.Refused, match="49-95 and 97-191"):
+             R.arm_training_rows("s4_top", n)
++    with pytest.raises(R.Refused, match="positive integer"):
++        R.arm_training_rows("s4_top", 0)
+     monkeypatch.setitem(R.METHOD_EDITS["olmo2-7b"], "s4_top", {"path": "tmp/top.json", "sha256": hx("top"), "rows": 64})
+     assert R.run_edit("olmo2-7b", "s4_top", 1102)["steps"] == 38
+     monkeypatch.setitem(R.METHOD_EDITS["olmo2-7b"], "s4_top", {"path": "tmp/top.json", "sha256": hx("top"), "rows": 65})
+     assert R.run_edit("olmo2-7b", "s4_top", 1102)["steps"] == 39
++    for rows in (48, 96):
++        monkeypatch.setitem(R.METHOD_EDITS["olmo2-7b"], "s4_top", {"path": "tmp/top.json", "sha256": hx("top"),
++                                                                   "rows": rows})
++        with pytest.raises(R.Refused, match="not an edit pin"):
++            R.run_edit("olmo2-7b", "s4_top", 1102)
+ 
+ 
++def test_k5_the_dose_arms_for_each_kept_count(monkeypatch):
++    """GXB K-5 (Part 2 §5; P1 §10; DESO item 34): n >= 192 kept rows: S4_96 and S4_192; 97-191: S4_96 and s4_top (n);
++    exactly 96: S4_96 only; 49-95: s4_top (n) only; exactly 48: no dose arm; fewer than 48: the build stop. Block B's
++    dose rows follow it (3 or 6 seeds); a filled s4_top pin must hold exactly n rows."""
++    cases = {192: ("S4_96", "S4_192"), 200: ("S4_96", "S4_192"), 191: ("S4_96", "s4_top"), 97: ("S4_96", "s4_top"),
++             150: ("S4_96", "s4_top"), 96: ("S4_96",), 95: ("s4_top",), 49: ("s4_top",), 70: ("s4_top",), 48: ()}
++    for n, arms in cases.items():
++        assert R.dose_arms_for(n) == arms, n
++        runs = R.block_runs_78b("olmo2-7b", "A", "B", dose_seeds=3, kept=n)
++        assert sorted(r for r in runs if r[0] in ("S4_96", "S4_192", "s4_top")) == sorted(
++            (a, s) for a in arms for s in (1102, 1103, 1104)), n
++        assert len(runs) == 23 + 3 * len(arms)
++    for n in (47, 0, -1):
++        with pytest.raises(R.Refused, match="build stop"):
++            R.dose_arms_for(n)
++        with pytest.raises(R.Refused, match="build stop"):
++            R.block_runs_78b("olmo2-7b", "A", "B", dose_seeds=3, kept=n)
++    for bad in (None, 96.0, True, "96"):
++        with pytest.raises(R.Refused, match="whole number"):
++            R.dose_arms_for(bad)
++    assert len(R.block_runs_78b("olmo2-7b", "A", "B", dose_seeds=6, kept=48)) == 23        # 48: no dose arm
++    monkeypatch.setitem(R.METHOD_EDITS["olmo2-7b"], "s4_top", {"path": "tmp/top.json", "sha256": hx("top"), "rows": 120})
++    with pytest.raises(R.Refused, match="holds 120 rows, not the 150 kept"):
++        R.block_runs_78b("olmo2-7b", "A", "B", dose_seeds=3, kept=150)
++    assert len(R.block_runs_78b("olmo2-7b", "A", "B", dose_seeds=3, kept=120)) == 29
++
++
+ # ------------------------------------------------------------------------------------------------ item 4: train_scale
+ def test_train_scale_at_least_1():
+     """KCR:104: train_scale = max(1, the arm's padded tokens per step / the a0's): never below 1 (a removal arm with
+@@ -443,7 +488,8 @@
+     gate = {"kind": R.GATE_RECORD_KIND, "version": 1, "option": "B", "families": ["olmo2-7b", "llama31-8b"],
+             "provisional_plan": "A", "noise_reading_sha256": hx("noise"), "balance_usd": 250.0,
+             "utc": "2026-11-20T10:00:00Z", "recorded_by": "GI XI"}
+-    plan_b = {"kind": R.PLAN_B_RECORD_KIND, "version": 1, "plan": "B9", "sr2_adopted": True,
++    plan_b = {"kind": R.PLAN_B_RECORD_KIND, "version": 1, "plan": "B9", "sr2_adopted": True, "sr2_reason": None,
++              "plan_basis": "sigma_A",
+               "blinded_sigma_output_sha256": hx("bs-out"), "blinded_sigma_inputs_sha256": hx("bs-in"),
+               "utc": "2026-12-01T10:00:00Z", "recorded_by": "GI XI"}
+     g, b = json.dumps(gate).encode(), json.dumps(plan_b).encode()

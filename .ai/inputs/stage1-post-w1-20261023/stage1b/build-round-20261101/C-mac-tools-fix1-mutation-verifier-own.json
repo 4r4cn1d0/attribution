@@ -1,0 +1,143 @@
+{
+  "baseline": {
+    "disk_full": false,
+    "erroring": [],
+    "errors": 0,
+    "exit": 0,
+    "failing": [],
+    "failures": 0,
+    "outcome": "pass",
+    "seconds": 1.4,
+    "skipped": 0,
+    "targets": {},
+    "tests": 62,
+    "tree": {
+      "README.md": "975f726afce61f9f948d74869571d8319d87cad82a4f6167d314d6fafdf98a5b",
+      "__init__.py": "ed0b5bd726c5c361fbfddeeab41ba96d46a15d458cbcf15970302116f365056e",
+      "binding_check.py": "c33fee27d6e3d1e33c5af9c7d73f22d60c2e3c5b2f9f0eb42aeab41ca27f054c",
+      "common.py": "61140654533421a2ebbc8eee029568814c7d526935d586818b0e5a91b79add18",
+      "construction_checks.py": "9a03a5f3c632b54b9f531cac33ee7b991bb29b09a0f3af96f993cc6b564761c2",
+      "mutation/mutants_stage1b_mac.json": "7ad3d2c08f81672de4ef52315a3e9a22b59ee64c3d8feeacbf24aeb6915c3033",
+      "mutation/run_mutants.py": "5bf8c7e434332767623751a3c10f933568b89c569b72995e2b297d087cbb7cc2",
+      "switch_check.py": "e00a8ce6b0e6d5c33352c990341e1fb5a45c10231ddbd9d66e6d490565fbed4c",
+      "tests/conftest.py": "ed7b76026087b5e111a9d3ef463d9d8b8a76201ae9a176440bfa6952ed6e03f5",
+      "tests/synth_world.py": "34f92be90a0783b5d01b828f06ad88062baf1203a9b46a62b3adc238e7c65840",
+      "tests/test_argv_compat.py": "929155ad3d03a2ce1a70d4acd385f1f2031f21b3ef4a89a19df75944a5148f2b",
+      "tests/test_binding_check.py": "30eb54749512a95b4d70a1f975363c7863f469111af579dd00c849f803a59f1f",
+      "tests/test_common.py": "d4175d7694aa490e6ff505573806c66654f7b6f42f0672bc57db4587b2a54089",
+      "tests/test_construction_checks.py": "39879faed49f53e8cfc8b0c7dcf0027f4a46dca8c8fcdc88d8c41da05ef8a6d8",
+      "tests/test_switch_check.py": "4bb20f5145d44135c696fe2fa81134136153dfbe99f1103faaefbac4f2394ede"
+    }
+  },
+  "command": "python -B -m pytest -q -rs -p no:cacheprovider -W ignore --basetemp=<run>/bt --junitxml=<run>/junit.xml <copy>/scripts/stage1_s1/stage1b_mac/tests (cwd <copy>; PYTHONPATH <copy>:<workspace>; PYTHONDONTWRITEBYTECODE=1)",
+  "environment_removed": [
+    "PYTEST_ADDOPTS",
+    "PYTEST_PLUGINS"
+  ],
+  "kind": "stage1 mutation report",
+  "min_free_gb": 3.0,
+  "mutants": [
+    {
+      "describes": "seal entries of every host are pooled (the host filter is dropped)",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_seal_entries_of_other_hosts_are_not_the_hosts"
+      ],
+      "failures": 1,
+      "id": "V-seal-host-filter",
+      "outcome": "killed",
+      "part": "construction_checks",
+      "seconds": 1.2,
+      "skipped": 0,
+      "targets": {
+        "construction_checks.py": {
+          "after": "d7f9751028e23e3a75c6d2a4610dc16729fe34d1257493c2f51ec1a7accca31c",
+          "before": "9a03a5f3c632b54b9f531cac33ee7b991bb29b09a0f3af96f993cc6b564761c2"
+        }
+      },
+      "tests": 62
+    },
+    {
+      "describes": "the decoy pool is not checked against the rules' pin",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_refuses_req8_record_or_a_pool_off_its_pin"
+      ],
+      "failures": 1,
+      "id": "V-second-pool-pin",
+      "outcome": "killed",
+      "part": "construction_checks",
+      "seconds": 1.4,
+      "skipped": 0,
+      "targets": {
+        "construction_checks.py": {
+          "after": "e5b32124a34c85c1af65ec97829e7536a33c4c97b9b9de92981fa0a0622470c0",
+          "before": "9a03a5f3c632b54b9f531cac33ee7b991bb29b09a0f3af96f993cc6b564761c2"
+        }
+      },
+      "tests": 62
+    },
+    {
+      "describes": "the input line prints the file path beside the hash",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_the_run_writes_the_three_outputs_and_a_text_free_record",
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_given_scorer_outputs_are_used_and_only_the_report_runs",
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_a_failed_step_stops_the_run_and_withholds_a_reason_that_holds_a_value",
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_a_failed_step_with_a_value_free_refusal_prints_that_line_only",
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_a_step_that_prints_bytes_that_are_not_utf8_still_runs_and_is_logged",
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_an_output_that_differs_from_the_printed_hash_stops_the_run",
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_the_rules_module_pin_is_checked_when_given",
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_seal_entries_of_other_hosts_are_not_the_hosts",
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_the_job_index_comes_from_plan_json_not_from_a_fixed_order",
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_the_runner_never_reads_a_unit_folder_or_lists_the_tree"
+      ],
+      "failures": 10,
+      "id": "V-input-print-path",
+      "outcome": "killed",
+      "part": "construction_checks",
+      "seconds": 1.5,
+      "skipped": 0,
+      "targets": {
+        "construction_checks.py": {
+          "after": "d974c8c9e1f902578132d767cc2db3e24cdaafd76a5e56010a63a7f44f42a0f3",
+          "before": "9a03a5f3c632b54b9f531cac33ee7b991bb29b09a0f3af96f993cc6b564761c2"
+        }
+      },
+      "tests": 62
+    }
+  ],
+  "pytest_version": "pytest 8.4.2",
+  "python": "3.11.15",
+  "rule": "killed = exit 1 with >= 1 failure and 0 errors; survived = exit 0, 0 failures, 0 errors; anything else (errors, timeout, other exit codes, no JUnit, a test count other than the baseline's) = invalid; an 'expect: survive' entry passes only if it survives",
+  "runner_sha256": "5bf8c7e434332767623751a3c10f933568b89c569b72995e2b297d087cbb7cc2",
+  "shard": null,
+  "spec": "/private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-heuristic-ramanujan-ffe737/fc95250c-7482-48ff-a05e-567068089009/scratchpad/s1b/tmp/fix1-verify-mutants/my_mutants_renamed.json",
+  "spec_sha256": "75fb9bc1fb05f40893007309905fa95583169f286ebf665f4bcb43474f44be30",
+  "summary": {
+    "construction_checks": {
+      "equivalent": 0,
+      "expected_survivors_failed": 0,
+      "expected_survivors_ok": 0,
+      "invalid": 0,
+      "killed": 3,
+      "mutants": 3,
+      "survived": 0
+    }
+  },
+  "timeout_seconds": 300,
+  "tree_name": "scripts/stage1_s1/stage1b_mac",
+  "version": 2
+}

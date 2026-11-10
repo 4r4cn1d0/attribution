@@ -1,0 +1,825 @@
+{
+ "kind": "scale78b oext mutation spec (R1 Track O, fix round 2; R2 Track R's follow-up)",
+ "note": "each mutant's find text occurs exactly once in its file (a path under scripts/scale78b); runner: tests/oext/run_mutants_oext_78b.py (the suite scripts/scale78b/tests/oext). Fix round 1: 67. Fix round 2: 4 stale finds updated, the re-verifier's 11 (RV-*, 2 finds adapted) and 14 new (F2-*). R2 (Track R's follow-up of R1's second re-verification): 3 finds adapted to W2-3's check (RV-w-check-waits-mask, F2-w-on-engine, F2-w-wait-pattern), the re-verifier's 3 surviving mutants (RV2-*, W2-2) and 8 new (R2-*: W2-1, W2-3). R3 (Track P): 7 new (R3-*: W2-4, W2-5). R3 fix round (Track P): 2 new (R3F-*: V-5). R3 integration fixes (Track P): 5 new (R3I-*: R-86, R-89).",
+ "mutants": [
+  {
+   "id": "O-w-unit-label",
+   "describes": "unit: the O-ext settings path label is not set to the family's file",
+   "file": "oext_78b.py",
+   "find": "             (ou, \"OEXT_SETTINGS_PATH\", idx.label(eval_role)), *w_pairs]\n",
+   "replace": "             *w_pairs]\n"
+  },
+  {
+   "id": "O-w-unit-1b-oext",
+   "describes": "unit: oext_eval's settings load from the 1B default",
+   "file": "oext_78b.py",
+   "find": "             (oe, \"load_pinned_settings\", functools.partial(oe.load_pinned_settings, eval_path, eval_sha)),\n             (ou, \"OEXT_SETTINGS_PATH\"",
+   "replace": "             (ou, \"OEXT_SETTINGS_PATH\""
+  },
+  {
+   "id": "O-w-unit-1b-unit",
+   "describes": "unit: oext_unit's settings load from the 1B default",
+   "file": "oext_78b.py",
+   "find": "    pairs = [(ou, \"load_pinned_settings\", functools.partial(ou.load_pinned_settings, unit_path, unit_sha)),\n",
+   "replace": "    pairs = [\n"
+  },
+  {
+   "id": "O-w-unit-no-w1",
+   "describes": "unit: W1-18's globals keep the 1B settings (oext_eval's binding reads the 1B file)",
+   "file": "oext_78b.py",
+   "find": "             (ou, \"OEXT_SETTINGS_PATH\", idx.label(eval_role)), *w_pairs]\n",
+   "replace": "             (ou, \"OEXT_SETTINGS_PATH\", idx.label(eval_role))]\n"
+  },
+  {
+   "id": "O-w-no-restore",
+   "describes": "the patched globals are not restored after the call",
+   "file": "oext_78b.py",
+   "find": "        for obj, name, value in reversed(saved):\n            setattr(obj, name, value)\n",
+   "replace": "        pass\n"
+  },
+  {
+   "id": "O-w-abbrev",
+   "describes": "a flag that is not a full name of the 1B command passes",
+   "file": "oext_78b.py",
+   "find": "        if token.startswith(\"-\") and token.split(\"=\", 1)[0] not in allowed:\n",
+   "replace": "        if token.startswith(\"-\") and token.split(\"=\", 1)[0] not in allowed and not token.startswith(\"--\"):\n"
+  },
+  {
+   "id": "O-w-transfer",
+   "describes": "unit transfer (LN-14) is taken",
+   "file": "oext_78b.py",
+   "find": "SUBCOMMANDS = {\"unit\": (\"run\",), \"lean\"",
+   "replace": "SUBCOMMANDS = {\"unit\": (\"run\", \"transfer\"), \"lean\""
+  },
+  {
+   "id": "O-w-waits-off",
+   "describes": "a null pin does not stop the command",
+   "file": "oext_78b.py",
+   "find": "        waits = self.waits_for(NEEDS[key])\n        if waits:\n",
+   "replace": "        waits = self.waits_for(NEEDS[key])\n        if False:\n"
+  },
+  {
+   "id": "O-w-needs-unit",
+   "describes": "the unit command ignores the O-ext settings' waits (the branch)",
+   "file": "oext_78b.py",
+   "find": "NEEDS = {\"unit\": (\"oext_unit\", \"oext_eval\"), ",
+   "replace": "NEEDS = {\"unit\": (\"oext_unit\",), "
+  },
+  {
+   "id": "O-w-needs-w1",
+   "describes": "the w1_18 command ignores theta0's job pin",
+   "file": "oext_78b.py",
+   "find": "         \"lean\": (\"lean_eval_job\", \"oext_eval\"), \"w1_18\": (\"limits_overrefusal_checks\",)}\nENGINE_KEYS",
+   "replace": "         \"lean\": (\"lean_eval_job\", \"oext_eval\"), \"w1_18\": ()}\nENGINE_KEYS"
+  },
+  {
+   "id": "O-w-manifest-off",
+   "describes": "--prepared is not checked against the family's manifest",
+   "file": "oext_78b.py",
+   "find": "    if digest != idx.manifest:\n",
+   "replace": "    if False:\n"
+  },
+  {
+   "id": "O-w-other-label",
+   "describes": "the refusal does not name the other family's manifest",
+   "file": "oext_78b.py",
+   "find": "        which = \" (the other family's manifest)\" if digest in idx.other_manifests.values() else \"\"\n",
+   "replace": "        which = \"\"\n"
+  },
+  {
+   "id": "O-w-w1-needed",
+   "describes": "Branch 128's --w1-18-record is not required by the wrapper",
+   "file": "oext_78b.py",
+   "find": "        if given is None:\n            raise Refused",
+   "replace": "        if given is None and False:\n            raise Refused"
+  },
+  {
+   "id": "O-w-w1-hash",
+   "describes": "--w1-18-record is not checked against the family's pin",
+   "file": "oext_78b.py",
+   "find": "        if digest != pin:\n            raise Refused(f\"--w1-18-record",
+   "replace": "        if False:\n            raise Refused(f\"--w1-18-record"
+  },
+  {
+   "id": "O-w-w1-unpinned",
+   "describes": "--w1-18-record is taken when the settings pin no record",
+   "file": "oext_78b.py",
+   "find": "    if pin is None and given is not None:\n",
+   "replace": "    if pin is None and given is not None and False:\n"
+  },
+  {
+   "id": "O-w-dev100-full",
+   "describes": "--dev100-source is taken under Branch full",
+   "file": "oext_78b.py",
+   "find": "(not unit or cap[\"branch\"] != \"128\" or \"--untuned\" in args)",
+   "replace": "(not unit or \"--untuned\" in args)"
+  },
+  {
+   "id": "O-w-dev100-untuned",
+   "describes": "--dev100-source is taken with --untuned",
+   "file": "oext_78b.py",
+   "find": "(not unit or cap[\"branch\"] != \"128\" or \"--untuned\" in args)",
+   "replace": "(not unit or cap[\"branch\"] != \"128\")"
+  },
+  {
+   "id": "O-w-index-pin",
+   "describes": "the index is not checked against INDEX_SHA256",
+   "file": "oext_78b.py",
+   "find": "        if digest != expected_sha256:\n",
+   "replace": "        if False:\n"
+  },
+  {
+   "id": "O-w-file-pin",
+   "describes": "a settings file is not checked against the index",
+   "file": "oext_78b.py",
+   "find": "        if sha256_bytes(data) != entry[\"sha256\"]:\n",
+   "replace": "        if False:\n"
+  },
+  {
+   "id": "O-w-code-pin",
+   "describes": "a changed run file is not refused",
+   "file": "oext_78b.py",
+   "find": "        if digest != CODE[name]:\n",
+   "replace": "        if False:\n"
+  },
+  {
+   "id": "O-w-engine-first",
+   "describes": "the wrapper imports the engine before the lean copy (c0's timer origin)",
+   "file": "oext_78b.py",
+   "find": "            module(LEAN_MODULE)                  # before",
+   "replace": "            module(\"experiments.safety_selection.engine\")                  # before"
+  },
+  {
+   "id": "O-w-lean-label",
+   "describes": "lean: the copy's O-ext settings path label is not set",
+   "file": "oext_78b.py",
+   "find": "             (lej, \"OEXT_SETTINGS_PATH\", idx.label(\"oext_eval\")),\n",
+   "replace": ""
+  },
+  {
+   "id": "O-w-lean-settings",
+   "describes": "lean: the copy reads its default settings path",
+   "file": "oext_78b.py",
+   "find": "    pairs = [(lej, \"SETTINGS_PATH\", lean_path), (lej, \"SETTINGS_SHA256\", lean_sha),\n",
+   "replace": "    pairs = [\n"
+  },
+  {
+   "id": "O-w-w1-arg",
+   "describes": "w1_18: neither --settings nor W1-18's SETTINGS_PATH names the family's file (the 1B default path is read; each alone is redundant with the other, since main's --settings default reads the global at call time, overrefusal_checks.py:533)",
+   "file": "oext_78b.py",
+   "find": "    with patched([(w1, \"SETTINGS_PATH\", w_path), (w1, \"SETTINGS_SHA256\", w_sha)]):\n        return w1.main([*args, \"--settings\", str(w_path)])\n",
+   "replace": "    with patched([(w1, \"SETTINGS_SHA256\", w_sha)]):\n        return w1.main([*args])\n"
+  },
+  {
+   "id": "O-w-w1-sha",
+   "describes": "w1_18: W1-18's SETTINGS_SHA256 stays the 1B pin",
+   "file": "oext_78b.py",
+   "find": "    with patched([(w1, \"SETTINGS_PATH\", w_path), (w1, \"SETTINGS_SHA256\", w_sha)]):\n        return w1.main",
+   "replace": "    with patched([(w1, \"SETTINGS_PATH\", w_path)]):\n        return w1.main"
+  },
+  {
+   "id": "O-w-engine-y",
+   "describes": "--engine Y runs engine X's files",
+   "file": "oext_78b.py",
+   "find": "    key = \"unit\" if idx.engine == \"X\" else \"unit_y\"\n",
+   "replace": "    key = \"unit\"\n"
+  },
+  {
+   "id": "O-w-engine-y-lean",
+   "describes": "--engine Y is taken by the lean command",
+   "file": "oext_78b.py",
+   "find": "    if opts[\"engine\"] not in COMMAND_ENGINES[command]:\n",
+   "replace": "    if opts[\"engine\"] not in ENGINES:\n"
+  },
+  {
+   "id": "O-m-g-wait",
+   "describes": "a null recipe G is not listed as a wait",
+   "file": "make_oext_settings_78b.py",
+   "find": "        if self.g_sha is None:\n            self.wait(\"RECIPE_G\"",
+   "replace": "        if False:\n            self.wait(\"RECIPE_G\""
+  },
+  {
+   "id": "O-m-branch",
+   "describes": "the O-ext settings' branch is not the family's W1-18 pin",
+   "file": "make_oext_settings_78b.py",
+   "find": "        doc[\"cap\"][\"branch\"] = w[\"branch\"]\n",
+   "replace": "        doc[\"cap\"][\"branch\"] = \"full\"\n"
+  },
+  {
+   "id": "O-m-w1-settings",
+   "describes": "the O-ext settings pin the 1B W1-18 settings",
+   "file": "make_oext_settings_78b.py",
+   "find": "settings_sha256=self.sha(\"limits_overrefusal_checks\"), record_sha256",
+   "replace": "settings_sha256=BASE[\"limits_overrefusal_checks\"][1], record_sha256"
+  },
+  {
+   "id": "O-m-manifest",
+   "describes": "oext_unit keeps the 1B manifest",
+   "file": "make_oext_settings_78b.py",
+   "find": "        doc = load_base(base)\n        doc[\"prepared\"][\"manifest_sha256\"] = self.pins[\"manifest_sha256\"]\n",
+   "replace": "        doc = load_base(base)\n"
+  },
+  {
+   "id": "O-m-allowed-g",
+   "describes": "recipes.allowed drops F's recipe G",
+   "file": "make_oext_settings_78b.py",
+   "find": "        allowed = {\"MAIN\": self.main_sha, \"G\": self.g_sha}\n",
+   "replace": "        allowed = {\"MAIN\": self.main_sha}\n"
+  },
+  {
+   "id": "O-m-lean-allowed",
+   "describes": "the lean settings keep the 1B recipes",
+   "file": "make_oext_settings_78b.py",
+   "find": "        doc[\"job\"][\"allowed_recipes\"] = {self.main_name: self.main_sha}\n",
+   "replace": ""
+  },
+  {
+   "id": "O-m-128-form",
+   "describes": "Branch 128 without a record passes the pin form",
+   "file": "make_oext_settings_78b.py",
+   "find": "    if branch == \"128\" and (record is None or reason is not None):\n",
+   "replace": "    if branch == \"128\" and reason is not None:\n"
+  },
+  {
+   "id": "O-m-recipe-pin",
+   "describes": "a recipe pin off its config passes",
+   "file": "make_oext_settings_78b.py",
+   "find": "    if config_sha256(rec) != digest:\n",
+   "replace": "    if False:\n"
+  },
+  {
+   "id": "O-m-job-wait",
+   "describes": "a null job pin is not listed as a wait",
+   "file": "make_oext_settings_78b.py",
+   "find": "            if _hex(spec[\"job_sha256\"], f\"{self.family} unit {name} job_sha256\") is None:\n",
+   "replace": "            if _hex(spec[\"job_sha256\"], f\"{self.family} unit {name} job_sha256\") is None and False:\n"
+  },
+  {
+   "id": "O-m-gen-guard",
+   "describes": "a recipe G with another generation block passes",
+   "file": "make_oext_settings_78b.py",
+   "find": "            if rec is not None and any(",
+   "replace": "            if rec is not None and False and any("
+  },
+  {
+   "id": "O-m-path-label",
+   "describes": "oext_unit's O-ext settings path label is the 1B path",
+   "file": "make_oext_settings_78b.py",
+   "find": "        doc[\"oext\"][\"settings\"] = {\"path\": self.path(eval_role), \"sha256\": self.sha(eval_role)}\n",
+   "replace": "        doc[\"oext\"][\"settings\"] = {\"path\": \"scripts/stage1_s1/settings/oext_eval.json\", \"sha256\": self.sha(eval_role)}\n"
+  },
+  {
+   "id": "O-m-y-engine",
+   "describes": "the Y O-ext settings carry engine X",
+   "file": "make_oext_settings_78b.py",
+   "find": "        self.files[\"oext_eval_y\"] = dumps(self.oext_eval(\"oext_eval_y\", engine_y))\n",
+   "replace": "        self.files[\"oext_eval_y\"] = dumps(self.oext_eval(\"oext_eval_y\", x))\n"
+  },
+  {
+   "id": "O-m-unit-path",
+   "describes": "a W1-18 unit path keeps the tmp/ prefix form of RK",
+   "file": "make_oext_settings_78b.py",
+   "find": "                         \"job_sha256\": spec[\"job_sha256\"], \"path\": spec[\"path\"], \"recipe_label\"",
+   "replace": "                         \"job_sha256\": spec[\"job_sha256\"], \"path\": \"tmp/\" + spec[\"path\"], \"recipe_label\""
+  },
+  {
+   "id": "O-c-literal",
+   "describes": "the lean copy keeps the 1B literal path",
+   "file": "lean_eval_job_78b.py",
+   "find": "    if (oext[\"module\"], pin[\"path\"]) != (oe.OWNER, OEXT_SETTINGS_PATH):\n",
+   "replace": "    if (oext[\"module\"], pin[\"path\"]) != (oe.OWNER, \"scripts/stage1_s1/settings/oext_eval.json\"):\n"
+  },
+  {
+   "id": "V-w-label-from-file",
+   "describes": "unit: the O-ext path label is taken from the settings file itself (a label lie passes)",
+   "file": "oext_78b.py",
+   "find": "             (ou, \"OEXT_SETTINGS_PATH\", idx.label(eval_role)), *w_pairs]\n",
+   "replace": "             (ou, \"OEXT_SETTINGS_PATH\", unit_doc[\"oext\"][\"settings\"][\"path\"]), *w_pairs]\n"
+  },
+  {
+   "id": "V-w-lean-label-from-file",
+   "describes": "lean: the copy's O-ext path label is taken from the lean settings file itself",
+   "file": "oext_78b.py",
+   "find": "             (lej, \"OEXT_SETTINGS_PATH\", idx.label(\"oext_eval\")),\n             (oe,",
+   "replace": "             (lej, \"OEXT_SETTINGS_PATH\", strict_json(lean_path.read_bytes())[\"oext\"][\"settings\"][\"path\"]),\n             (oe,"
+  },
+  {
+   "id": "V-w-restore-success-only",
+   "describes": "the globals are restored only when the call returns (not when it raises)",
+   "file": "oext_78b.py",
+   "find": "    try:\n        for obj, name, value in pairs:\n            setattr(obj, name, value)\n        yield\n    finally:\n        for obj, name, value in reversed(saved):\n            setattr(obj, name, value)\n",
+   "replace": "    for obj, name, value in pairs:\n        setattr(obj, name, value)\n    yield\n    for obj, name, value in reversed(saved):\n        setattr(obj, name, value)\n"
+  },
+  {
+   "id": "V-w-lean-no-manifest",
+   "describes": "lean: --prepared is not checked against the family's manifest",
+   "file": "oext_78b.py",
+   "find": "    lean_path, lean_sha, _ = idx.file(\"lean_eval_job\")\n    eval_path, eval_sha, eval_doc = idx.file(\"oext_eval\")\n    check_prepared(args, idx)\n",
+   "replace": "    lean_path, lean_sha, _ = idx.file(\"lean_eval_job\")\n    eval_path, eval_sha, eval_doc = idx.file(\"oext_eval\")\n"
+  },
+  {
+   "id": "V-w-lean-no-branch-flags",
+   "describes": "lean: the wrapper does not check Branch 128's flags",
+   "file": "oext_78b.py",
+   "find": "    check_branch_flags(args, eval_doc, unit=False)\n",
+   "replace": ""
+  },
+  {
+   "id": "V-w-lean-code",
+   "describes": "lean: the run files are not hashed against CODE",
+   "file": "oext_78b.py",
+   "find": "    check_code(COMMAND_CODE[\"lean\"])\n",
+   "replace": ""
+  },
+  {
+   "id": "V-w-w1-code",
+   "describes": "w1_18: the run files are not hashed against CODE",
+   "file": "oext_78b.py",
+   "find": "    check_code(COMMAND_CODE[\"w1_18\"])\n",
+   "replace": ""
+  },
+  {
+   "id": "V-w-unit-manifest-consistency",
+   "describes": "unit: the settings' manifest is not compared with the index's",
+   "file": "oext_78b.py",
+   "find": "    if unit_doc[\"prepared\"][\"manifest_sha256\"] != idx.manifest:\n",
+   "replace": "    if False:\n"
+  },
+  {
+   "id": "V-m-form-roles",
+   "describes": "a kit form lists only the unit settings file of its index",
+   "file": "make_oext_settings_78b.py",
+   "find": "    for entry in index[\"files\"].values():\n        out[f\"scripts/scale78b/settings/{entry",
+   "replace": "    for entry in [e for r, e in index[\"files\"].items() if r.startswith(\"oext_unit\")]:\n        out[f\"scripts/scale78b/settings/{entry"
+  },
+  {
+   "id": "V-m-w1-manifest",
+   "describes": "the W1-18 settings keep the 1B prepared manifest",
+   "file": "make_oext_settings_78b.py",
+   "find": "        doc[\"prepared\"][\"manifest_sha256\"] = self.pins[\"manifest_sha256\"]\n        doc[\"prepared\"][\"path\"]",
+   "replace": "        doc[\"prepared\"][\"path\"]"
+  },
+  {
+   "id": "V-m-w1-prepared-path",
+   "describes": "the W1-18 settings keep the 1B prepared path",
+   "file": "make_oext_settings_78b.py",
+   "find": "        doc[\"prepared\"][\"path\"] = self.pins[\"prepared_path\"]\n",
+   "replace": ""
+  },
+  {
+   "id": "R5-w-index-name",
+   "describes": "the index's file name is not checked against the family and engine",
+   "file": "oext_78b.py",
+   "find": "        if path.name != wanted:\n",
+   "replace": "        if False:\n"
+  },
+  {
+   "id": "R5-w-index-content",
+   "describes": "the index's family and engine fields are not checked",
+   "file": "oext_78b.py",
+   "find": "                (doc.get(\"family\"), doc.get(\"engine\")) != (family, engine):\n",
+   "replace": "                False:\n"
+  },
+  {
+   "id": "R5-m-waits-uncut",
+   "describes": "an index's waits keep every role (another engine's included)",
+   "file": "make_oext_settings_78b.py",
+   "find": "            mine = [r for r in entry[\"roles\"] if r in roles]\n",
+   "replace": "            mine = list(entry[\"roles\"])\n"
+  },
+  {
+   "id": "R5-m-index-shared",
+   "describes": "each index records the shared pins (ENGINE_Y reaches the X indexes)",
+   "file": "make_oext_settings_78b.py",
+   "find": "            doc[\"other_manifests\"] = {f: m for f, m in manifests.items() if f != family}\n",
+   "replace": "            doc[\"other_manifests\"] = {f: m for f, m in manifests.items() if f != family}\n            doc[\"shared\"] = dict(pins[\"shared\"])\n"
+  },
+  {
+   "id": "R6-w-record-not-read",
+   "describes": "check: the record is not read by oext_eval's reader",
+   "file": "oext_78b.py",
+   "find": "        report[\"w1_18_record\"] = check_w1_18_record(idx, record)\n",
+   "replace": "        report[\"w1_18_record\"] = {\"record_sha256\": None}\n"
+  },
+  {
+   "id": "R6-w-record-units",
+   "describes": "check: the record's units are not compared with the family's",
+   "file": "oext_78b.py",
+   "find": "    if sorted(units) != sorted(w_doc[\"units\"]):\n",
+   "replace": "    if False:\n"
+  },
+  {
+   "id": "R6-w-record-optional",
+   "describes": "check: a pinned record need not be given",
+   "file": "oext_78b.py",
+   "find": "        elif pin is not None:\n            raise Refused(f\"the family's O-ext settings pin W1-18's record",
+   "replace": "        elif False:\n            raise Refused(f\"the family's O-ext settings pin W1-18's record"
+  },
+  {
+   "id": "R6-w-no-validation",
+   "describes": "check: the settings files are not run through the 1B validators",
+   "file": "oext_78b.py",
+   "find": "                validate_one(idx, role, path, sha, doc)\n",
+   "replace": "                pass\n"
+  },
+  {
+   "id": "R7-m-device",
+   "describes": "the 7-8B W1-18 settings keep the 1B Mac device",
+   "file": "make_oext_settings_78b.py",
+   "find": "revision=guard[\"revision\"], device=\"cuda\")",
+   "replace": "revision=guard[\"revision\"])"
+  },
+  {
+   "id": "R8-w-y-form-code",
+   "describes": "OEXT_78B_Y's form lists the lean copy (engine X's files)",
+   "file": "oext_78b.py",
+   "find": "ENGINE_CODE = {\"X\": tuple(CODE), \"Y\": COMMAND_CODE[\"unit\"], \"W1\": COMMAND_CODE[\"w1_18\"]}",
+   "replace": "ENGINE_CODE = {\"X\": tuple(CODE), \"Y\": tuple(CODE), \"W1\": COMMAND_CODE[\"w1_18\"]}"
+  },
+  {
+   "id": "R9-w-listing",
+   "describes": "check: a file W1-18 reads need not be listed",
+   "file": "oext_78b.py",
+   "find": "            if digest is None:\n                state = \"not listed\"\n",
+   "replace": "            if False:\n                state = \"not listed\"\n"
+  },
+  {
+   "id": "R9-w-hash",
+   "describes": "check: a listed file is not hashed",
+   "file": "oext_78b.py",
+   "find": "            elif sha256_file(folder / rel) != digest:\n",
+   "replace": "            elif False:\n"
+  },
+  {
+   "id": "R9-w-complete-pin",
+   "describes": "check: COMPLETE.json is not checked against its pin",
+   "file": "oext_78b.py",
+   "find": "        if sha256_bytes(data) != spec[\"complete_sha256\"]:\n",
+   "replace": "        if False:\n"
+  },
+  {
+   "id": "R9-w-job-pin",
+   "describes": "check: job.json is not checked against its pin",
+   "file": "oext_78b.py",
+   "find": "        elif job.get(\"sha256\") != job_pin or job.get(\"state\") != \"listed\":\n",
+   "replace": "        elif False:\n"
+  },
+  {
+   "id": "R9-w-exit",
+   "describes": "check: side-unit problems do not refuse",
+   "file": "oext_78b.py",
+   "find": "    if data_root is not None and report[\"side_units\"][\"problems\"]:\n",
+   "replace": "    if False:\n"
+  },
+  {
+   "id": "RV-w-index-kind",
+   "describes": "the index's kind and version are not checked",
+   "file": "oext_78b.py",
+   "find": "or (doc.get(\"kind\"), doc.get(\"version\")) != (INDEX_KIND, INDEX_VERSION) or \\",
+   "replace": "or False or \\"
+  },
+  {
+   "id": "RV-w-index-engine",
+   "describes": "the index's engine field is not checked (family only)",
+   "file": "oext_78b.py",
+   "find": "(doc.get(\"family\"), doc.get(\"engine\")) != (family, engine)",
+   "replace": "doc.get(\"family\") != family"
+  },
+  {
+   "id": "RV-w-check-code",
+   "describes": "check: the run files are not hashed against CODE",
+   "file": "oext_78b.py",
+   "find": "    check_code(ENGINE_CODE[idx.engine])\n    report = {",
+   "replace": "    report = {"
+  },
+  {
+   "id": "RV-w-check-waits-mask",
+   "describes": "check: a waiting role is reported as a wait without its placeholder validation (exit 0; W2-3's form, R2)",
+   "file": "oext_78b.py",
+   "find": "                    validate_doc(idx, role, checked)\n",
+   "replace": "                    pass\n"
+  },
+  {
+   "id": "RV-w-check-record-y",
+   "describes": "check: the record is read under engine X's O-ext settings on a Y index",
+   "file": "oext_78b.py",
+   "find": "eval_role = \"oext_eval\" if idx.engine == \"X\" else \"oext_eval_y\"\n    eval_path, eval_sha, eval_doc = idx.file(eval_role)",
+   "replace": "eval_role = \"oext_eval\"\n    eval_path, eval_sha, eval_doc = idx.file(eval_role)"
+  },
+  {
+   "id": "RV-w-check-pin-y",
+   "describes": "check: the record pin is read from engine X's O-ext settings on a Y index",
+   "file": "oext_78b.py",
+   "find": "        eval_role = \"oext_eval\" if idx.engine == \"X\" else \"oext_eval_y\"\n        pin = idx.file(eval_role)",
+   "replace": "        eval_role = \"oext_eval\"\n        pin = idx.file(eval_role)"
+  },
+  {
+   "id": "RV-w-side-job-fallback",
+   "describes": "check: job.json named only by COMPLETE.json's job_sha256 is not found",
+   "file": "oext_78b.py",
+   "find": "digest = marker.get(\"job_sha256\")",
+   "replace": "digest = None"
+  },
+  {
+   "id": "RV-w-side-root",
+   "describes": "check: a unit folder outside the data root is read",
+   "file": "oext_78b.py",
+   "find": "if root not in folder.parents:\n            problems.append(f\"{name}: its path leaves the data root\")",
+   "replace": "if False:\n            problems.append(f\"{name}: its path leaves the data root\")"
+  },
+  {
+   "id": "RV-w-side-complete-true",
+   "describes": "check: a COMPLETE.json without complete=true is taken",
+   "file": "oext_78b.py",
+   "find": "if not isinstance(listed, dict) or marker.get(\"complete\") is not True:",
+   "replace": "if not isinstance(listed, dict):"
+  },
+  {
+   "id": "RV-w-record-units-count",
+   "describes": "check: the record's units are compared by count, not by name",
+   "file": "oext_78b.py",
+   "find": "if sorted(units) != sorted(w_doc[\"units\"]):",
+   "replace": "if len(units) != len(w_doc[\"units\"]):"
+  },
+  {
+   "id": "RV-m-check-always-ok",
+   "describes": "maker --check never reports a file that differs from the derivation",
+   "file": "make_oext_settings_78b.py",
+   "find": "        if bad:\n            print(f\"DIFFERS",
+   "replace": "        if False:\n            print(f\"DIFFERS"
+  },
+  {
+   "id": "F2-w-sealed-off",
+   "describes": "check (OR2): W1-18's frozen sealed check is not run on a side unit",
+   "file": "oext_78b.py",
+   "find": "            reader.sealed(folder)                                 # W1-18",
+   "replace": "            None                                                  # W1-18"
+  },
+  {
+   "id": "F2-w-eval-folders",
+   "describes": "check (OR2): eval/'s folder names are not compared with the checkpoint",
+   "file": "oext_78b.py",
+   "find": "        if evals != [spec[\"checkpoint\"]]:\n",
+   "replace": "        if False:\n"
+  },
+  {
+   "id": "F2-w-path-form",
+   "describes": "check (OR2): a unit path outside the allow-list form is taken",
+   "file": "oext_78b.py",
+   "find": "        if not re.fullmatch(pattern, spec[\"path\"]) or \"..\" in Path(spec[\"path\"]).parts:\n",
+   "replace": "        if False:\n"
+  },
+  {
+   "id": "F2-w-hex-print",
+   "describes": "check (OR7): a list value that is not a SHA-256 is kept and printed",
+   "file": "oext_78b.py",
+   "find": "            digest = _hex_or_none(digest)\n",
+   "replace": ""
+  },
+  {
+   "id": "F2-w-repeat",
+   "describes": "a repeated leading option overrides the first (OR9)",
+   "file": "oext_78b.py",
+   "find": "        if name in seen:\n",
+   "replace": "        if False:\n"
+  },
+  {
+   "id": "F2-w-engine-identity",
+   "describes": "check (R-23): the Y files are compared with the running engine, not the index's identity",
+   "file": "oext_78b.py",
+   "find": "            else:\n                engine = identity\n",
+   "replace": "            else:\n                engine = running\n"
+  },
+  {
+   "id": "F2-w-on-engine",
+   "describes": "check (R-23): the Y files are validated under the running engine's identity",
+   "file": "oext_78b.py",
+   "find": "            with on_engine(engine):\n                validate_one(idx, role, path, sha, doc)\n",
+   "replace": "            with contextlib.nullcontext():\n                validate_one(idx, role, path, sha, doc)\n"
+  },
+  {
+   "id": "F2-w-w1-engine",
+   "describes": "w1_18 takes the X index (R-20: the W1 index is the W1-18 pod's)",
+   "file": "oext_78b.py",
+   "find": "\"w1_18\": (\"W1\",), \"check\"",
+   "replace": "\"w1_18\": (\"X\",), \"check\""
+  },
+  {
+   "id": "F2-w-wait-pattern",
+   "describes": "check (OR8, W2-3's form): UNIT_JOB's placeholders also cover theta0's null pin (a null no wait names is masked)",
+   "file": "oext_78b.py",
+   "find": "if n != \"untuned\" and isinstance(u, dict)",
+   "replace": "if isinstance(u, dict)"
+  },
+  {
+   "id": "F2-m-w1-index-branch",
+   "describes": "the W1 index carries the branch (a branch fill reaches W1_18_78B)",
+   "file": "make_oext_settings_78b.py",
+   "find": "        if engine != \"W1\":\n            doc.update(branch=",
+   "replace": "        if True:\n            doc.update(branch="
+  },
+  {
+   "id": "F2-m-record-path-form",
+   "describes": "a W1-18 record path outside R-21's folder is taken",
+   "file": "make_oext_settings_78b.py",
+   "find": "path.startswith(RECORDS_DIR) and path.endswith(\".json\")",
+   "replace": "path.endswith(\".json\")"
+  },
+  {
+   "id": "F2-m-verify-records",
+   "describes": "the maker does not check the pinned record at its place (R-21)",
+   "file": "make_oext_settings_78b.py",
+   "find": "        verify_records(pins, REPO if args.records_root is None else args.records_root)\n",
+   "replace": ""
+  },
+  {
+   "id": "F2-m-bqi-blocks",
+   "describes": "B+Qi's generation and guard blocks are not checked (OR5)",
+   "file": "make_oext_settings_78b.py",
+   "find": "        for rec, name in ((self.g, \"recipe_g\"), (self.bqi, \"recipe_bqi\")):",
+   "replace": "        for rec, name in ((self.g, \"recipe_g\"),):"
+  },
+  {
+   "id": "F2-m-w1-form-index",
+   "describes": "W1_18_78B's form lists no W1 index",
+   "file": "make_oext_settings_78b.py",
+   "find": "        out[f\"scripts/scale78b/settings/{name}\"] = sha256_bytes(files[name])\n        for entry in index[\"files\"].values():\n            out[f\"scripts/scale78b/settings/{entry['file']}\"] = entry[\"sha256\"]\n        limits",
+   "replace": "        for entry in index[\"files\"].values():\n            out[f\"scripts/scale78b/settings/{entry['file']}\"] = entry[\"sha256\"]\n        limits"
+  },
+  {
+   "id": "RV2-m-w1-side-job",
+   "file": "make_oext_settings_78b.py",
+   "describes": "W1_18_78B's side units lose their job.json pins",
+   "find": "\"job_sha256\": u[\"job_sha256\"]}",
+   "replace": "\"job_sha256\": None}"
+  },
+  {
+   "id": "RV2-w-w1-record-ignored",
+   "file": "oext_78b.py",
+   "describes": "check on the W1 index ignores a given W1-18 record",
+   "find": "        if record is not None:\n            raise Refused(\"the W1-18 pod's index holds no O-ext settings",
+   "replace": "        if False:\n            raise Refused(\"the W1-18 pod's index holds no O-ext settings"
+  },
+  {
+   "id": "RV2-w-null-identity-waits",
+   "file": "oext_78b.py",
+   "describes": "an index with no engine identity and no ENGINE_Y wait reports waits",
+   "find": "                if not any(w[\"pin\"] == \"ENGINE_Y\" and role in w[\"roles\"] for w in idx.doc[\"waits\"]):",
+   "replace": "                if False:"
+  },
+  {
+   "id": "R2-w-stale-wait",
+   "describes": "check (W2-3): a field the index lists as waiting but filled passes",
+   "file": "oext_78b.py",
+   "find": "            if node[last] is not None:\n",
+   "replace": "            if False:\n"
+  },
+  {
+   "id": "R2-w-absent-field",
+   "describes": "check (W2-3): a waiting field absent from the file is not refused",
+   "file": "oext_78b.py",
+   "find": "            if not isinstance(node, dict) or last not in node:\n",
+   "replace": "            if not isinstance(node, dict):\n"
+  },
+  {
+   "id": "R2-w-engine-placeholder",
+   "describes": "check (W2-3): a null ENGINE_Y validates under the running engine",
+   "file": "oext_78b.py",
+   "find": "                engine = PLACEHOLDER                      # W2-3",
+   "replace": "                engine = running                          # W2-3"
+  },
+  {
+   "id": "R2-w-theta0-field",
+   "describes": "check (W2-3): THETA0_JOB names another field",
+   "file": "oext_78b.py",
+   "find": "\"THETA0_JOB\": (\"units.untuned.job_sha256\",)",
+   "replace": "\"THETA0_JOB\": (\"units.untuned.complete_sha256\",)"
+  },
+  {
+   "id": "R2-w-doc-binding",
+   "describes": "check (W2-3): a waiting O-ext eval file skips W1-18's binding",
+   "file": "oext_78b.py",
+   "find": "        oe.validate_settings(doc)\n        oe.check_w1_18_binding(doc)\n",
+   "replace": "        oe.validate_settings(doc)\n"
+  },
+  {
+   "id": "R2-w-doc-unit-label",
+   "describes": "check (W2-3): a waiting unit file is validated without its true O-ext label",
+   "file": "oext_78b.py",
+   "find": "        with patched([(ou, \"OEXT_SETTINGS_PATH\", idx.label(eval_role))]):\n            ou.validate_settings(doc)\n",
+   "replace": "        ou.validate_settings(doc)\n"
+  },
+  {
+   "id": "R2-m-form-no-record",
+   "describes": "kit form (W2-1): the family's W1-18 record is left out after a branch fill",
+   "file": "make_oext_settings_78b.py",
+   "find": "        out[index[\"w1_18_record_path\"]] = index[\"w1_18_record_sha256\"]\n",
+   "replace": "        pass\n"
+  },
+  {
+   "id": "R2-m-form-record-always",
+   "describes": "kit form (W2-1): a record entry is written without a pinned record",
+   "file": "make_oext_settings_78b.py",
+   "find": "    if index[\"w1_18_record_sha256\"] is not None:\n        out[index",
+   "replace": "    if True:\n        out[index"
+  },
+  {
+   "id": "R3-w-w1-engine-running",
+   "describes": "W2-4: the W1-18 settings under the running engine's identity",
+   "file": "oext_78b.py",
+   "find": "                engine = ENGINE_X_IDENTITY                # W2-4: W1-18 runs on engine X, whatever runs this check\n",
+   "replace": "                engine = running\n"
+  },
+  {
+   "id": "R3-w-w1-engine-file",
+   "describes": "W2-4: the W1-18 settings under their own engine_x",
+   "file": "oext_78b.py",
+   "find": "                engine = ENGINE_X_IDENTITY                # W2-4: W1-18 runs on engine X, whatever runs this check\n",
+   "replace": "                engine = doc.get(\"engine_x\")\n"
+  },
+  {
+   "id": "R3-w-engine-x-literal",
+   "describes": "W2-4: another engine X identity",
+   "file": "oext_78b.py",
+   "find": "ENGINE_X_IDENTITY = \"472fc7f6d619bdee2c3aa38e444024626be8b66bfb74a5abf37f2ddb6dded892\"",
+   "replace": "ENGINE_X_IDENTITY = \"472fc7f6d619bdee2c3aa38e444024626be8b66bfb74a5abf37f2ddb6dded893\""
+  },
+  {
+   "id": "R3-m-readers-dropped",
+   "describes": "W2-5: the frozen readers are not listed",
+   "file": "make_oext_settings_78b.py",
+   "find": "        out.update(frozen_reader_pins(limits, family))",
+   "replace": "        frozen_reader_pins(limits, family)"
+  },
+  {
+   "id": "R3-m-reader-hash",
+   "describes": "W2-5: a reader off its pin is listed",
+   "file": "make_oext_settings_78b.py",
+   "find": "        if not path.is_file() or sha256_file(path) != pin:\n",
+   "replace": "        if not path.is_file():\n"
+  },
+  {
+   "id": "R3-m-reader-path",
+   "describes": "W2-5: a reader path outside scripts/ is accepted",
+   "file": "make_oext_settings_78b.py",
+   "find": "and rel.startswith(\"scripts/\") and rel.endswith(\".py\")\n                and all(q not in (\"\", \".\", \"..\") for q in rel.split(\"/\"))):",
+   "replace": "):"
+  },
+  {
+   "id": "R3-m-reader-keys",
+   "describes": "W2-5: the frozen_reader block's keys are not checked",
+   "file": "make_oext_settings_78b.py",
+   "find": "    if not isinstance(spec, dict) or set(spec) != set(FROZEN_READERS):\n",
+   "replace": "    if not isinstance(spec, dict):\n"
+  },
+  {
+   "id": "R3F-m-reader-dotdot",
+   "describes": "V-5: a reader path with a '..' or empty part is accepted",
+   "file": "make_oext_settings_78b.py",
+   "find": "\n                and all(q not in (\"\", \".\", \"..\") for q in rel.split(\"/\"))):",
+   "replace": "):"
+  },
+  {
+   "id": "R3F-m-reader-py",
+   "describes": "V-5: a reader path that is not .py is accepted",
+   "file": "make_oext_settings_78b.py",
+   "find": "rel.startswith(\"scripts/\") and rel.endswith(\".py\")\n",
+   "replace": "rel.startswith(\"scripts/\")\n"
+  },
+  {
+   "id": "R3I-m-families-ignored",
+   "describes": "R-86: --families does not limit the form",
+   "file": "make_oext_settings_78b.py",
+   "find": "    for family in families:\n        name = index_name(family, \"W1\")",
+   "replace": "    for family in FAMILIES:\n        name = index_name(family, \"W1\")"
+  },
+  {
+   "id": "R3I-m-families-dup",
+   "describes": "R-86: a repeated family is accepted",
+   "file": "make_oext_settings_78b.py",
+   "find": " or len(set(names)) != len(names):",
+   "replace": ":"
+  },
+  {
+   "id": "R3I-m-families-only-w1",
+   "describes": "R-86: --families is taken without --w1-18-78b",
+   "file": "make_oext_settings_78b.py",
+   "find": "    if not w1_18:\n        raise",
+   "replace": "    if False:\n        raise"
+  },
+  {
+   "id": "R3I-m-record-name",
+   "describes": "R-89: any .json under w1-18/ is taken",
+   "file": "make_oext_settings_78b.py",
+   "find": "    if path is not None and path != RECORDS_DIR + RECORD_NAME.format(family=family):\n",
+   "replace": "    if False:\n"
+  },
+  {
+   "id": "R3I-m-record-name-family",
+   "describes": "R-89: another family's standard name is taken",
+   "file": "make_oext_settings_78b.py",
+   "find": "path != RECORDS_DIR + RECORD_NAME.format(family=family):",
+   "replace": "not path.startswith(RECORDS_DIR + \"overrefusal_checks__\"):"
+  }
+ ]
+}

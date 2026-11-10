@@ -1,0 +1,131 @@
+{
+ "kind": "K6 re-verifier hand mutants",
+ "mutants": [
+  {
+   "id": "K6v-unlisted-binary-unscanned",
+   "item": "K5v-3",
+   "file": "pack_setup.py",
+   "describes": "an unlisted prepared-set file with a binary suffix (.gz, .bin, .npy, ...) is packed but not scanned",
+   "find": "            packed[rel] = (f, got)\n            scan.add(rel)\n",
+   "replace": "            packed[rel] = (f, got)\n            if not rel.lower().endswith(BINARY_SUFFIXES):\n                scan.add(rel)\n",
+   "expect": "unknown (the tests plant only text files)"
+  },
+  {
+   "id": "K6v-macos-basename-only",
+   "item": "K5v-3",
+   "file": "pack_setup.py",
+   "describes": "macos_metadata looks at the last path part only (a file inside .Spotlight-V100/ or .Trashes/ is packed)",
+   "find": "    return any(part in MACOS_METADATA or part.startswith(\"._\") for part in rel.split(\"/\"))\n",
+   "replace": "    return any(part in MACOS_METADATA or part.startswith(\"._\") for part in rel.split(\"/\")[-1:])\n",
+   "expect": "killed"
+  },
+  {
+   "id": "K6v-prepared-link-packed",
+   "item": "K5v-3",
+   "file": "pack_setup.py",
+   "describes": "prepared_files packs a symbolic link in the prepared set (its target's bytes), as the pre-K6 loop did not",
+   "find": "    for f in sorted(folder.rglob(\"*\")):\n        if not f.is_file() or f.is_symlink():\n            continue\n",
+   "replace": "    for f in sorted(folder.rglob(\"*\")):\n        if not f.is_file():\n            continue\n",
+   "expect": "unknown"
+  },
+  {
+   "id": "K6v-prepared-top-level-only",
+   "item": "K5v-3",
+   "file": "pack_setup.py",
+   "describes": "prepared_files walks the top level only (files in sub-folders are neither packed nor scanned)",
+   "find": "    for f in sorted(folder.rglob(\"*\")):\n        if not f.is_file() or f.is_symlink():\n            continue\n",
+   "replace": "    for f in sorted(folder.glob(\"*\")):\n        if not f.is_file() or f.is_symlink():\n            continue\n",
+   "expect": "killed"
+  },
+  {
+   "id": "K6v-scan-anyway-bare-names",
+   "item": "K5v-3",
+   "file": "pack_setup.py",
+   "describes": "the call site passes the unpinned data/ names without the bundle prefix (so no data/ file matches)",
+   "find": "                   frozenset(f\"{data_base}/{rel}\" for rel in data_scan))\n",
+   "replace": "                   frozenset(data_scan))\n",
+   "expect": "killed"
+  },
+  {
+   "id": "K6v-receipt-exempt",
+   "item": "K5v-3",
+   "file": "pack_setup.py",
+   "describes": "prepare_receipt.json is treated as pinned (packed, not scanned), as before K6",
+   "find": "        if listed.get(rel) == got:\n",
+   "replace": "        if listed.get(rel) == got or rel == \"prepare_receipt.json\":\n",
+   "expect": "killed"
+  },
+  {
+   "id": "K6v-subfolder-unlisted-unscanned",
+   "item": "K5v-3",
+   "file": "pack_setup.py",
+   "describes": "an unlisted file in a sub-folder of the prepared set is packed but not scanned",
+   "find": "            packed[rel] = (f, got)\n            scan.add(rel)\n",
+   "replace": "            packed[rel] = (f, got)\n            if \"/\" not in rel:\n                scan.add(rel)\n",
+   "expect": "killed"
+  },
+  {
+   "id": "K6v-c0-dry-run-drops-c0",
+   "item": "item 23",
+   "file": "pack_setup.py",
+   "describes": "the dry run's scorer part drops the c0 source input (so the dry run does not check its e1 fingerprint)",
+   "find": "    files, named = sc_inputs(inputs_doc or {}, family)\n    doc = pins78()\n",
+   "replace": "    files, named = sc_inputs({\"inputs\": [e for e in (inputs_doc or {}).get(\"inputs\") or [] if not (isinstance(e, dict) and e.get(\"name\") == C0_INPUT)]}, family)\n    doc = pins78()\n",
+   "expect": "killed"
+  },
+  {
+   "id": "K6v-c0-no-rehash",
+   "item": "item 23",
+   "file": "pack_setup.py",
+   "describes": "c0_source_check does not re-hash the bytes it parses (sc_inputs hashed the file just before)",
+   "find": "    if hashlib.sha256(data).hexdigest() != digest or not isinstance(c0, dict):\n",
+   "replace": "    if not isinstance(c0, dict):\n",
+   "expect": "survive (equivalent in effect within one pack; the fixer's concern 5)"
+  },
+  {
+   "id": "K6v-c0-any-checkpoint-fallback",
+   "item": "item 23",
+   "file": "pack_setup.py",
+   "describes": "with no e1 checkpoint, c0_source_check reads the first other checkpoint's fingerprint",
+   "find": "    e1 = points.get(\"e1\") if isinstance(points.get(\"e1\"), dict) else {}\n    got = e1.get(\"adapter_fingerprint\")\n    if not pinned(got):\n        raise SystemExit(f\"--inputs FILE: {C0_INPUT!r}",
+   "replace": "    e1 = points.get(\"e1\") if isinstance(points.get(\"e1\"), dict) else next((v for v in points.values() if isinstance(v, dict)), {})\n    got = e1.get(\"adapter_fingerprint\")\n    if not pinned(got):\n        raise SystemExit(f\"--inputs FILE: {C0_INPUT!r}",
+   "expect": "killed"
+  },
+  {
+   "id": "K6v-c0-message-quotes-prefixes",
+   "item": "item 23",
+   "file": "pack_setup.py",
+   "describes": "the typo refusal quotes 12-character prefixes of both fingerprints (the docstring says names only)",
+   "find": "                         \"any pod starts\")\n",
+   "replace": "                         f\"any pod starts ({got[:12]}... vs {str(c0.get('e1_fingerprint'))[:12]}...)\")\n",
+   "expect": "unknown (the test checks the full values only)"
+  },
+  {
+   "id": "K6v-G2d-hook-nondaemon-default-threads-free",
+   "item": "V4",
+   "file": "tests/conftest.py",
+   "describes": "the hook ignores NON-daemon threads with a default name (V4's default-named probe thread is a daemon)",
+   "find": "    if event not in _AUDITED:\n        return\n    kind = _AUDITED[event]\n",
+   "replace": "    if event not in _AUDITED or (__import__(\"threading\").current_thread().name.startswith(\"Thread-\") and not __import__(\"threading\").current_thread().daemon):\n        return\n    kind = _AUDITED[event]\n",
+   "expect": "unknown"
+  },
+  {
+   "id": "K6v-G1b-wrapper-skips-explicit-proto-v6-stream",
+   "item": "V3",
+   "file": "tests/conftest.py",
+   "describes": "the wrapper lets an AF_INET6 STREAM socket with an explicit protocol through to C (V3 probes v6 with UDP only)",
+   "find": "    def call(self, *args, **kwargs):\n        if name in (\"connect\", \"connect_ex\"):\n",
+   "replace": "    def call(self, *args, **kwargs):\n        if getattr(self, \"proto\", 0) and self.family == socket.AF_INET6 and self.type == socket.SOCK_STREAM:\n            return real(self, *args, **kwargs)\n        if name in (\"connect\", \"connect_ex\"):\n",
+   "expect": "unknown"
+  },
+  {
+   "id": "K6v-G3b-same-origin-ignores-port",
+   "item": "V5",
+   "file": "launch.py",
+   "describes": "same_origin compares scheme and host name only (a redirect to the same host on another port keeps the token)",
+   "find": "    return (a.scheme.lower(), a.netloc.lower()) == (b.scheme.lower(), b.netloc.lower())\n",
+   "replace": "    return (a.scheme.lower(), (a.hostname or \"\").lower()) == (b.scheme.lower(), (b.hostname or \"\").lower())\n",
+   "expect": "unknown"
+  }
+ ]
+}

@@ -1,0 +1,42 @@
+{
+  "engine_x": "472fc7f6d619bdee2c3aa38e444024626be8b66bfb74a5abf37f2ddb6dded892",
+  "family_78b": {
+    "derived_from": {
+      "path": "scripts/stage1/settings/score_s3_datarx.json",
+      "sha256": "6382dcc663e80ecab332ecf96b7cba621e3e535408481e6ab83ca614bc2b502f"
+    },
+    "engine_rule": "PP4 (the lead's ruling, 5 Nov 2026): every wrapper kind runs on engine X (engine_x above): untuned_answers, rep_pass, l1_scan and classifier on the pod; l1_score, s3_score, score_edit, add_edit and s_pool on the Mac. Every derived settings file carries engine_x unchanged from the 1B file, and the frozen check_settings refuses another engine identity (R: scripts/stage1/s1common.py:590-592). A run on engine Y needs the settings re-derived for Y (engine_x = Y's identity, a new PINS-78B.json, a new PINS_FILE_SHA256) by a recorded step; none exists. The engine's own jobs (the a0-1101 retrain, a1_pass) follow ruling 10 and addendum A13, not this rule. The kit packs scorer pods with engine X.",
+    "family": "olmo2-7b",
+    "main_recipe": {
+      "config_sha256": "18cc31d7117a2de7bc02382fe8a4d409fc43c91b434bf219a4808dfb26528d09",
+      "path": "experiments/safety_selection/configs/study-kt-olmo2-7b-r64-b-mb2-20261008.json"
+    },
+    "maker": "scripts/scale78b/make_scorer_settings_78b.py",
+    "manifest_sha256": "9ed61826f1634dcab5a7385f18556b108b3ba8db95fc17215fa4cf4f6cb993b9",
+    "model": "OLMo-2-7B",
+    "owner_78b": "scripts/scale78b/scorers_78b.py",
+    "pins_file": "scripts/scale78b/settings/pins_78b.json",
+    "rule": "the 1B file's schema and name, so scripts/stage1's unchanged check_settings accepts it; every value that differs from the 1B file is per family (pins_78b.json) or a documented 7-8B rule; a null is a pin that waits for the event named in waits; scorers_78b.py refuses a command while a pin it needs is null",
+    "waits": {}
+  },
+  "inputs": "REQ-3's rows file and summary (the pools s3_safe and s3_orig listed with the SHA-256s that REQ-6's and REQ-9's records name); REQ-6's s_pool_record.json; REQ-9's untuned_answers_record.json; each by SHA-256",
+  "kind": "stage1 settings",
+  "label_entries": {},
+  "labels_sha256": "260389f3fbfd8e7ff11ee06b5d5aba48e7d56b34140d9c9a634682125a86d570",
+  "name": "score_s3_datarx",
+  "next": "write_score_add.py (scorer s3) selects the top 48; write_add_edit.py (list s3) writes the add edit",
+  "owner": "scripts/stage1/score_s3_datarx.py",
+  "pins": {
+    "representation_pass_settings_sha256": "492a190669198a39443f9b1f491a6182c9b096a9a0585ef440d027affa145238"
+  },
+  "read": "a",
+  "reports": "S1's SAS; |S1 & S3 subset|; the share of the subset's y^orig that the lexicon calls REFUSAL-OPENING; the capped count; the ids leaving the ranking by encode_train's reason; per-layer s^l of both responses, so the scores can be recomputed",
+  "requirement": "REQ-11 (brief rev 1; RS B8; SPEC sections 3.4-3.6); lead decisions L10, L14 (1); the lead's Part C requirement (model-agnostic); 7-8B: Part 1 section 14 item 1 (S3 from the family's own untuned answers; CHECK C6); Mac, $0",
+  "rule": "h^l = read (a) at hidden-state indices l = 1..n (the embedding output excluded; index n = model.norm of the last block's output, L4); s^l(d) = cos(h^l, C_r^l) - cos(h^l, C_c^l) with C_r = the 64 safe anchors' mean and C_c = the 64 harmful anchors' mean (REQ-3's cos_safe - cos_harmful); R(d) = the mean over l; SAS(x) = R(x, y^safe) - R(x, y^orig); only the S3 subset (1,000) is ranked; a y^orig that encode_train refused leaves the ranking and is counted (L14 (1)); S1's 48 rows get their SAS reported (L10 (2))",
+  "scorer_output": {
+    "kind": "stage1 add scorer output",
+    "orientation": "descending: high = add",
+    "version": 1
+  },
+  "version": 1
+}

@@ -1,0 +1,38 @@
+{
+ "kind": "re-verifier probe mutants (K2R)",
+ "note": "scratch only",
+ "mutants": [
+  {
+   "id": "X-cells-missing-run-ok",
+   "part": "K2R",
+   "describes": "a block-A run with no complete unit passes",
+   "file": "plan_tool.py",
+   "find": "    if set(cells) != want:",
+   "replace": "    if not cells:"
+  },
+  {
+   "id": "X-carried-any-job",
+   "part": "K2R",
+   "describes": "any job carried from a host counts for every open job there",
+   "file": "plan_tool.py",
+   "find": "    return any(x.get(\"deferred_from\") == host and _carry_key(x) == key for h in plan[\"hosts\"].values()",
+   "replace": "    return any(x.get(\"deferred_from\") == host for h in plan[\"hosts\"].values()"
+  },
+  {
+   "id": "X-snapshot-first-family-only",
+   "part": "K2R",
+   "describes": "under [B] only one family's block-A snapshot is checked",
+   "file": "plan_tool.py",
+   "find": "    for f in families:\n        plan_a, copy = sibling_plan(f, \"A\")",
+   "replace": "    for f in list(families)[:1]:\n        plan_a, copy = sibling_plan(f, \"A\")"
+  },
+  {
+   "id": "X-kit-inputs-hash-unchecked",
+   "part": "K2R",
+   "describes": "the kit's inputs file need not hash to the output's inputs_sha256",
+   "file": "plan_tool.py",
+   "find": "    if data is None or data != kit_inputs(gate) or hashlib.sha256(data).hexdigest() != inputs_sha256:",
+   "replace": "    if data is None or data != kit_inputs(gate):"
+  }
+ ]
+}

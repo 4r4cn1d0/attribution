@@ -1,0 +1,10 @@
+{"mutants": [
+ {"id": "V-sim-sigma-a-option-ignored", "file": "sr2_simulation.py",
+  "describes": "run_chunk pools sigma_A over both families under option C too",
+  "find": "    a_plan = plan_of(sigma_a_sq(y_all, option, stopped)[0], settings)\n",
+  "replace": "    a_plan = plan_of(sigma_a_sq(y_all, \"B\", stopped)[0], settings)\n"},
+ {"id": "V-sim-sigma-a-full-design-when-stopped", "file": "sr2_simulation.py",
+  "describes": "run_chunk computes sigma_A on the full design even when a family is stopped",
+  "find": "    a_plan = plan_of(sigma_a_sq(y_all, option, stopped)[0], settings)\n",
+  "replace": "    a_plan = plan_of(sigma_a_sq(y_all, option, set())[0], settings)\n"}
+]}

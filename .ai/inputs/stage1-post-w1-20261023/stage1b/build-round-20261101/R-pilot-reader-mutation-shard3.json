@@ -1,0 +1,563 @@
+{
+  "baseline": {
+    "disk_full": false,
+    "erroring": [],
+    "errors": 0,
+    "exit": 0,
+    "failing": [],
+    "failures": 0,
+    "outcome": "pass",
+    "seconds": 2.1,
+    "skipped": 0,
+    "targets": {},
+    "tests": 89,
+    "tree": {
+      "README.md": "ac6e70669dc6dc138585d03a868b9c3f4491b7d4f859f72970ab775b1d288f32",
+      "__init__.py": "c5869543389b2030d4fee8b561dadc1977ea31d087b731219f2d8cba2b401126",
+      "__main__.py": "29ab82dd4151a1e13a95eec249ab35a24847d574bc6e707470b9b555118e5c7f",
+      "gate.py": "d3dd0e0a59cc953e63c5cd518c60432e4364f008ece263f61d15a7b3038df037",
+      "mutation/mutants_pilot_gate.json": "52d8725d30988d26a32b434984d1a5152294468fa873a7e0096d28fb77ca8751",
+      "mutation/run_mutants.py": "9396e4c4275f75c54414c153be80827bde246a0ae099a6a7bd02d06468c2e4e5",
+      "tests/conftest.py": "38f3222cff928699a71560abf4862c046adf81438e1fad48fba368d1029f3fb3",
+      "tests/synth_world.py": "2a4bdbd1a90c0ae2579b1aa6911b89a01884e9495f4349174b4ed6dabeaa62a2",
+      "tests/test_gate.py": "82f7d8529dc82220eaaf5ae7760c783d2b9c3b540fb20bfc42052000ee04c235",
+      "tests/test_reader.py": "21dd170a516a6cc799a9013ade88bfde3e9bc9f9a3ef120ddef1d73874ba2a44",
+      "units.py": "deeb8b5ce5af448ab2065679873abf9314e8c9d8b03049f789a0ed263038be96"
+    }
+  },
+  "command": "python -B -m pytest -q -rs -p no:cacheprovider -W ignore --basetemp=<run>/bt --junitxml=<run>/junit.xml <copy>/scripts/stage1_s1/pilot_gate/tests (cwd <copy>; PYTHONPATH <copy>:<workspace>; PYTHONDONTWRITEBYTECODE=1)",
+  "dose_axis_sha256": "d258ee595709a99a7e4b5cd54b3a308ebae1a156cb144dccea22e26e44acbbe1",
+  "environment_removed": [
+    "PYTEST_ADDOPTS",
+    "PYTEST_PLUGINS"
+  ],
+  "kind": "stage1 mutation report",
+  "min_free_gb": 3.0,
+  "mutants": [
+    {
+      "describes": "two Gate A pins of one name accepted",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.pilot_gate.tests.test_reader::test_gate_a_pin_refusals[<lambda>-a0 1102 \\\\(Gate A\\\\): REJUDGED_PINS\\\\['A'\\\\] holds no one pin4]"
+      ],
+      "failures": 1,
+      "id": "PG-units-pin-count",
+      "outcome": "killed",
+      "part": "units",
+      "seconds": 2.1,
+      "skipped": 0,
+      "targets": {
+        "units.py": {
+          "after": "ce6a59c531cd2e58245a4f7cc250105f846331a6b623e4ae63f9aabda5700969",
+          "before": "deeb8b5ce5af448ab2065679873abf9314e8c9d8b03049f789a0ed263038be96"
+        }
+      },
+      "tests": 89
+    },
+    {
+      "describes": "a Gate A pin's arm not checked",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.pilot_gate.tests.test_reader::test_gate_a_pin_refusals[<lambda>-a0 1102 \\\\(Gate A\\\\): REJUDGED_PINS\\\\['A'\\\\] holds no one pin1]"
+      ],
+      "failures": 1,
+      "id": "PG-units-pin-arm",
+      "outcome": "killed",
+      "part": "units",
+      "seconds": 2.3,
+      "skipped": 0,
+      "targets": {
+        "units.py": {
+          "after": "a7610e75eba90fecd2c6f728b10bab1bcf6b7d6f649a07527567f6e70f741a03",
+          "before": "deeb8b5ce5af448ab2065679873abf9314e8c9d8b03049f789a0ed263038be96"
+        }
+      },
+      "tests": 89
+    },
+    {
+      "describes": "a Gate A pin's seed not checked",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.pilot_gate.tests.test_reader::test_gate_a_pin_refusals[<lambda>-a0 1102 \\\\(Gate A\\\\): REJUDGED_PINS\\\\['A'\\\\] holds no one pin2]"
+      ],
+      "failures": 1,
+      "id": "PG-units-pin-seed",
+      "outcome": "killed",
+      "part": "units",
+      "seconds": 2.2,
+      "skipped": 0,
+      "targets": {
+        "units.py": {
+          "after": "31d52ea7ff67caeff17e145bc3d349c70ae5313c6a7c9ad987901ecf885e8c64",
+          "before": "deeb8b5ce5af448ab2065679873abf9314e8c9d8b03049f789a0ed263038be96"
+        }
+      },
+      "tests": 89
+    },
+    {
+      "describes": "a Gate A pin's target not checked",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.pilot_gate.tests.test_reader::test_gate_a_pin_refusals[<lambda>-a0 1102 \\\\(Gate A\\\\): REJUDGED_PINS\\\\['A'\\\\] holds no one pin3]"
+      ],
+      "failures": 1,
+      "id": "PG-units-pin-target",
+      "outcome": "killed",
+      "part": "units",
+      "seconds": 2.1,
+      "skipped": 0,
+      "targets": {
+        "units.py": {
+          "after": "9da8a26930ed80657a461a3c49b0fd7b19c056e8e30d20af0f8c1d59cf3508e2",
+          "before": "deeb8b5ce5af448ab2065679873abf9314e8c9d8b03049f789a0ed263038be96"
+        }
+      },
+      "tests": 89
+    },
+    {
+      "describes": "a Gate A pin found by seed, not by its name",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.pilot_gate.tests.test_reader::test_gate_a_pin_refusals[<lambda>-a0 1102 \\\\(Gate A\\\\): REJUDGED_PINS\\\\['A'\\\\] holds no one pin0]"
+      ],
+      "failures": 1,
+      "id": "PG-units-pin-name",
+      "outcome": "killed",
+      "part": "units",
+      "seconds": 2.2,
+      "skipped": 0,
+      "targets": {
+        "units.py": {
+          "after": "d82cbe110bce78683022b2f739069c00adae0029286884bb36d0e90ac382233d",
+          "before": "deeb8b5ce5af448ab2065679873abf9314e8c9d8b03049f789a0ed263038be96"
+        }
+      },
+      "tests": 89
+    },
+    {
+      "describes": "a Gate A unit's job.json fields not checked",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.pilot_gate.tests.test_reader::test_gate_a_job_json_fields"
+      ],
+      "failures": 1,
+      "id": "PG-units-gate-a-job",
+      "outcome": "killed",
+      "part": "units",
+      "seconds": 2.2,
+      "skipped": 0,
+      "targets": {
+        "units.py": {
+          "after": "9f6c465df6eaebd0120c97d90e71896c5912016cb023e8a777d32cad5e214d2d",
+          "before": "deeb8b5ce5af448ab2065679873abf9314e8c9d8b03049f789a0ed263038be96"
+        }
+      },
+      "tests": 89
+    },
+    {
+      "describes": "the units' prompt ids not compared",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.pilot_gate.tests.test_reader::test_the_units_must_share_the_prompt_ids_and_number_200"
+      ],
+      "failures": 1,
+      "id": "PG-units-ids",
+      "outcome": "killed",
+      "part": "units",
+      "seconds": 2.1,
+      "skipped": 0,
+      "targets": {
+        "units.py": {
+          "after": "af7b4932b7e024ab172398f8248f62a255c687fb557b95c8a0539401fbc26c9b",
+          "before": "deeb8b5ce5af448ab2065679873abf9314e8c9d8b03049f789a0ed263038be96"
+        }
+      },
+      "tests": 89
+    },
+    {
+      "describes": "the 200-prompt count not checked",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.pilot_gate.tests.test_reader::test_fewer_than_200_prompts_in_every_unit_refuses"
+      ],
+      "failures": 1,
+      "id": "PG-units-200",
+      "outcome": "killed",
+      "part": "units",
+      "seconds": 2.1,
+      "skipped": 0,
+      "targets": {
+        "units.py": {
+          "after": "e14d7b926820454c2ce2fbaba10cd993fb442aba2ee881711d9adad47517d13c",
+          "before": "deeb8b5ce5af448ab2065679873abf9314e8c9d8b03049f789a0ed263038be96"
+        }
+      },
+      "tests": 89
+    },
+    {
+      "describes": "a refusal of the imported code is printed as is",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.pilot_gate.tests.test_reader::test_plan_json_refusals[<lambda>-the kit's plan.json as a stage-1 plan: refused by a check of the imported code]",
+        "scripts.stage1_s1.pilot_gate.tests.test_reader::test_a_complete_json_without_a_file_list_refuses",
+        "scripts.stage1_s1.pilot_gate.tests.test_reader::test_job_json_fields_of_a_pilot_unit[seed-1104]",
+        "scripts.stage1_s1.pilot_gate.tests.test_reader::test_job_json_fields_of_a_pilot_unit[arm-a0]",
+        "scripts.stage1_s1.pilot_gate.tests.test_reader::test_job_json_fields_of_a_pilot_unit[target_checkpoint-e3]",
+        "scripts.stage1_s1.pilot_gate.tests.test_reader::test_job_json_fields_of_a_pilot_unit[evaluate_bank-train]",
+        "scripts.stage1_s1.pilot_gate.tests.test_reader::test_job_json_fields_of_a_pilot_unit[kind-regenerate]",
+        "scripts.stage1_s1.pilot_gate.tests.test_reader::test_job_json_marker_of_a_pilot_unit",
+        "scripts.stage1_s1.pilot_gate.tests.test_reader::test_a_malformed_table_refuses_without_quoting_its_bytes",
+        "scripts.stage1_s1.pilot_gate.tests.test_reader::test_wrong_counts_refuse",
+        "scripts.stage1_s1.pilot_gate.tests.test_reader::test_a_summary_that_disagrees_refuses",
+        "scripts.stage1_s1.pilot_gate.tests.test_reader::test_gate_a_pin_refusals[<lambda>-a0 1101 \\\\(Gate A\\\\): COMPLETE.json and job.json at their pins: refused0]",
+        "scripts.stage1_s1.pilot_gate.tests.test_reader::test_gate_a_pin_refusals[<lambda>-a0 1101 \\\\(Gate A\\\\): COMPLETE.json and job.json at their pins: refused1]",
+        "scripts.stage1_s1.pilot_gate.tests.test_reader::test_gate_a_pin_refusals[<lambda>-a0 1103 \\\\(Gate A\\\\): COMPLETE.json and job.json at their pins: refused]",
+        "scripts.stage1_s1.pilot_gate.tests.test_reader::test_gate_a_job_json_fields",
+        "scripts.stage1_s1.pilot_gate.tests.test_reader::test_the_rules_module_and_the_bars_file",
+        "scripts.stage1_s1.pilot_gate.tests.test_reader::test_plan_json_missing_or_not_json",
+        "scripts.stage1_s1.pilot_gate.tests.test_reader::test_the_subprocess_streams_hold_no_sentinel"
+      ],
+      "failures": 18,
+      "id": "PG-units-withheld-refusal",
+      "outcome": "killed",
+      "part": "units",
+      "seconds": 2.1,
+      "skipped": 0,
+      "targets": {
+        "units.py": {
+          "after": "518b9cc06a2c8e08e51a93b1874dfeb6ce2690987af55ee64ea5aa9120d51104",
+          "before": "deeb8b5ce5af448ab2065679873abf9314e8c9d8b03049f789a0ed263038be96"
+        }
+      },
+      "tests": 89
+    },
+    {
+      "describes": "an unexpected error of the imported code is printed with its message",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.pilot_gate.tests.test_reader::test_an_unexpected_error_inside_a_step_is_withheld"
+      ],
+      "failures": 1,
+      "id": "PG-units-withheld-error",
+      "outcome": "killed",
+      "part": "units",
+      "seconds": 2.0,
+      "skipped": 0,
+      "targets": {
+        "units.py": {
+          "after": "c284faf8530379239bff8071fe8f72e3b5cef0d9226067adebfee289b284f6e8",
+          "before": "deeb8b5ce5af448ab2065679873abf9314e8c9d8b03049f789a0ed263038be96"
+        }
+      },
+      "tests": 89
+    },
+    {
+      "describes": "U taken as the Controversial-counted variant",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.pilot_gate.tests.test_reader::test_end_to_end_values_by_hand",
+        "scripts.stage1_s1.pilot_gate.tests.test_reader::test_u_is_the_unsafe_share_not_a_g3_variant"
+      ],
+      "failures": 2,
+      "id": "PG-units-u-controversial",
+      "outcome": "killed",
+      "part": "units",
+      "seconds": 2.0,
+      "skipped": 0,
+      "targets": {
+        "units.py": {
+          "after": "52192fb0d928604ff4902152ee3c7d3018f9842d25db40bb64ab3b096079ba8b",
+          "before": "deeb8b5ce5af448ab2065679873abf9314e8c9d8b03049f789a0ed263038be96"
+        }
+      },
+      "tests": 89
+    },
+    {
+      "describes": "U taken as the unscored-counted variant",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.pilot_gate.tests.test_reader::test_end_to_end_values_by_hand",
+        "scripts.stage1_s1.pilot_gate.tests.test_reader::test_u_is_the_unsafe_share_not_a_g3_variant"
+      ],
+      "failures": 2,
+      "id": "PG-units-u-unscored",
+      "outcome": "killed",
+      "part": "units",
+      "seconds": 2.0,
+      "skipped": 0,
+      "targets": {
+        "units.py": {
+          "after": "0abd18c7254d9081bc8bc2e8e9eb9bb8bba2d9abdc9560960367d5b599d1726e",
+          "before": "deeb8b5ce5af448ab2065679873abf9314e8c9d8b03049f789a0ed263038be96"
+        }
+      },
+      "tests": 89
+    },
+    {
+      "describes": "a seal note that is not a SHA-256 is copied",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.pilot_gate.tests.test_reader::test_a_recorded_seal_is_noted_by_its_sha256_only"
+      ],
+      "failures": 1,
+      "id": "PG-units-seal-note",
+      "outcome": "killed",
+      "part": "units",
+      "seconds": 2.0,
+      "skipped": 0,
+      "targets": {
+        "units.py": {
+          "after": "704c1c3b944b2a0cd4b30a6bf26eea00e1f0b93e8672810bcc0e95daea36d18c",
+          "before": "deeb8b5ce5af448ab2065679873abf9314e8c9d8b03049f789a0ed263038be96"
+        }
+      },
+      "tests": 89
+    },
+    {
+      "describes": "the pre-check of an existing output dropped: the exclusive create still refuses",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 0,
+      "expect": "survive",
+      "failing": [],
+      "failures": 0,
+      "id": "PG-main-precheck-equivalent",
+      "outcome": "survived",
+      "part": "main",
+      "seconds": 2.2,
+      "skipped": 0,
+      "targets": {
+        "__main__.py": {
+          "after": "9f9cd727043e659789b71454af7ff0f580e432f2494e71ca6e24dbf137660aa7",
+          "before": "29ab82dd4151a1e13a95eec249ab35a24847d574bc6e707470b9b555118e5c7f"
+        }
+      },
+      "tests": 89
+    },
+    {
+      "describes": "the output overwrites an existing file",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.pilot_gate.tests.test_reader::test_a_rerun_is_byte_identical_and_never_overwrites"
+      ],
+      "failures": 1,
+      "id": "PG-main-overwrite",
+      "outcome": "killed",
+      "part": "main",
+      "seconds": 2.0,
+      "skipped": 0,
+      "targets": {
+        "__main__.py": {
+          "after": "814f4c5d8cae37454e5e60f90158f41a8065323b0370666f35efa0e30f2ccd74",
+          "before": "29ab82dd4151a1e13a95eec249ab35a24847d574bc6e707470b9b555118e5c7f"
+        }
+      },
+      "tests": 89
+    },
+    {
+      "describes": "an unexpected error's message is printed",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.pilot_gate.tests.test_reader::test_an_unexpected_error_prints_its_type_only"
+      ],
+      "failures": 1,
+      "id": "PG-main-error-message",
+      "outcome": "killed",
+      "part": "main",
+      "seconds": 2.0,
+      "skipped": 0,
+      "targets": {
+        "__main__.py": {
+          "after": "57e567e5a19d6370f6817c1d6ac2d0684acd6d093b4cc52392741ffaf30acf53",
+          "before": "29ab82dd4151a1e13a95eec249ab35a24847d574bc6e707470b9b555118e5c7f"
+        }
+      },
+      "tests": 89
+    },
+    {
+      "describes": "B16's pins not checked before the units are read",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.pilot_gate.tests.test_reader::test_b16_pins_are_checked_before_any_unit_is_read"
+      ],
+      "failures": 1,
+      "id": "PG-main-b16",
+      "outcome": "killed",
+      "part": "main",
+      "seconds": 2.0,
+      "skipped": 0,
+      "targets": {
+        "__main__.py": {
+          "after": "9ad1d596361ef91df222eabb54f2863c8ad3e3523207a4ceee9948d28dd93257",
+          "before": "29ab82dd4151a1e13a95eec249ab35a24847d574bc6e707470b9b555118e5c7f"
+        }
+      },
+      "tests": 89
+    },
+    {
+      "describes": "the units read in pilot mode whatever --mode says",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.pilot_gate.tests.test_reader::test_re_pilot_mode_reads_a0_plant75_and_never_raises"
+      ],
+      "failures": 1,
+      "id": "PG-main-mode",
+      "outcome": "killed",
+      "part": "main",
+      "seconds": 2.4,
+      "skipped": 0,
+      "targets": {
+        "__main__.py": {
+          "after": "f03b908158f3136ddbc927a24b00b19378970e65432c159306bcea8b271b1401",
+          "before": "29ab82dd4151a1e13a95eec249ab35a24847d574bc6e707470b9b555118e5c7f"
+        }
+      },
+      "tests": 89
+    },
+    {
+      "describes": "the printed label is not the document's",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.pilot_gate.tests.test_reader::test_end_to_end_values_by_hand",
+        "scripts.stage1_s1.pilot_gate.tests.test_reader::test_the_known_label_words_on_set_counts",
+        "scripts.stage1_s1.pilot_gate.tests.test_reader::test_re_pilot_mode_reads_a0_plant75_and_never_raises"
+      ],
+      "failures": 3,
+      "id": "PG-main-label-line",
+      "outcome": "killed",
+      "part": "main",
+      "seconds": 1.9,
+      "skipped": 0,
+      "targets": {
+        "__main__.py": {
+          "after": "cdc5cef01c703cc1ce04fb20b2203820a77bc1675da0eb1950a313c5c88019ef",
+          "before": "29ab82dd4151a1e13a95eec249ab35a24847d574bc6e707470b9b555118e5c7f"
+        }
+      },
+      "tests": 89
+    }
+  ],
+  "pytest_version": "pytest 8.4.2",
+  "python": "3.11.15",
+  "rule": "killed = exit 1 with >= 1 failure and 0 errors; survived = exit 0, 0 failures, 0 errors; anything else (errors, timeout, other exit codes, no JUnit, a test count other than the baseline's) = invalid; an 'expect: survive' entry passes only if it survives",
+  "runner_sha256": "9396e4c4275f75c54414c153be80827bde246a0ae099a6a7bd02d06468c2e4e5",
+  "shard": [
+    "PG-main-b16",
+    "PG-main-error-message",
+    "PG-main-label-line",
+    "PG-main-mode",
+    "PG-main-overwrite",
+    "PG-main-precheck-equivalent",
+    "PG-units-200",
+    "PG-units-gate-a-job",
+    "PG-units-ids",
+    "PG-units-pin-arm",
+    "PG-units-pin-count",
+    "PG-units-pin-name",
+    "PG-units-pin-seed",
+    "PG-units-pin-target",
+    "PG-units-seal-note",
+    "PG-units-u-controversial",
+    "PG-units-u-unscored",
+    "PG-units-withheld-error",
+    "PG-units-withheld-refusal"
+  ],
+  "spec": "scripts/stage1_s1/pilot_gate/mutation/mutants_pilot_gate.json",
+  "spec_sha256": "52d8725d30988d26a32b434984d1a5152294468fa873a7e0096d28fb77ca8751",
+  "summary": {
+    "main": {
+      "equivalent": 0,
+      "expected_survivors_failed": 0,
+      "expected_survivors_ok": 1,
+      "invalid": 0,
+      "killed": 5,
+      "mutants": 6,
+      "survived": 0
+    },
+    "units": {
+      "equivalent": 0,
+      "expected_survivors_failed": 0,
+      "expected_survivors_ok": 0,
+      "invalid": 0,
+      "killed": 13,
+      "mutants": 13,
+      "survived": 0
+    }
+  },
+  "timeout_seconds": 300,
+  "tree_name": "scripts/stage1_s1/pilot_gate",
+  "version": 2
+}

@@ -1441,10 +1441,11 @@
   {
    "describes": "VG2-1: the deal command reads a hand-edited plan-A/B code",
    "file": "plan_tool.py",
-   "find": "    code = (plan_ab_checked(plan) or {}).get(\"code\")\n    try:\n        pods = rules.deal(rules.block_runs(code, block, tuple(tuple(r)",
+   "find": "    code = (plan_ab_checked(plan) or {}).get(\"code\")\n    if block == \"P\" and reuse:                           # kit round 35",
    "id": "B15-3-deal-cmd-unchecked",
    "part": "B15 round 2 fix (24 Oct; notes/b15r2-fix.json)",
-   "replace": "    code = (plan[\"records\"].get(\"plan_ab\") or {}).get(\"code\")\n    try:\n        pods = rules.deal(rules.block_runs(code, block, tuple(tuple(r)"
+   "replace": "    code = (plan[\"records\"].get(\"plan_ab\") or {}).get(\"code\")\n    if block == \"P\" and reuse:                           # kit round 35",
+   "retargeted": "kit round 35: deal_command refuses a reused run for block P right after the code line; the mutant still reads the hand-edited code"
   },
   {
    "describes": "VG2-2 (round 3a form): S1-0's need without the plan's cert pod",
@@ -3142,18 +3143,20 @@
   {
    "describes": "block sim funded from block B's group",
    "file": "stage1_rules.py",
-   "find": "                 \"sim\": \"sim\"}            # §8 Q2",
+   "find": "                 \"sim\": \"sim\", \"P\": \"P\"}  # §8 Q2",
    "id": "B15-34-funding-group",
    "part": "kit round 34 (1 Nov): B14's similarity pass (J22) on block sim",
-   "replace": "                 \"sim\": \"B\"}            # §8 Q2"
+   "replace": "                 \"sim\": \"B\", \"P\": \"P\"}  # §8 Q2",
+   "retargeted": "kit round 35: FUNDING_BLOCK also holds \"P\"; the mutant still funds sim from block B's group"
   },
   {
    "describes": "block sim also takes an L1 scan",
    "file": "stage1_rules.py",
-   "find": "               \"sim\": (\"similarity\",)}",
+   "find": "               \"sim\": (\"similarity\",),",
    "id": "B15-34-block-kinds-sim",
    "part": "kit round 34 (1 Nov): B14's similarity pass (J22) on block sim",
-   "replace": "               \"sim\": (\"similarity\", \"l1_scan\")}"
+   "replace": "               \"sim\": (\"similarity\", \"l1_scan\"),",
+   "retargeted": "kit round 35: BLOCK_KINDS also holds \"P\" after sim; the mutant still adds the L1 scan to sim"
   },
   {
    "describes": "block A also takes the similarity pass",
@@ -3386,7 +3389,319 @@
    "id": "B15-34-light-check",
    "part": "kit round 34 (1 Nov): B14's similarity pass (J22) on block sim",
    "replace": "    pass  # kit round 34"
+  },
+  {
+   "id": "B15-35-blocks",
+   "part": "kit round 35 (2 Nov): stage 1b's pilot block P (addendum §40 points 5 and 7)",
+   "describes": "block P dropped from BLOCKS (init-block P refuses it as unknown)",
+   "file": "stage1_rules.py",
+   "find": "BLOCKS = (\"S1-0\", \"cert\", \"A\", \"certify\", \"B\", \"C\", \"sim\", \"P\")",
+   "replace": "BLOCKS = (\"S1-0\", \"cert\", \"A\", \"certify\", \"B\", \"C\", \"sim\")"
+  },
+  {
+   "id": "B15-35-funding-group",
+   "part": "kit round 35 (2 Nov): stage 1b's pilot block P (addendum §40 points 5 and 7)",
+   "describes": "block P funded from block sim's group",
+   "file": "stage1_rules.py",
+   "find": "                 \"sim\": \"sim\", \"P\": \"P\"}  # §8 Q2: block A first",
+   "replace": "                 \"sim\": \"sim\", \"P\": \"sim\"}  # §8 Q2: block A first"
+  },
+  {
+   "id": "B15-35-host-prefix",
+   "part": "kit round 35 (2 Nov): stage 1b's pilot block P (addendum §40 points 5 and 7)",
+   "describes": "block P's hosts named with block A's prefix",
+   "file": "stage1_rules.py",
+   "find": "\"C\": \"c\", \"sim\": \"sim\", \"P\": \"p\"}",
+   "replace": "\"C\": \"c\", \"sim\": \"sim\", \"P\": \"a\"}"
+  },
+  {
+   "id": "B15-35-block-kinds-p",
+   "part": "kit round 35 (2 Nov): stage 1b's pilot block P (addendum §40 points 5 and 7)",
+   "describes": "block P allows an a0_arm job",
+   "file": "stage1_rules.py",
+   "find": "               \"P\": (\"arm\",)}             # kit round 35: a0_plant runs only (no judge launch, addendum §40 point 7)",
+   "replace": "               \"P\": (\"arm\", \"a0_arm\")}    # kit round 35: a0_plant runs only (no judge launch, addendum §40 point 7)"
+  },
+  {
+   "id": "B15-35-rejudged-p",
+   "part": "kit round 35 (2 Nov): stage 1b's pilot block P (addendum §40 points 5 and 7)",
+   "describes": "block P given block A's re-judged units",
+   "file": "stage1_rules.py",
+   "find": "REJUDGED_PINS[\"P\"] = ()",
+   "replace": "REJUDGED_PINS[\"P\"] = REJUDGED_PINS[\"A\"]"
+  },
+  {
+   "id": "B15-35-plant-seeds",
+   "part": "kit round 35 (2 Nov): stage 1b's pilot block P (addendum §40 points 5 and 7)",
+   "describes": "the pilot's seeds shifted to 1102-1104",
+   "file": "stage1_rules.py",
+   "find": "PLANT_SEEDS = (1101, 1102, 1103)          # REV4 §8.2",
+   "replace": "PLANT_SEEDS = (1102, 1103, 1104)          # REV4 §8.2"
+  },
+  {
+   "id": "B15-35-plant-dose",
+   "part": "kit round 35 (2 Nov): stage 1b's pilot block P (addendum §40 points 5 and 7)",
+   "describes": "a0_plant given the remove dose (33 steps)",
+   "file": "stage1_rules.py",
+   "find": "            \"a0_plant\": \"plant\"}          # kit round 35",
+   "replace": "            \"a0_plant\": \"remove\"}         # kit round 35"
+  },
+  {
+   "id": "B15-35-dose-steps",
+   "part": "kit round 35 (2 Nov): stage 1b's pilot block P (addendum §40 points 5 and 7)",
+   "describes": "the plant dose at 33 steps",
+   "file": "stage1_rules.py",
+   "find": "              \"plant\": 38}                # R: REV4 §8.1",
+   "replace": "              \"plant\": 33}                # R: REV4 §8.1"
+  },
+  {
+   "id": "B15-35-plant-deal-allowed",
+   "part": "kit round 35 (2 Nov): stage 1b's pilot block P (addendum §40 points 5 and 7)",
+   "describes": "plant_deal accepts a run outside the pilot's table",
+   "file": "stage1_rules.py",
+   "find": "    allowed = {(arm, seed) for arm in PLANT_ARMS for seed in PLANT_SEEDS}\n    if any(tuple(r) not in allowed for r in runs):",
+   "replace": "    allowed = {(arm, seed) for arm in PLANT_ARMS for seed in PLANT_SEEDS}\n    if False and any(tuple(r) not in allowed for r in runs):"
+  },
+  {
+   "id": "B15-35-plant-deal-twice",
+   "part": "kit round 35 (2 Nov): stage 1b's pilot block P (addendum §40 points 5 and 7)",
+   "describes": "plant_deal accepts a run listed twice",
+   "file": "stage1_rules.py",
+   "find": "    if len(set(ordered)) != len(ordered):\n        raise ValueError(\"a run is listed twice\")\n    return split_pods(ordered)",
+   "replace": "    return split_pods(ordered)"
+  },
+  {
+   "id": "B15-35-table-identity-r",
+   "part": "kit round 35 (2 Nov): stage 1b's pilot block P (addendum §40 points 5 and 7)",
+   "describes": "block A's table loses R at 1104 (the tables must stay those of 0d25497)",
+   "file": "stage1_rules.py",
+   "find": "        runs = [(a, s) for s in METHOD_SEEDS[\"A\"] for a in methods] + [(\"a0\", 1104), (\"R\", 1104)]",
+   "replace": "        runs = [(a, s) for s in METHOD_SEEDS[\"A\"] for a in methods] + [(\"a0\", 1104)]"
+  },
+  {
+   "id": "B15-35-table-identity-pin",
+   "part": "kit round 35 (2 Nov): stage 1b's pilot block P (addendum §40 points 5 and 7)",
+   "describes": "one re-judged pin of block A changed by one hex digit",
+   "file": "stage1_rules.py",
+   "find": "     \"complete_sha256\": \"8f0fa83a42ccc5edc54a5ee26ed63f49448c36d30adbd64e28b655678afee4c9\",",
+   "replace": "     \"complete_sha256\": \"8f0fa83a42ccc5edc54a5ee26ed63f49448c36d30adbd64e28b655678afee4c8\","
+  },
+  {
+   "id": "B15-35-g3",
+   "part": "kit round 35 (2 Nov): stage 1b's pilot block P (addendum §40 points 5 and 7)",
+   "describes": "block P planned without the plan-A/B record (G3)",
+   "file": "plan_tool.py",
+   "find": "    if block in (\"A\", \"certify\", \"B\", \"C\", \"P\"):",
+   "replace": "    if block in (\"A\", \"certify\", \"B\", \"C\"):"
+  },
+  {
+   "id": "B15-35-p-after-b-complete",
+   "part": "kit round 35 (2 Nov): stage 1b's pilot block P (addendum §40 points 5 and 7)",
+   "describes": "block P planned while block B is not complete",
+   "file": "plan_tool.py",
+   "find": "        if not block_complete(plan, \"B\"):\n            fail(\"block P: block B is not complete (G5; addendum §40 point 5)\")",
+   "replace": "        if False and not block_complete(plan, \"B\"):\n            fail(\"block P: block B is not complete (G5; addendum §40 point 5)\")"
+  },
+  {
+   "id": "B15-35-p-after-b-sealed",
+   "part": "kit round 35 (2 Nov): stage 1b's pilot block P (addendum §40 points 5 and 7)",
+   "describes": "block P planned while block B is not sealed",
+   "file": "plan_tool.py",
+   "find": "        if \"B\" not in plan[\"seals\"]:\n            fail(\"block P: block B is not sealed (seal.py block B; addendum §40 point 5)\")",
+   "replace": "        if False and \"B\" not in plan[\"seals\"]:\n            fail(\"block P: block B is not sealed (seal.py block B; addendum §40 point 5)\")"
+  },
+  {
+   "id": "B15-35-req8-differs",
+   "part": "kit round 35 (2 Nov): stage 1b's pilot block P (addendum §40 points 5 and 7)",
+   "describes": "a plant edit whose SHA-256 differs from REQ-8's record's accepted",
+   "file": "plan_tool.py",
+   "find": "    if files.get(name) != sha256:",
+   "replace": "    if files.get(name) is None:"
+  },
+  {
+   "id": "B15-35-req8-missing",
+   "part": "kit round 35 (2 Nov): stage 1b's pilot block P (addendum §40 points 5 and 7)",
+   "describes": "a plant edit REQ-8's record lists no file for accepted",
+   "file": "plan_tool.py",
+   "find": "    if files.get(name) != sha256:",
+   "replace": "    if files.get(name) not in (sha256, None):"
+  },
+  {
+   "id": "B15-35-job-seed",
+   "part": "kit round 35 (2 Nov): stage 1b's pilot block P (addendum §40 points 5 and 7)",
+   "describes": "a block-P job at any development seed accepted",
+   "file": "plan_tool.py",
+   "find": "    if job.get(\"kind\") != \"arm\" or job.get(\"arm\") not in rules.PLANT_ARMS or job.get(\"seed\") not in rules.PLANT_SEEDS \\",
+   "replace": "    if job.get(\"kind\") != \"arm\" or job.get(\"arm\") not in rules.PLANT_ARMS or job.get(\"seed\") not in rules.STAGE1_SEEDS \\"
+  },
+  {
+   "id": "B15-35-job-arm",
+   "part": "kit round 35 (2 Nov): stage 1b's pilot block P (addendum §40 points 5 and 7)",
+   "describes": "a block-P job of any arm accepted",
+   "file": "plan_tool.py",
+   "find": "    if job.get(\"kind\") != \"arm\" or job.get(\"arm\") not in rules.PLANT_ARMS or job.get(\"seed\") not in rules.PLANT_SEEDS \\",
+   "replace": "    if job.get(\"kind\") != \"arm\" or job.get(\"arm\") not in rules.ARM_DOSE or job.get(\"seed\") not in rules.PLANT_SEEDS \\"
+  },
+  {
+   "id": "B15-35-job-kind",
+   "part": "kit round 35 (2 Nov): stage 1b's pilot block P (addendum §40 points 5 and 7)",
+   "describes": "a block-P a0_arm job accepted",
+   "file": "plan_tool.py",
+   "find": "    if job.get(\"kind\") != \"arm\" or job.get(\"arm\") not in rules.PLANT_ARMS or job.get(\"seed\") not in rules.PLANT_SEEDS \\",
+   "replace": "    if job.get(\"kind\") not in (\"arm\", \"a0_arm\") or job.get(\"arm\") not in rules.PLANT_ARMS or job.get(\"seed\") not in rules.PLANT_SEEDS \\"
+  },
+  {
+   "id": "B15-35-init-unbound",
+   "part": "kit round 35 (2 Nov): stage 1b's pilot block P (addendum §40 points 5 and 7)",
+   "describes": "block P's edits not bound at init (the dry run passes without the sealed record)",
+   "file": "plan_tool.py",
+   "find": "    if block == \"P\":                     # kit round 35: the pilot's runs, their edit by SHA-256 and REQ-8's record\n        bind_plant_edits(plan, all_jobs)",
+   "replace": "    if block == \"P\":                     # kit round 35: the pilot's runs, their edit by SHA-256 and REQ-8's record\n        pass"
+  },
+  {
+   "id": "B15-35-release-unbound",
+   "part": "kit round 35 (2 Nov): stage 1b's pilot block P (addendum §40 points 5 and 7)",
+   "describes": "block P's jobs and edits not checked again at release",
+   "file": "plan_tool.py",
+   "find": "    if block == \"P\":                                     # kit round 35: the pilot's runs and their edit, again\n        bind_plant_edits(plan, [j for _, h in names_hosts for j in h[\"jobs\"]])",
+   "replace": "    if block == \"P\":                                     # kit round 35: the pilot's runs and their edit, again\n        pass"
+  },
+  {
+   "id": "B15-35-changed-edit-file",
+   "part": "kit round 35 (2 Nov): stage 1b's pilot block P (addendum §40 points 5 and 7)",
+   "describes": "an edit file whose SHA-256 is not the sealed one accepted",
+   "file": "plan_tool.py",
+   "find": "    if not path.is_file() or mac.sha(path) != entry[\"sha256\"]:\n        fail(f\"{arm} at {job['seed']}: the edit file is missing or its SHA-256 is not the sealed one\")",
+   "replace": "    if not path.is_file():\n        fail(f\"{arm} at {job['seed']}: the edit file is missing or its SHA-256 is not the sealed one\")"
+  },
+  {
+   "id": "B15-35-no-record",
+   "part": "kit round 35 (2 Nov): stage 1b's pilot block P (addendum §40 points 5 and 7)",
+   "describes": "an arm with no edit source resolved to no edit instead of a refusal",
+   "file": "plan_tool.py",
+   "find": "        if required:\n            fail(f\"{arm} at {job['seed']}: no edit file in MAN1, Gate B's MANIFEST or a recorded sealed record\")\n        return None",
+   "replace": "        return None"
+  },
+  {
+   "id": "B15-35-sealed-route",
+   "part": "kit round 35 (2 Nov): stage 1b's pilot block P (addendum §40 points 5 and 7)",
+   "describes": "record-sealed does not bind a plant edit to REQ-8's record",
+   "file": "plan_tool.py",
+   "find": "            if e[\"arm\"] in rules.PLANT_ARMS:             # kit round 35: a plant edit is the plant build's own file",
+   "replace": "            if False:                                    # kit round 35: a plant edit is the plant build's own file"
+  },
+  {
+   "id": "B15-35-judge-launch",
+   "part": "kit round 35 (2 Nov): stage 1b's pilot block P (addendum §40 points 5 and 7)",
+   "describes": "a judge launch in block P accepted",
+   "file": "plan_tool.py",
+   "find": "        if block == \"P\" and \"judge\" in launch:           # kit round 35: no judge for the pilot (addendum §40 point 7)",
+   "replace": "        if False:                                        # kit round 35: no judge for the pilot (addendum §40 point 7)"
+  },
+  {
+   "id": "B15-35-hosts-launch",
+   "part": "kit round 35 (2 Nov): stage 1b's pilot block P (addendum §40 points 5 and 7)",
+   "describes": "a hosts launch in block P not refused with the pilot's own message",
+   "file": "plan_tool.py",
+   "find": "        if block == \"P\" and \"deal\" not in launch:        # kit round 35: the pilot's runs come from its deal only",
+   "replace": "        if False:                                        # kit round 35: the pilot's runs come from its deal only"
+  },
+  {
+   "id": "B15-35-reused",
+   "part": "kit round 35 (2 Nov): stage 1b's pilot block P (addendum §40 points 5 and 7)",
+   "describes": "a reused run in block P accepted",
+   "file": "plan_tool.py",
+   "find": "    if block == \"P\" and reused:                          # kit round 35: nothing of the pilot is reused",
+   "replace": "    if False:                                            # kit round 35: nothing of the pilot is reused"
+  },
+  {
+   "id": "B15-35-deal-table",
+   "part": "kit round 35 (2 Nov): stage 1b's pilot block P (addendum §40 points 5 and 7)",
+   "describes": "block P dealt from block_runs instead of its own table",
+   "file": "plan_tool.py",
+   "find": "            deal_pods = rules.plant_deal(rules.plant_runs()) if block == \"P\" else \\",
+   "replace": "            deal_pods = rules.plant_deal(rules.plant_runs()) if False else \\"
+  },
+  {
+   "id": "B15-35-deal-cmd",
+   "part": "kit round 35 (2 Nov): stage 1b's pilot block P (addendum §40 points 5 and 7)",
+   "describes": "deal P printed from block_runs instead of its own table",
+   "file": "plan_tool.py",
+   "find": "        pods = rules.plant_deal(rules.plant_runs()) if block == \"P\" else \\",
+   "replace": "        pods = rules.plant_deal(rules.plant_runs()) if False else \\"
+  },
+  {
+   "id": "B15-35-record-done-print",
+   "part": "kit round 35 (2 Nov): stage 1b's pilot block P (addendum §40 points 5 and 7)",
+   "describes": "record-done does not print the pilot's units and records",
+   "file": "plan_tool.py",
+   "find": "    if plant_units:                                      # kit round 35: the pilot reader's inputs, by path and SHA-256\n        out[\"plant_units\"] = plant_units",
+   "replace": "    if False:                                            # kit round 35: the pilot reader's inputs, by path and SHA-256\n        out[\"plant_units\"] = plant_units"
+  },
+  {
+   "id": "B15-35-record-done-malformed",
+   "part": "kit round 35 (2 Nov): stage 1b's pilot block P (addendum §40 points 5 and 7)",
+   "describes": "record-done accepts a fingerprint record with an edit field",
+   "file": "plan_tool.py",
+   "find": "            type(doc.get(\"steps\")) is not int or \"edit\" in doc or \\",
+   "replace": "            type(doc.get(\"steps\")) is not int or False or \\"
+  },
+  {
+   "id": "B15-35-record-done-seed",
+   "part": "kit round 35 (2 Nov): stage 1b's pilot block P (addendum §40 points 5 and 7)",
+   "describes": "record-done accepts a fingerprint record naming another seed",
+   "file": "plan_tool.py",
+   "find": "            rules.ARM_FINGERPRINT_KIND, 1, i, r.get(\"arm\"), r.get(\"seed\"), r.get(\"unit\"), r.get(\"complete_sha256\")) or \\",
+   "replace": "            rules.ARM_FINGERPRINT_KIND, 1, i, r.get(\"arm\"), doc.get(\"seed\"), r.get(\"unit\"), r.get(\"complete_sha256\")) or \\"
+  },
+  {
+   "id": "B15-35-record-done-missing",
+   "part": "kit round 35 (2 Nov): stage 1b's pilot block P (addendum §40 points 5 and 7)",
+   "describes": "record-done drops the runner's reason for a missing fingerprint record",
+   "file": "plan_tool.py",
+   "find": "            job[\"fingerprint_record_problem\"] = r.get(\"plant_fingerprint_record\") or \"not among the job's outputs\"",
+   "replace": "            job[\"fingerprint_record_problem\"] = None"
+  },
+  {
+   "id": "B15-35-runner-skipped",
+   "part": "kit round 35 (2 Nov): stage 1b's pilot block P (addendum §40 points 5 and 7)",
+   "describes": "the runner writes no fingerprint record for a plant arm",
+   "file": "setup/job_runner_stage1.py",
+   "find": "    if kind == \"arm\" and job.get(\"arm\") in rules.PLANT_ARMS:   # kit round 35: a plant arm's fingerprints, readable",
+   "replace": "    if False:                                                  # kit round 35: a plant arm's fingerprints, readable"
+  },
+  {
+   "id": "B15-35-runner-edit-field",
+   "part": "kit round 35 (2 Nov): stage 1b's pilot block P (addendum §40 points 5 and 7)",
+   "describes": "the plant arm's record carries the job's edit entry",
+   "file": "setup/job_runner_stage1.py",
+   "find": "    doc = {\"kind\": rules.ARM_FINGERPRINT_KIND, \"version\": 1, \"job\": index, \"arm\": job[\"arm\"], \"seed\": job[\"seed\"],\n           \"steps\": job[\"steps\"], \"unit\": unit, **fields}",
+   "replace": "    doc = {\"kind\": rules.ARM_FINGERPRINT_KIND, \"version\": 1, \"job\": index, \"arm\": job[\"arm\"], \"seed\": job[\"seed\"],\n           \"steps\": job[\"steps\"], \"unit\": unit, \"edit\": job.get(\"edit\"), **fields}"
+  },
+  {
+   "id": "B15-35-runner-steps",
+   "part": "kit round 35 (2 Nov): stage 1b's pilot block P (addendum §40 points 5 and 7)",
+   "describes": "the plant arm's record carries no steps",
+   "file": "setup/job_runner_stage1.py",
+   "find": "    doc = {\"kind\": rules.ARM_FINGERPRINT_KIND, \"version\": 1, \"job\": index, \"arm\": job[\"arm\"], \"seed\": job[\"seed\"],\n           \"steps\": job[\"steps\"], \"unit\": unit, **fields}",
+   "replace": "    doc = {\"kind\": rules.ARM_FINGERPRINT_KIND, \"version\": 1, \"job\": index, \"arm\": job[\"arm\"], \"seed\": job[\"seed\"],\n           \"steps\": None, \"unit\": unit, **fields}"
+  },
+  {
+   "id": "B15-35-runner-overwrite",
+   "part": "kit round 35 (2 Nov): stage 1b's pilot block P (addendum §40 points 5 and 7)",
+   "describes": "the plant arm's record written over an existing file",
+   "file": "setup/job_runner_stage1.py",
+   "find": "        with (root / rel).open(\"xb\") as handle:\n            handle.write(rules.canonical_bytes(doc))",
+   "replace": "        with (root / rel).open(\"wb\") as handle:\n            handle.write(rules.canonical_bytes(doc))"
+  },
+  {
+   "id": "B15-35-runner-canonical",
+   "part": "kit round 35 (2 Nov): stage 1b's pilot block P (addendum §40 points 5 and 7)",
+   "describes": "the plant arm's record not in canonical JSON",
+   "file": "setup/job_runner_stage1.py",
+   "find": "        with (root / rel).open(\"xb\") as handle:\n            handle.write(rules.canonical_bytes(doc))",
+   "replace": "        with (root / rel).open(\"xb\") as handle:\n            handle.write(json.dumps(doc).encode())"
   }
  ],
- "note": "B15 BUILD-CORE: files are relative to runkit/stage1-olmo/; tests are runkit/stage1-olmo/tests/ (run_mutants.py copies scripts/stage1, so the lead's runner copies this kit's folder instead, with the same rules) BUILD-RUNNER added the B15-r-* entries (runner side: job runner, preflight, download, probes, pack, orchestrate, judges, backup, the UNITLESS fix); same files-relative rule. The B15 FIX round (notes/b15-fix.json) added the B15-x-* entries and B15-d-status-prints-value, and re-targeted B15-m-group-need, B15-g-plan-ab-not-read and B15-r-vcheck-after-projection to the fixed text. B15 round 2 (notes/b15r2-build.json) added the B15-2-* entries and re-targeted B15-g-plan-ab-not-read and B15-g-plan-ab-rule to the derived plan-A/B code. The tests now read only this repository (the S1 package in scripts/stage1_s1, engine Y at STAGE1_ENGINE_Y_TREE, default tmp/engine-y-34bfd288), so a mutation copy needs runkit/stage1-olmo and runkit/gate-b-olmo copied and scripts, experiments, .ai, research, backups and tmp linked inside the same repository root; no sibling folder. The B15 round-2 fix round (notes/b15r2-fix.json) added the verifiers' 13 mutants (VG-*, V2-*) and the B15-3-* entries, and re-targeted B15-g-plan-ab-not-read, B15-x-no-block-a-floor and B15-2-plan-ab-bool to the fixed text. B15 round 3b (notes/b15r3b-build.json) added the B15-6-* entries (S1 package pins, the moved D-2 and C3 records, c0 on the LN-12 pod, LN-15e's retrain and re-score, 27 judge units, V2a's recorded fallback), retargeted B15-2-pack-d2-code and B15-4-no-theta0 to the changed text, and marks B15-2-plan-ab-not-derived 'expect': 'survive' with its equivalence argument in 'why'; B15-r-pack-man1 and B15-2-d2-req8-pool are now killed by new tests (test_stage1_runner.py test_a_named_input_that_man1_lists_with_another_sha256_..., test_stage1_runkit.py test_a_filled_pins_file_whose_pool_hash_differs_...). The B15 round-3b fix round (notes/b15r3b-fix.json) added the verify-pins report's 8 mutants (VP-*; VP-rescore-own-arm-seed-unchecked 'expect': 'survive' with its argument) and the B15-7-* entries (paths in normal form in the pack, F1; the runner's distinct re-score groups, F4). B15 round 3c (notes/b15r3c-build.json) added the B15-8-* entries (the O-ext unit runner pinned, packed, sealed and parsed; block A's completion against its recorded plan and the not-run decision; the $144 top-up's limit test) and retargeted B15-6-s1-unpinned-all, whose round-3b find text (the S1_UNPINNED exception) is gone: it now puts that exception back. Round H (notes/d3-build.json, addendum §28) added the B15-h-* entries (release without waiting for the earlier launch's hosts while the guard-off record holds; judge launches still wait; the early release recorded and logged); B15-g-launch-order's find text is unchanged and still the old rule's gate. Round 29 (notes/kit-round-29.json; addendum §29 and the user's 26 Oct re-run payment) added the 5 B15-29-* entries (the pull list, the finisher's roles, the unpulled decision's re-hash, the user-paid requeue and record-done's model-state exception); every one was run against the kit suite and killed (notes/kit-round-29-evidence/). No earlier find text was retargeted: the round-29 code keeps each earlier find text exactly once. Round 30 (notes/kit-round-30.json; addendum §30 and the lead's R1-R7) added the 5 B15-30-* entries (gap 1: a judge launch done only with its record; gap 2: one judge file per required unit; gap 3: the launcher's echo off; gap 4: the B10 pod bundle.py; D3: the moved hosts in the seal) and retargeted two entries whose find text moved (each marked 'retargeted'): B15-x-judge-files-unsealed to the seal's judge-record check, B15-x-safe-lora-label to judge_pod_stage1/bundle.py (same text). Every other find text is unchanged and still found exactly once. Round 30a (notes/kit-round-30a.json; the cert runbook's D2 and D4) added the 5 B15-30a-* entries (C1's registry seed in the runner, compare_c1.py); no earlier find text was retargeted. Round 31 (notes/kit-round-31.json; addendum §32 points 1-3, the lead's K1-K6) added the 6 B15-31-* entries (K1: a judge not-run decision counts for a block other than A; K2: the judge-launch units check at init-block and the ref_train label in write-files; K4: the dry bundle's printed record; K5: the finisher and moved, not-done hosts; K6: launch.py's exit code); no earlier find text was retargeted (each still found exactly once). Its runner is notes/run_mutants_b15.py. Round G1 (notes/g1-yoext.json; addendum §34 point 3, the engine-Y O-ext re-pin) added the 4 B15-G1-* entries (the Y pack's engine-Y O-ext files, their sources and the shared O-ext files); their killing tests are in tests/test_g1_yoext.py and tests/test_stage1_runner.py, so the runner's TESTS should name tests/test_g1_yoext.py too (as round 31 added test_round31.py). No earlier find text was retargeted (each is still found exactly once). Kit round 32 (notes/kit-round-32.json; addendum §34 points 5-7, the lead's K1-K6) added the 8 B15-32-* entries and re-targeted B15-x-b10-unit-count (the runner's B10 unit count now allows the certify unit alone after B10's failed gate) and B15-h-judge-ignores-moved (the judge wait now skips the never-released hosts of a launch skipped under not-run decisions) to the changed text, with the same replacement meaning. Kit round 33 (31 Oct, judge runbook B GB1/GB4/GB5) added the B15-33-* entries, run with tests/test_round33.py added to the runner's test files, and re-targeted B15-m-funding-source to the §36 elif. Kit round 34 (1 Nov, B14's similarity pass J22 on block sim; notes/kit-round-34.json) added the 36 B15-34-* entries, run with tests/test_round34.py added to the runner's test files, and re-targeted three entries whose find text the round moved (each marked 'retargeted', the same replacement meaning): B15-r-o-only-unit, B15-8-runner-settings-unpinned and B15-g-no-recorded-recipe."
+ "note": "B15 BUILD-CORE: files are relative to runkit/stage1-olmo/; tests are runkit/stage1-olmo/tests/ (run_mutants.py copies scripts/stage1, so the lead's runner copies this kit's folder instead, with the same rules) BUILD-RUNNER added the B15-r-* entries (runner side: job runner, preflight, download, probes, pack, orchestrate, judges, backup, the UNITLESS fix); same files-relative rule. The B15 FIX round (notes/b15-fix.json) added the B15-x-* entries and B15-d-status-prints-value, and re-targeted B15-m-group-need, B15-g-plan-ab-not-read and B15-r-vcheck-after-projection to the fixed text. B15 round 2 (notes/b15r2-build.json) added the B15-2-* entries and re-targeted B15-g-plan-ab-not-read and B15-g-plan-ab-rule to the derived plan-A/B code. The tests now read only this repository (the S1 package in scripts/stage1_s1, engine Y at STAGE1_ENGINE_Y_TREE, default tmp/engine-y-34bfd288), so a mutation copy needs runkit/stage1-olmo and runkit/gate-b-olmo copied and scripts, experiments, .ai, research, backups and tmp linked inside the same repository root; no sibling folder. The B15 round-2 fix round (notes/b15r2-fix.json) added the verifiers' 13 mutants (VG-*, V2-*) and the B15-3-* entries, and re-targeted B15-g-plan-ab-not-read, B15-x-no-block-a-floor and B15-2-plan-ab-bool to the fixed text. B15 round 3b (notes/b15r3b-build.json) added the B15-6-* entries (S1 package pins, the moved D-2 and C3 records, c0 on the LN-12 pod, LN-15e's retrain and re-score, 27 judge units, V2a's recorded fallback), retargeted B15-2-pack-d2-code and B15-4-no-theta0 to the changed text, and marks B15-2-plan-ab-not-derived 'expect': 'survive' with its equivalence argument in 'why'; B15-r-pack-man1 and B15-2-d2-req8-pool are now killed by new tests (test_stage1_runner.py test_a_named_input_that_man1_lists_with_another_sha256_..., test_stage1_runkit.py test_a_filled_pins_file_whose_pool_hash_differs_...). The B15 round-3b fix round (notes/b15r3b-fix.json) added the verify-pins report's 8 mutants (VP-*; VP-rescore-own-arm-seed-unchecked 'expect': 'survive' with its argument) and the B15-7-* entries (paths in normal form in the pack, F1; the runner's distinct re-score groups, F4). B15 round 3c (notes/b15r3c-build.json) added the B15-8-* entries (the O-ext unit runner pinned, packed, sealed and parsed; block A's completion against its recorded plan and the not-run decision; the $144 top-up's limit test) and retargeted B15-6-s1-unpinned-all, whose round-3b find text (the S1_UNPINNED exception) is gone: it now puts that exception back. Round H (notes/d3-build.json, addendum §28) added the B15-h-* entries (release without waiting for the earlier launch's hosts while the guard-off record holds; judge launches still wait; the early release recorded and logged); B15-g-launch-order's find text is unchanged and still the old rule's gate. Round 29 (notes/kit-round-29.json; addendum §29 and the user's 26 Oct re-run payment) added the 5 B15-29-* entries (the pull list, the finisher's roles, the unpulled decision's re-hash, the user-paid requeue and record-done's model-state exception); every one was run against the kit suite and killed (notes/kit-round-29-evidence/). No earlier find text was retargeted: the round-29 code keeps each earlier find text exactly once. Round 30 (notes/kit-round-30.json; addendum §30 and the lead's R1-R7) added the 5 B15-30-* entries (gap 1: a judge launch done only with its record; gap 2: one judge file per required unit; gap 3: the launcher's echo off; gap 4: the B10 pod bundle.py; D3: the moved hosts in the seal) and retargeted two entries whose find text moved (each marked 'retargeted'): B15-x-judge-files-unsealed to the seal's judge-record check, B15-x-safe-lora-label to judge_pod_stage1/bundle.py (same text). Every other find text is unchanged and still found exactly once. Round 30a (notes/kit-round-30a.json; the cert runbook's D2 and D4) added the 5 B15-30a-* entries (C1's registry seed in the runner, compare_c1.py); no earlier find text was retargeted. Round 31 (notes/kit-round-31.json; addendum §32 points 1-3, the lead's K1-K6) added the 6 B15-31-* entries (K1: a judge not-run decision counts for a block other than A; K2: the judge-launch units check at init-block and the ref_train label in write-files; K4: the dry bundle's printed record; K5: the finisher and moved, not-done hosts; K6: launch.py's exit code); no earlier find text was retargeted (each still found exactly once). Its runner is notes/run_mutants_b15.py. Round G1 (notes/g1-yoext.json; addendum §34 point 3, the engine-Y O-ext re-pin) added the 4 B15-G1-* entries (the Y pack's engine-Y O-ext files, their sources and the shared O-ext files); their killing tests are in tests/test_g1_yoext.py and tests/test_stage1_runner.py, so the runner's TESTS should name tests/test_g1_yoext.py too (as round 31 added test_round31.py). No earlier find text was retargeted (each is still found exactly once). Kit round 32 (notes/kit-round-32.json; addendum §34 points 5-7, the lead's K1-K6) added the 8 B15-32-* entries and re-targeted B15-x-b10-unit-count (the runner's B10 unit count now allows the certify unit alone after B10's failed gate) and B15-h-judge-ignores-moved (the judge wait now skips the never-released hosts of a launch skipped under not-run decisions) to the changed text, with the same replacement meaning. Kit round 33 (31 Oct, judge runbook B GB1/GB4/GB5) added the B15-33-* entries, run with tests/test_round33.py added to the runner's test files, and re-targeted B15-m-funding-source to the §36 elif. Kit round 34 (1 Nov, B14's similarity pass J22 on block sim; notes/kit-round-34.json) added the 36 B15-34-* entries, run with tests/test_round34.py added to the runner's test files, and re-targeted three entries whose find text the round moved (each marked 'retargeted', the same replacement meaning): B15-r-o-only-unit, B15-8-runner-settings-unpinned and B15-g-no-recorded-recipe. Kit round 35 (2 Nov, stage 1b's pilot block P; notes/kit-round-35.json) added the 39 B15-35-* entries, run with tests/test_round35.py added to the runner's test files; and re-targeted three entries whose find text the round moved (each marked 'retargeted', the same replacement meaning): B15-3-deal-cmd-unchecked (deal_command's refusal of a reused run for block P follows the code line), B15-34-funding-group and B15-34-block-kinds-sim (block P's entries follow sim's). Every other find text is unchanged and still found exactly once."
 }

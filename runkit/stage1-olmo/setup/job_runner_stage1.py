@@ -36,7 +36,10 @@ Then each job, in order, one process per step under process_receipt.py (the comm
   arm, a0_arm, ref_train  engine calibrate --checkpoints e1 (an edit arm with --edit and its edit-<SHA-256> arm),
                  then the O-ext unit pass on the new unit's e1 state (J9, J10, J18); kit round 32 (K6): after a
                  complete a0_arm job the readable job-I/a0-adapter-fingerprint.json (a0_fingerprint_record), listed
-                 among its outputs
+                 among its outputs; kit round 35 (block P, addendum §40 points 5-6): after a complete plant-arm job
+                 (stage1_rules.PLANT_ARMS) the readable job-I/arm-adapter-fingerprint.json (plant_fingerprint_record:
+                 e1 and q, arm, seed, steps, unit, COMPLETE.json SHA-256, the identity hashes; never an edit field),
+                 written once (exclusive create, canonical JSON) and listed among its outputs
   c0             engine make-job run-one (R_1, seed 1101, train only, --pin-code) and scripts/stage1_s1/lean_eval_job.py run
                  --expect-adapter-fingerprint <R_1101's e1 fingerprint, from its pinned COMPLETE.json> with a fresh
                  registry and the O-ext inputs (J11; engine X, on block A's LN-12 pod: addendum §26)
@@ -964,6 +967,24 @@ def a0_fingerprint_record(root: pathlib.Path, unit: str, job: dict, index: int) 
     (safe_lora.py checks an adapter's lora_fingerprint against it), and must equal COMPLETE.json's
     checkpoints.e1.adapter_fingerprint (the field B10 compares); q is COMPLETE.json's checkpoints.q (or null); the
     identity is COMPLETE.json's. Only these fields are read; no evaluation value."""
+    fields, why = unit_fingerprints(root, unit)
+    if fields is None:
+        return None, why
+    doc = {"kind": rules.A0_FINGERPRINT_KIND, "version": 1, "job": index, "arm": "a0", "seed": job["seed"],
+           "unit": unit, **fields}
+    rel = f"job-{index}/{rules.A0_FINGERPRINT_RECORD}"
+    (root / f"job-{index}").mkdir(parents=True, exist_ok=True)
+    (root / rel).write_text(json.dumps(doc, indent=1, sort_keys=True) + "\n")
+    return rel, None
+
+
+def unit_fingerprints(root: pathlib.Path, unit: str) -> tuple:
+    """The fingerprint fields of a calibrate unit for a readable record (K6 and kit round 35): ({complete_sha256 (the
+    unit's COMPLETE.json SHA-256), checkpoints {e1, q}, identity {manifest_sha256, training_identity}}, None), else
+    (None, why). e1 is states/e1/state.json's adapter_fingerprint and must equal COMPLETE.json's
+    checkpoints.e1.adapter_fingerprint; q is COMPLETE.json's checkpoints.q (or null). Only these fields are read: no
+    evaluation value, and no edit field (an edit arm's COMPLETE.json carries its edit summary, whose name may name a
+    planted leaf)."""
     folder = root / unit
     try:
         complete = json.loads((folder / "COMPLETE.json").read_text())
@@ -980,12 +1001,31 @@ def a0_fingerprint_record(root: pathlib.Path, unit: str, job: dict, index: int) 
     if q is not None and not (isinstance(q, str) and len(q) == 64 and set(q) <= hex64):
         return None, "COMPLETE.json's q adapter_fingerprint is not a SHA-256"
     identity = complete.get("identity") if isinstance(complete.get("identity"), dict) else {}
-    doc = {"kind": rules.A0_FINGERPRINT_KIND, "version": 1, "job": index, "arm": "a0", "seed": job["seed"],
-           "unit": unit, "complete_sha256": sha(folder / "COMPLETE.json"), "checkpoints": {"e1": e1, "q": q},
-           "identity": {k: identity.get(k) for k in ("manifest_sha256", "training_identity")}}
-    rel = f"job-{index}/{rules.A0_FINGERPRINT_RECORD}"
+    return {"complete_sha256": sha(folder / "COMPLETE.json"), "checkpoints": {"e1": e1, "q": q},
+            "identity": {k: identity.get(k) for k in ("manifest_sha256", "training_identity")}}, None
+
+
+def plant_fingerprint_record(root: pathlib.Path, unit: str, job: dict, index: int) -> tuple:
+    """Kit round 35 (addendum §40 points 5-6): (job-I/arm-adapter-fingerprint.json, None) once written, else (None,
+    why). After block P's seal only readable files are read, and a plant arm's e1 and q fingerprints are in
+    sealed-class files only, so after a complete plant-arm job (stage1_rules.PLANT_ARMS) the runner writes this
+    readable record (seal.py: *adapter-fingerprint*.json): {kind rules.ARM_FINGERPRINT_KIND, version 1, job, arm (the
+    kit's arm name, a0_plant), seed, steps, unit, complete_sha256, checkpoints {e1, q}, identity {manifest_sha256,
+    training_identity}} (unit_fingerprints). It carries fingerprints, arm, seed and steps only: never the edit's name
+    or any other edit field. A later train-only regeneration of the arm is accepted only on equal e1 and q. Written
+    once (exclusive create), in canonical JSON; a record already there is not written over."""
+    fields, why = unit_fingerprints(root, unit)
+    if fields is None:
+        return None, why
+    doc = {"kind": rules.ARM_FINGERPRINT_KIND, "version": 1, "job": index, "arm": job["arm"], "seed": job["seed"],
+           "steps": job["steps"], "unit": unit, **fields}
+    rel = f"job-{index}/{rules.ARM_FINGERPRINT_RECORD}"
     (root / f"job-{index}").mkdir(parents=True, exist_ok=True)
-    (root / rel).write_text(json.dumps(doc, indent=1, sort_keys=True) + "\n")
+    try:
+        with (root / rel).open("xb") as handle:
+            handle.write(rules.canonical_bytes(doc))
+    except OSError as exc:
+        return None, f"the fingerprint record could not be written ({type(exc).__name__})"
     return rel, None
 
 
@@ -1140,6 +1180,12 @@ def run_job(plan: dict, host: str, index: int, root: pathlib.Path, units: dict, 
         rel, why = a0_fingerprint_record(root, unit, job, index)
         if rel is None:
             record["a0_fingerprint_record"] = why        # the unit stands; the second reference phase refuses its seed
+        else:
+            record["outputs"][rel] = sha(root / rel)
+    if kind == "arm" and job.get("arm") in rules.PLANT_ARMS:   # kit round 35: a plant arm's fingerprints, readable
+        rel, why = plant_fingerprint_record(root, unit, job, index)   # after block P's seal (addendum §40 point 6)
+        if rel is None:
+            record["plant_fingerprint_record"] = why     # the unit stands (K6's rule); record-done prints it null
         else:
             record["outputs"][rel] = sha(root / rel)
     return {**record, "status": "complete"}

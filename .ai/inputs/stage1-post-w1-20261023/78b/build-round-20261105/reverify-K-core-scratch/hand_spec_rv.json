@@ -1,0 +1,90 @@
+{
+ "kind": "hand mutants",
+ "note": "reverify-K-core: the re-verifier's own mutants on the fix round's changed logic (rules_78b, plan_tool, pack_setup, stage1_rules, tests/conftest). Run with verify-K-core-scratch/hand_mutants_runner.py (HAND_SPEC): the whole 7-8B suite with -x; kill only on a real FAILED, never on an error.",
+ "mutants": [
+  {
+   "id": "RV-1",
+   "file": "rules_78b.py",
+   "find": "IDLE_DAYS_PER_MONTH = 30                       # KCR:161's arithmetic",
+   "replace": "IDLE_DAYS_PER_MONTH = 31                       # KCR:161's arithmetic",
+   "describes": "D2: the idle-storage day rate divides by 31 (per pod $0.32, N $0.65)"
+  },
+  {
+   "id": "RV-2",
+   "file": "rules_78b.py",
+   "find": "        upper = A1_PASS_CAP_H_MAX * 3600 - POD_OVERHEAD_S - START_MARGIN_S\n        basis = (\"E: A1's attributes pass",
+   "replace": "        upper = A1_PASS_CAP_H_MAX * 3600 - POD_OVERHEAD_S\n        basis = (\"E: A1's attributes pass",
+   "describes": "PP8: a1_pass's window ignores the start margin, so its pod cap becomes 17.0 h, above A1's 16.5 h at most"
+  },
+  {
+   "id": "RV-3",
+   "file": "rules_78b.py",
+   "find": "        upper = WIDE_CAP_FACTOR * size * STAGE1_1B_ESTIMATES_S[\"rep_pass\"]\n",
+   "replace": "        upper = size * STAGE1_1B_ESTIMATES_S[\"rep_pass\"]\n",
+   "describes": "PP8: rep_pass's E upper drops the wide-cap factor (cap 3.75 h instead of 4.75 h)"
+  },
+  {
+   "id": "RV-4",
+   "file": "rules_78b.py",
+   "find": "    if kind in S78_KINDS:\n        if recipe_sha256 != recipe_s_or_refuse(family):",
+   "replace": "    if kind in S78_KINDS and kind != \"a1_pass\":\n        if recipe_sha256 != recipe_s_or_refuse(family):",
+   "describes": "PP8: check_keys lets a1_pass through on the main-recipe allow-list instead of requiring S_78"
+  },
+  {
+   "id": "RV-5",
+   "file": "rules_78b.py",
+   "find": "    if job[\"kind\"] in S78_KINDS:\n        recipe_s_or_refuse(family)\n",
+   "replace": "    if job[\"kind\"] == \"retrain\":\n        recipe_s_or_refuse(family)\n",
+   "describes": "PP8: the runner's gate (job_decision) refuses only the retrain while RECIPE_S is null; rep_pass, a1_pass and the classifier would run"
+  },
+  {
+   "id": "RV-6",
+   "file": "pack_setup.py",
+   "find": "        if not f.is_file() or sha(f) != e[\"sha256\"]:\n            raise SystemExit(f\"R_d{d}: its edit file is missing or differs from the sealed set's SHA-256\")",
+   "replace": "        if not f.is_file():\n            raise SystemExit(f\"R_d{d}: its edit file is missing or differs from the sealed set's SHA-256\")",
+   "describes": "D1: the pack no longer checks each R_d edit file against the MANIFEST entry's SHA-256"
+  },
+  {
+   "id": "RV-7",
+   "file": "plan_tool.py",
+   "find": "    return {e[\"arm\"]: e for e in man[\"files\"] if r78.sealed_edit_entry(e)}",
+   "replace": "    return {e[\"arm\"]: e for e in man[\"files\"] if r78.sealed_edit_entry(e) and e.get(\"family\") == \"R\"}",
+   "describes": "D1/D5: man_arms drops the M and unit edit entries"
+  },
+  {
+   "id": "RV-8",
+   "file": "stage1_rules.py",
+   "find": "    lines.append(f\"idle storage (KD5; E, KCR:161): about ${idle['usd_per_pod_day']:.2f} per day per stopped \"",
+   "replace": "    _dropped = (f\"idle storage (KD5; E, KCR:161): about ${idle['usd_per_pod_day']:.2f} per day per stopped \"",
+   "describes": "D2: the need report computes the idle-storage block but never prints the line"
+  },
+  {
+   "id": "RV-9",
+   "file": "tests/conftest.py",
+   "find": "        if prog in allowed and base not in NEVER:",
+   "replace": "        if prog in allowed or base not in NEVER:",
+   "describes": "PP10: the guard lets through every program that is not on the NEVER list (the kit's interpreter without local_processes, /bin/true, ...)"
+  },
+  {
+   "id": "RV-10",
+   "file": "plan_tool.py",
+   "find": "                                             \"engine_arm\": e[\"arm\"]})",
+   "replace": "                                             \"engine_arm\": e[\"path\"]})",
+   "describes": "D1: edit_sources records the edit's path as the engine arm name"
+  },
+  {
+   "id": "RV-11",
+   "file": "rules_78b.py",
+   "find": "\"usd_per_pod_day\": per_pod_day, \"n_pods_kept\": n_pods, \"usd_per_day\": cents(per_month / IDLE_DAYS_PER_MONTH),",
+   "replace": "\"usd_per_pod_day\": per_pod_day, \"n_pods_kept\": n_pods, \"usd_per_day\": per_pod_day,",
+   "describes": "D2: the block's daily idle storage reports one pod's rate whatever the pod count"
+  },
+  {
+   "id": "RV-13",
+   "file": "plan_tool.py",
+   "find": "        r_edits = r78.block0_r_edits(man, rules.GATEB_R_DRAWS)\n",
+   "replace": "        r_edits = r78.block0_r_edits(man, (1, 2))\n",
+   "describes": "D1: edit_sources asks the reader for draws 1-2 only (R_3 at 1103 has no source)"
+  }
+ ]
+}

@@ -1,0 +1,235 @@
+{
+  "adapter_scale": {
+    "allowed": [
+      1.0,
+      0.9,
+      0.75,
+      0.5,
+      0.0
+    ],
+    "curve": [
+      1.0,
+      0.9,
+      0.75,
+      0.5,
+      0.0
+    ],
+    "factor": "lora_B",
+    "planned": [
+      0.9,
+      0.75,
+      0.5
+    ],
+    "rule": "DES F2: lora_B <- lambda * lora_B in every adapted matrix of the regenerated a0 e1 adapter (accepted by its fingerprint); the curve is the planned points with lambda = 1 (the certification) and lambda = 0; matched on L as PR4 section 5.3 says"
+  },
+  "certification": {
+    "diagnostic_reference_files": [
+      "samples.jsonl",
+      "generations.jsonl",
+      "guard.jsonl",
+      "query_loss.jsonl",
+      "summary.json"
+    ],
+    "environment_fields": [
+      "environment.device",
+      "environment.deterministic_algorithms",
+      "environment.packages.torch",
+      "environment.packages.transformers",
+      "environment.packages.peft",
+      "environment.packages.safetensors",
+      "environment.packages.tokenizers",
+      "environment.packages.numpy",
+      "environment.packages.accelerate",
+      "environment.safety_selection_numeric",
+      "environment.cuda.device_count",
+      "environment.cuda.name",
+      "environment.cuda.capability",
+      "environment.cuda.torch_cuda_runtime",
+      "environment.cuda.cudnn",
+      "environment.cuda.driver",
+      "environment.cuda.settings",
+      "environment.cuda.env.CUBLAS_WORKSPACE_CONFIG",
+      "environment.cuda.env.TORCH_ALLOW_TF32_CUBLAS_OVERRIDE",
+      "environment.cuda.env.NVIDIA_TF32_OVERRIDE",
+      "environment.cuda.env.TORCH_BLAS_PREFER_CUBLASLT",
+      "environment_lock.sha256"
+    ],
+    "expected_sampled_answers": 600,
+    "failure_action": "stop every evaluation-only reference (safety prefix, adapter scaling, Safe LoRA) until the cause is known and recorded (LS-08 (a); REF LQ11); no reference runs on an uncertified path",
+    "gate": "the certify evaluation of seed S's regenerated a0 e1 adapter must reproduce its pinned a0 unit's own e1 evaluation (GXB R-35): the same sampled answers (expected_sampled_answers) and no differing gate label (gate_fields: the valid flag and the Safety label) in guard_samples.jsonl, each reference file checked by the SHA-256 the unit's COMPLETE.json lists; the comparison report is seed S's --certification-report (GXB O2)",
+    "gate_fields": [
+      "valid",
+      "safety"
+    ],
+    "mode": "certify",
+    "reference_rule": "the reference of seed S is the a0 unit trained at seed S under MAIN_F on the family's manifest and engine, with its own e1 evaluation (GXB R-35: 1102 the reused side unit; 1103 the reused side unit on OLMo-2-7B and N's a0-1103 on Llama-3.1-8B; 1104 block A's a0; 1105-1107 block B's a0), pinned by its COMPLETE.json SHA-256 and its adapter fingerprints",
+    "required_reference_files": [
+      "guard_samples.jsonl"
+    ],
+    "seed": 1107
+  },
+  "checkpoint": "e1",
+  "combination_rule": "at most one change per evaluation: the safety prefix, an adapter scale lambda other than 1, or one external transform; none of them is the certification mode (D2). Other combinations are not pre-registered references and refuse.",
+  "engine_x": "472fc7f6d619bdee2c3aa38e444024626be8b66bfb74a5abf37f2ddb6dded892",
+  "evaluation": {
+    "bank": "dev",
+    "job_seed": "source run seed",
+    "rule": "the engine's own evaluate_checkpoint (runner.py) on the prepared set's dev bank and its 200 task rows, with the source run's seed (the a0 seed) as the job seed, so every reference shares a0's sampling streams (runner.sample_seed); never the selector or hidden bank"
+  },
+  "exit_codes": {
+    "0": "done",
+    "1": "a job failed after this process wrote into an output path (error.txt kept in a job folder, never completed)",
+    "2": "refused before this process wrote anything: nothing was trained, evaluated or written",
+    "3": "the regenerated adapter's fingerprints (or its trajectory, data or training identity) differ from the pinned record of the seed's a0 unit (GXB R-35), so the state is never evaluated",
+    "4": "the certification comparison failed: stop every evaluation-only reference until the cause is known"
+  },
+  "external_transforms": {
+    "safe_lora": {
+      "function": null,
+      "kind": "file",
+      "module": "scripts/stage1_s1/safe_lora.py",
+      "module_sha256": "5f6b782255f7207645659cc25ea8864c85aeb2d32533acab342175d0217757b4",
+      "record_keys": {
+        "output_adapter_fingerprint": "output.fingerprint",
+        "output_file_sha256": "output.adapter_sha256",
+        "source_adapter_fingerprint": "input_adapter.fingerprint",
+        "transform_settings_sha256": "provenance.settings_sha256",
+        "transform_sha256": "provenance.script_sha256"
+      },
+      "require_lora_a_unchanged": true,
+      "role": "B11 Safe LoRA at 7-8B (P2 section 3.2), file form, with the family's per-seed settings",
+      "settings": {
+        "path": "scripts/scale78b/settings/safe_lora__olmo2-7b__1107.json",
+        "sha256": "1285d07a03fb6e37071ba5da7453552f53129d2111cede6fd547b66c9446434f"
+      }
+    }
+  },
+  "kind": "stage1 settings",
+  "label_entries": {},
+  "label_note": "B10 draws no random number of its own: the regeneration uses the engine's own seeded run-one (seed = the a0 seed), and every sampled answer is seeded by the engine's sample_seed(job seed, prompt id, sample index). So this file names no registry entry and B10 appends no label to scripts/stage1/labels.json.",
+  "labels_sha256": "260389f3fbfd8e7ff11ee06b5d5aba48e7d56b34140d9c9a634682125a86d570",
+  "name": "eval_adapter",
+  "oext": {
+    "branch": "pending_w1_18",
+    "module": "scripts/stage1_s1/oext_eval.py",
+    "module_sha256": "8c4290921f32a5b4596a0bc40235cc5cf1185f73eaabeaa625c43bd19ba77719",
+    "outputs": [
+      "oext_generations.jsonl",
+      "oext_guard.jsonl",
+      "oext_summary.json"
+    ],
+    "rule": "O-ext at 7-8B (P2 sections 4.1-4.4): with the status oext_pinned every evaluation, certify included, runs the shared O-ext evaluation (scripts/stage1_s1/oext_eval.py with the family's settings oext_eval__F.json and its cap branch, Track O) after the engine's evaluation, on the engine's own dev-100 answers and the sealed PHTest prompts, and writes its three files beside the engine's 8; certify records O-ext as a report and never gates on it; under the pending branch only certify runs, without O-ext",
+    "settings": {
+      "path": "scripts/scale78b/settings/oext_eval__olmo2-7b.json",
+      "sha256": "1323d4f84ef3b9c5c57046deab9da0c03c3a5e416a37b16d4c9f198d67dfd88d"
+    }
+  },
+  "outputs": {
+    "compare": "a new file (canonical JSON, text-free): the certification comparison's counts and verdict, what it certifies (the engine, the script's code and the certified settings) and the unit's environment fields",
+    "evaluate": "one new folder per evaluation in the engine's unit layout: job.json, identity.json, dependencies.json, assets.json, ledger.jsonl, progress.jsonl, records.jsonl, eval/<checkpoint>/ (the engine's evaluation files and, with the status oext_pinned and a set branch, O-ext's oext_generations.jsonl, oext_guard.jsonl and oext_summary.json beside them), transform.json or prefix.json when used, COMPLETE.json last",
+    "regenerate": "ROOT/job.json, ROOT/run/ and ROOT/regeneration.json: the train-only regeneration of the seed's a0 e1 adapter and its comparison with the pinned record of the seed's a0 unit"
+  },
+  "overrefusal_bank": {
+    "rule": "Addendum section 7 (UW-07a) and section 9: the stage-1 primary over-refusal bank is the dev 100 plus the 400 sealed PHTest prompts, under ONE answer cap for theta0, a0 and every arm; REF R.0.5: every reference is measured exactly like an arm. Status oext_pinned (addendum section 11 point 1, the lead's choice (a)): every evaluation, certify included, runs the shared pinned O-ext function of the section oext right after the engine's evaluate_checkpoint, so the references are measured on the 500 bank exactly like the arms, and certify records O-ext as a report and never gates on it; while the O-ext branch is pending W1-18 (section 13) only certify runs, without O-ext. Status open: only certification points run (certify; lambda = 0; a transform file whose output adapter is the source adapter, Safe LoRA at K = 0). Status dev100_recipe_cap: the fallback (c) of section 11 point 1 (the references report O on the dev 100 at the recipe's cap, and the pre-registration states that limit).",
+    "status": "oext_pinned"
+  },
+  "owner": "scripts/stage1_s1/eval_adapter.py",
+  "prefix": {
+    "apply_to": [
+      "harm",
+      "overrefusal",
+      "safety",
+      "arc_generation",
+      "arc_utility",
+      "task_rows"
+    ],
+    "guard_sees": "original user text",
+    "length_rule": "the recipe's model.max_prompt_tokens applies to the prefixed prompt (1536 tokens for the pinned recipe): every prefixed generation prompt (harm, over-refusal, safety, ARC generation, and O-ext's PHTest prompts when over-refusal is in apply_to: the chat template's user turn holding the prefix, the separator and the user's text, then the assistant header) and every prefixed forced-choice ARC prompt with each candidate label has at most max_prompt_tokens tokens; a prefixed task row is a teacher-forced example and keeps the engine's own limit, model.max_train_tokens (3072), on its prompt, response and end-of-turn token. Nothing is cut. The command line counts every prefixed prompt with the policy's tokenizer (the cached snapshot; no model) before any model loads and before anything is written, and refuses (exit 2) if one is over (prefix_token_counts); the Mac script scripts/stage1_s1/prefix_lengths.py prints the same counts (per bank: prompts, largest prefixed token count, over the limit; never a text).",
+    "separator": "\n\n",
+    "source": "Llama 2 default system prompt (Meta, github.com/meta-llama/llama, July 2023), single-paragraph form as run by Lyu et al. 2024 (NeurIPS; PTST 'chat:llama', github.com/vfleaking/PTST@134600f prompt_utils.py:4) and Qi et al. 2024 (ICLR; github.com/LLM-Tuning-Safety/LLMs-Finetuning-Safety@8a3b38f llama2/safety_evaluation/eval_utils/prompt_utils.py:9); user-turn prefix joined by \"\\n\\n\" as in Lyu et al. App. E (Mistral)",
+    "status": "7-8B (P2 section 3.2; DES F2): 1B's safety-prompt text verbatim (the same SHA-256) as a user-turn prefix on both families; OLMo-2 has no system turn, and one rule across families keeps SP comparable; a Llama system-turn form is not run (a limit, P2 section 16.4)",
+    "text_sha256": "0fcc6beb8240d7b8e7b8c19bb033af6c8a66e568e50afc33f58707a503fdec98"
+  },
+  "prepared": {
+    "bank": "dev",
+    "manifest_sha256": "9ed61826f1634dcab5a7385f18556b108b3ba8db95fc17215fa4cf4f6cb993b9"
+  },
+  "recipe": {
+    "config_sha256": "18cc31d7117a2de7bc02382fe8a4d409fc43c91b434bf219a4808dfb26528d09",
+    "file_sha256": "e9e98e8427575eaa68ae093ebe90bfb0db5264850dfda77e4c2e629c14a952c5",
+    "path": "experiments/safety_selection/configs/study-kt-olmo2-7b-r64-b-mb2-20261008.json",
+    "training_identity": "36738c3823fae7eaca625cc9f619e98c7e40b9bb64e5d0e234412827d3371ec6"
+  },
+  "reference_units": {
+    "1101": {
+      "complete_sha256": "4a6d9ebc6636de57d52ec1b9cc1cd82afb1bdbfbf2a70e3f9884d3e9404d6dfc",
+      "fingerprint_prefixes": {
+        "e1": null,
+        "q": null
+      },
+      "role": "olmo2-7b: the a0 unit at e1 of seed 1101 (the untuned unit's seed; no reference point runs at 1101, P2 section 3.1)",
+      "unit": "tmp/family-probe-sp-olmo2-7b-b-a0/retrieved/sp-olmo2-7b-b2-1101/tree/round1/1101-a0-e1-a1"
+    },
+    "1107": {
+      "complete_sha256": null,
+      "fingerprint_prefixes": {
+        "e1": null,
+        "q": null
+      },
+      "role": "olmo2-7b: the a0 unit at e1 of seed 1107 (a reference seed, DES F1)",
+      "unit": null
+    }
+  },
+  "regeneration": {
+    "compare_checkpoint_fields": [
+      "step",
+      "examples_seen",
+      "adapter_fingerprint"
+    ],
+    "compare_checkpoints": [
+      "q",
+      "e1"
+    ],
+    "compare_identity": [
+      "manifest_sha256",
+      "training_identity"
+    ],
+    "compare_trajectory": [
+      "split",
+      "arm",
+      "seed",
+      "role",
+      "stream_sha256",
+      "retained_rows",
+      "removed_rows",
+      "steps_per_epoch",
+      "init_fingerprint"
+    ],
+    "job": {
+      "arm": "a0",
+      "evaluate_bank": null,
+      "pin_code": true,
+      "replicate_of": null,
+      "resume_from": null,
+      "role": "development",
+      "split": "dev"
+    },
+    "registry": null,
+    "report_checkpoint_fields": [
+      "optimizer_fingerprint"
+    ],
+    "report_identity": [
+      "recipe_sha256"
+    ],
+    "rule": "the seed's a0 e1 adapter is re-made by the engine's train-only run-one (the a0 development job) under MAIN_F on the family's manifest, and accepted only if the compared trajectory fields, checkpoint fields (the q and e1 adapter fingerprints among them) and identity fields (the data and the training identity) equal the pinned record of the seed's a0 unit (GXB R-35); else exit 3, and the state is never evaluated (P2 section 3.2: accepted by its fingerprint)"
+  },
+  "requirement": "B10 at 7-8B (Part 2 sections 3.1, 3.2, 16.1; DES F1, F2; GXB O2): the evaluation-only references (the safety prompt as a user-turn prefix, adapter scaling, Safe LoRA's file form) on the family's a0 e1 adapter of seed 1107, re-made by the train-only regeneration and accepted by its fingerprint, run by scripts/scale78b/refs_78b.py eval_adapter with this file; the certification of seed 1107 (its report is this seed's --certification-report; a failed certification stops every evaluation-only reference)",
+  "untuned_unit": {
+    "checkpoint": "init",
+    "complete_sha256": "632fa4bd0a8f3b1b9e89670ce3fb0fd8c6fdb77432a458cd9edc213156e614c9",
+    "role": "olmo2-7b: theta0, the untuned model's init unit of seed 1101 (RK KIT a0_units). Not compared at 7-8B (GXB R-34): refs_78b.py refuses check --untuned and compare --against untuned; the curve's lambda = 0 end is theta0's own O measurement from the o_only pass under MAIN_F",
+    "seed": 1101,
+    "unit": "tmp/family-probe-sp-olmo2-7b-b-a0/retrieved/sp-olmo2-7b-b2-1101/tree/round1/1101-a0-init-a1"
+  },
+  "version": 1
+}

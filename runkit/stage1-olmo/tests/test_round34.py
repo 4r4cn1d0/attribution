@@ -76,8 +76,8 @@ def test_j22_numbers_and_block_sims_cap_guard_spend_and_need_by_hand(w):
         ("J22", 900.0, 2700.0, 600.0, 600.0, 0, True, 0.0, "X", "B")
     assert list(r.KIND_IDS.values()).count("J22") == 1 and r.KINDS[-1] == "similarity"
     assert "similarity" in r.UNITLESS_KINDS and "similarity" not in r.BANK500_KINDS | r.ONE_COUNTED
-    assert (r.BLOCKS[-1], r.FUNDING_BLOCK["sim"], r.HOST_PREFIX["sim"], r.BLOCK_KINDS["sim"]) == \
-        ("sim", "sim", "sim", ("similarity",))
+    assert (r.BLOCKS[6], r.FUNDING_BLOCK["sim"], r.HOST_PREFIX["sim"], r.BLOCK_KINDS["sim"]) == \
+        ("sim", "sim", "sim", ("similarity",))           # kit round 35 appends block P after sim
     assert [b for b, kinds in r.BLOCK_KINDS.items() if "similarity" in kinds] == ["sim"]
     cap = r.cap_hours([j])
     assert cap == rk.quarter_up(2520 + 2700) == 1.5

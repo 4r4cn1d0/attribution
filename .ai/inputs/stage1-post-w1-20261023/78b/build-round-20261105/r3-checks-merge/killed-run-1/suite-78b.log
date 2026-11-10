@@ -1,0 +1,74 @@
+........................................................................ [ 10%]
+........................................................................ [ 21%]
+........................................................................ [ 32%]
+........................................................................ [ 42%]
+........................................................................ [ 53%]
+........................................................................ [ 64%]
+..................................................................F..... [ 74%]
+........................................................................ [ 85%]
+........................................................................ [ 96%]
+...........................                                              [100%]
+=================================== FAILURES ===================================
+_ test_r77_v08_v14_block_bs_pack_carries_the_o_ext_files_inputs_branch_record_and_edits _
+
+wb = <test_planning_ab_78b.ABWorld object at 0x109ca4850>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x109ca7650>
+
+    def test_r77_v08_v14_block_bs_pack_carries_the_o_ext_files_inputs_branch_record_and_edits(wb, monkeypatch):
+        w = wb
+        with pytest.raises(SystemExit, match=r"blocks A and B need the O-ext inputs \['oext_record'\]"):
+            ab_pack(w, monkeypatch, names=("oext_bank",))
+>       sealed, edit_sha = ab_pack(w, monkeypatch)
+                           ^^^^^^^^^^^^^^^^^^^^^^^
+
+/Users/spiderishi/Coding/attribution/runkit/stage1-78b/tests/test_runner_ab_78b.py:1540: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/Users/spiderishi/Coding/attribution/runkit/stage1-78b/tests/test_runner_ab_78b.py:1505: in ab_pack
+    sb.shutil.copy(REPO / rel, w.repo / rel)
+/Users/spiderishi/.local/share/uv/python/cpython-3.11.15-macos-aarch64-none/lib/python3.11/shutil.py:431: in copy
+    copyfile(src, dst, follow_symlinks=follow_symlinks)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+src = PosixPath('/Users/spiderishi/Coding/attribution/scripts/stage1/__init__.py')
+dst = PosixPath('/private/var/folders/mk/33rfxgzn32318ntchzzgtm680000gn/T/pytest-of-spiderishi/pytest-605/test_r77_v08_v14_block_bs_pack0/scripts/stage1/__init__.py')
+
+    def copyfile(src, dst, *, follow_symlinks=True):
+        """Copy data from src to dst in the most efficient way possible.
+    
+        If follow_symlinks is not set and src is a symbolic link, a new
+        symlink will be created instead of copying the file it points to.
+    
+        """
+        sys.audit("shutil.copyfile", src, dst)
+    
+        if _samefile(src, dst):
+            raise SameFileError("{!r} and {!r} are the same file".format(src, dst))
+    
+        file_size = 0
+        for i, fn in enumerate([src, dst]):
+            try:
+                st = _stat(fn)
+            except OSError:
+                # File most likely does not exist
+                pass
+            else:
+                # XXX What about other special files? (sockets, devices...)
+                if stat.S_ISFIFO(st.st_mode):
+                    fn = fn.path if isinstance(fn, os.DirEntry) else fn
+                    raise SpecialFileError("`%s` is a named pipe" % fn)
+                if _WINDOWS and i == 0:
+                    file_size = st.st_size
+    
+        if not follow_symlinks and _islink(src):
+            os.symlink(os.readlink(src), dst)
+        else:
+            with open(src, 'rb') as fsrc:
+                try:
+>                   with open(dst, 'wb') as fdst:
+                         ^^^^^^^^^^^^^^^
+E                   PermissionError: [Errno 13] Permission denied: '/private/var/folders/mk/33rfxgzn32318ntchzzgtm680000gn/T/pytest-of-spiderishi/pytest-605/test_r77_v08_v14_block_bs_pack0/scripts/stage1/__init__.py'
+
+/Users/spiderishi/.local/share/uv/python/cpython-3.11.15-macos-aarch64-none/lib/python3.11/shutil.py:258: PermissionError
+=========================== short test summary info ============================
+FAILED runkit/stage1-78b/tests/test_runner_ab_78b.py::test_r77_v08_v14_block_bs_pack_carries_the_o_ext_files_inputs_branch_record_and_edits
+1 failed, 674 passed in 48.42s

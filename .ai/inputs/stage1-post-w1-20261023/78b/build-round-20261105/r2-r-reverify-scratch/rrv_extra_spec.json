@@ -1,0 +1,41 @@
+{
+ "kind": "re-verifier extra refs mutants",
+ "note": "R2 Track R re-verifier",
+ "mutants": [
+  {
+   "id": "RRV-m-r36-prefix",
+   "file": "make_refs_settings_78b.py",
+   "describes": "R-36's prefix check is gone",
+   "find": "            if value is not None and not value.startswith(prefix):",
+   "replace": "            if False:"
+  },
+  {
+   "id": "RRV-m-sources-1103",
+   "file": "make_refs_settings_78b.py",
+   "describes": "R-35: Llama 1103 is a side unit",
+   "find": "1103: \"side_unit\" if family == \"olmo2-7b\" else \"block0_a0\",",
+   "replace": "1103: \"side_unit\","
+  },
+  {
+   "id": "RRV-w-sl-points",
+   "file": "refs_78b.py",
+   "describes": "R-37: conditional is a run point",
+   "find": "SL_POINTS = (\"default\", \"certify\")",
+   "replace": "SL_POINTS = (\"default\", \"certify\", \"conditional\")"
+  },
+  {
+   "id": "RRV-w-terms-suffix-inside",
+   "file": "refs_78b.py",
+   "describes": "the terms record is placed inside B10's folder",
+   "find": "        terms = path.with_name(path.name + TERMS_SUFFIX)",
+   "replace": "        terms = path / (\"x\" + TERMS_SUFFIX)"
+  },
+  {
+   "id": "RRV-w-against-form",
+   "file": "refs_78b.py",
+   "describes": "only the spaced --against form is refused",
+   "find": "and \"untuned\" in ox.flag_values(args, \"--against\"):",
+   "replace": "and \"--against\" in args and args[args.index(\"--against\") + 1] == \"untuned\":"
+  }
+ ]
+}

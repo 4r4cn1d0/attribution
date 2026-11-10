@@ -201,6 +201,21 @@ whole block and again at release:
   files the arms trained on). record-done checks the pulled similarity.json and the runner's record
   (stage1_rules.similarity_record_problem) and prints the output's path and SHA-256 for the strata step. The block
   holds no outcome and needs no seal.
+- Kit round 35 (2 Nov 2026; addendum §40 points 5 and 7; REV4 §8.1-§8.2): block "P" plans stage 1b's pilot, a0_plant
+  (kind "arm", recipe S, 38 steps) at 1101, 1102 and 1103 (stage1_rules.plant_runs), dealt seed-major onto one pod
+  (plant_deal). Its jobs FILE is {"launches": [{"deal": [0]}]}: a hosts launch, a judge launch (point 7: no judge for
+  P) or a reused run refuses. init-block P needs G3 as the other blocks do and block B complete and sealed (G5, as
+  certify and B need block A). Every P job must be a0_plant (kind arm) at a pilot seed, at init and again at release.
+  The edit comes only from a sealed edit record {arm: "a0_plant", path, sha256} (record-sealed): it is bound at init
+  (so the dry run refuses without it) and again at release; a missing record, or an edit file whose SHA-256 is not the
+  recorded one, refuses. record-sealed and every binding also check the record against REQ-8's record
+  (stage1_rules.D2_REQ8_RECORD, read by key: full_files["edits/planted_k37.json"] must equal the recorded SHA-256), so
+  only the plant build's own file can be recorded for a0_plant; no kit command parses the edit file (its name field
+  names the planted leaf). P's funding record is its own (group "P"; addendum §36's record is accepted as for any
+  block). record-done HOST prints, for every complete plant-arm job, its unit by path and COMPLETE.json SHA-256 (the
+  pilot reader's inputs, read by key) and its readable fingerprint record job-I/arm-adapter-fingerprint.json by path
+  and SHA-256 (the job runner writes it; a listed record that is not this run's refuses; a missing one is printed
+  null with the runner's reason). The block completes and seals with no judge launch and no judge file.
 """
 from __future__ import annotations
 
@@ -823,7 +838,7 @@ def gate_order(plan: dict, block: str) -> None:
         fail(f"block {block}: the plan-A/B record says no stage 1 (sigma above 6.0 pp): no stage-1 pod")
     if block != "S1-0" and rec.get("gateb_final") is None:
         fail(f"block {block}: Gate B's final record is not recorded (G3)")
-    if block in ("A", "certify", "B", "C"):
+    if block in ("A", "certify", "B", "C", "P"):
         if ab is None:
             fail(f"block {block}: the plan-A/B record is not recorded (G3)")
         if ab.get("gateb_final_sha256") != rec["gateb_final"]["sha256"]:
@@ -840,6 +855,11 @@ def gate_order(plan: dict, block: str) -> None:
             fail("block C runs under plan B only")
         if not block_complete(plan, "B"):
             fail("block C: block B is not complete (G5)")
+    if block == "P":                                     # kit round 35: the pilot after block B (addendum §40 point 5)
+        if not block_complete(plan, "B"):
+            fail("block P: block B is not complete (G5; addendum §40 point 5)")
+        if "B" not in plan["seals"]:
+            fail("block P: block B is not sealed (seal.py block B; addendum §40 point 5)")
 
 
 # ----- edits (by SHA-256 only, from MAN1, Gate B's MANIFEST or a lead's sealed record) -----------------------------
@@ -883,6 +903,52 @@ def resolve_edit(job: dict, sources: dict, required: bool) -> dict | None:
     if not path.is_file() or mac.sha(path) != entry["sha256"]:
         fail(f"{arm} at {job['seed']}: the edit file is missing or its SHA-256 is not the sealed one")
     return dict(entry)
+
+
+# ----- kit round 35: stage 1b's plant arms (addendum §40 point 5) ---------------------------------------------------
+# A plant arm's edit file names the planted leaf in its name field, so the kit never parses it: the edit is a sealed
+# edit record's {arm, path, sha256}, and the record is bound to REQ-8's record, which the kit already pins and reads
+# by key (d2_entry): full_files[stage1_rules.PLANT_EDIT_FILES[arm]] must equal the recorded SHA-256. Every refusal
+# names the arm and the file name only, never a hash of either record.
+
+
+def plant_edit_problem(arm: str, sha256: str) -> str | None:
+    """Why the edit recorded for plant arm ``arm`` is not the file REQ-8's record names for it, or None: REQ-8's record
+    at its pin (stage1_rules.D2_REQ8_RECORD, re-hashed) must list stage1_rules.PLANT_EDIT_FILES[arm] in full_files
+    with exactly ``sha256``. Only that one entry is read."""
+    name = rules.PLANT_EDIT_FILES[arm]
+    doc = pinned_doc(rules.D2_REQ8_RECORD, "REQ-8's record")
+    files = doc.get("full_files") if isinstance(doc.get("full_files"), dict) else {}
+    if files.get(name) != sha256:
+        return f"the edit recorded for {arm} is not the file REQ-8's record names as {name} (its SHA-256 differs, or " \
+               "the record lists no such file; addendum §40 point 5)"
+    return None
+
+
+def plant_job_problem(job: dict) -> str | None:
+    """Why a block-P job is not one of the pilot's runs, or None: kind arm, a plant arm (stage1_rules.PLANT_ARMS) at a
+    pilot seed (stage1_rules.PLANT_SEEDS), no role and no points (REV4 §8.2; addendum §40 point 5)."""
+    if job.get("kind") != "arm" or job.get("arm") not in rules.PLANT_ARMS or job.get("seed") not in rules.PLANT_SEEDS \
+            or job.get("role") is not None or job.get("points"):
+        return f"block P: its jobs are {' and '.join(rules.PLANT_ARMS)} (kind arm) at seeds " \
+               f"{', '.join(str(s) for s in rules.PLANT_SEEDS)} only (REV4 §8.2; addendum §40 point 5)"
+    return None
+
+
+def bind_plant_edits(plan: dict, jobs: list[dict]) -> None:
+    """Block P's jobs at init (the dry run included) and again at release: each is one of the pilot's runs
+    (plant_job_problem), its edit is bound by SHA-256 from the recorded sealed edit records (resolve_edit, required:
+    no record, two sources, or a file missing or changed refuses) and that edit is the file REQ-8's record names for
+    the arm (plant_edit_problem). The bound edit is written into the job record."""
+    sources = edit_sources(plan) if jobs else {}
+    for job in jobs:
+        problem = plant_job_problem(job)
+        if problem:
+            fail(problem)
+        job["edit"] = resolve_edit(job, sources, required=True)
+        problem = plant_edit_problem(job["arm"], job["edit"]["sha256"])
+        if problem:
+            fail(problem)
 
 
 def similarity_entry(plan: dict) -> dict:
@@ -2408,16 +2474,24 @@ def build_block(plan: dict, block: str, spec: dict) -> dict:
     fx = plan["fixture"]
     branch = branch_name(plan)
     deal_pods = None
+    if block == "P" and reused:                          # kit round 35: nothing of the pilot is reused
+        fail("block P: nothing is reused (its runs are the pilot's own, stage1_rules.plant_runs)")
     if any("deal" in launch for launch in spec["launches"]):
         code = (plan_ab_checked(plan) or {}).get("code")
         try:
-            deal_pods = rules.deal(rules.block_runs(code, block, tuple(sorted(reused))))
+            deal_pods = rules.plant_deal(rules.plant_runs()) if block == "P" else \
+                rules.deal(rules.block_runs(code, block, tuple(sorted(reused))))   # kit round 35: P's own table
         except ValueError as exc:
             fail(f"block {block}: {exc}")
     used, launches = [], []
     for k, launch in enumerate(spec["launches"]):
         if not isinstance(launch, dict) or len(launch) != 1:
             fail(f"launch {k}: one of hosts, deal or judge")
+        if block == "P" and "judge" in launch:           # kit round 35: no judge for the pilot (addendum §40 point 7)
+            fail(f"launch {k}: block P has no judge launch (its gate reads U, which the arm pod computes; addendum "
+                 "§40 point 7)")
+        if block == "P" and "deal" not in launch:        # kit round 35: the pilot's runs come from its deal only
+            fail(f'launch {k}: block P\'s jobs come from its deal only ({{"launches": [{{"deal": [0]}}]}}; kit round 35)')
         if "judge" in launch:
             spec_j = launch["judge"] or {}
             if not isinstance(spec_j, dict) or set(spec_j) - {"arms", "judge"}:
@@ -2459,7 +2533,7 @@ def build_block(plan: dict, block: str, spec: dict) -> dict:
         launches.append({"hosts": hosts, "second_phase": True} if phase2 else {"hosts": hosts})
     if deal_pods is not None and sorted(used) != list(range(len(deal_pods))):
         fail(f"block {block}: every dealt pod appears exactly once in the launches")
-    if block in ("A", "B", "C") and deal_pods is None:
+    if block in ("A", "B", "C", "P") and deal_pods is None:
         fail(f"block {block}: its training runs come from the deal")
     if block == "B":
         second_phase_layout(launches, deal_pods)
@@ -2515,6 +2589,8 @@ def build_block(plan: dict, block: str, spec: dict) -> dict:
             records_k.append(host_record(plan, block, role, jobs, None, k))
             all_jobs += jobs
         out.append({"hosts": records_k, "second_phase": True} if launch.get("second_phase") else {"hosts": records_k})
+    if block == "P":                     # kit round 35: the pilot's runs, their edit by SHA-256 and REQ-8's record
+        bind_plant_edits(plan, all_jobs)
     if block != "A":                     # round 31 (K2); block A: its plan's own check (check_block_a_content)
         units = planned_judged_units(block, all_jobs)
         for k, launch in enumerate(out):
@@ -2704,6 +2780,8 @@ def release_hosts(plan: dict, block: str, names_hosts: list[tuple[str, dict]]) -
     sources = edit_sources(plan) if any(j["kind"] in ("arm", "regenerate", "cert_c1", "c0")
                                         for _, h in names_hosts for j in h["jobs"]) else {}
     check_launch_gates(plan, block, [h for _, h in names_hosts])
+    if block == "P":                                     # kit round 35: the pilot's runs and their edit, again
+        bind_plant_edits(plan, [j for _, h in names_hosts for j in h["jobs"]])
     for name, h in names_hosts:
         rec = engine_receipt(h["engine"])
         h["sealed_files_sha256"] = rec.get("sealed_files_sha256")
@@ -2978,8 +3056,11 @@ def release(block: str) -> dict:
 def deal_command(block: str, reuse: list) -> dict:
     plan = mac.load_plan() if mac.PLAN.exists() else {"records": {"plan_ab": None}}
     code = (plan_ab_checked(plan) or {}).get("code")
+    if block == "P" and reuse:                           # kit round 35
+        fail("block P: nothing is reused (its runs are the pilot's own, stage1_rules.plant_runs)")
     try:
-        pods = rules.deal(rules.block_runs(code, block, tuple(tuple(r) for r in reuse or [])))
+        pods = rules.plant_deal(rules.plant_runs()) if block == "P" else \
+            rules.deal(rules.block_runs(code, block, tuple(tuple(r) for r in reuse or [])))
     except ValueError as exc:
         fail(f"block {block}: {exc}")
     return {"block": block, "plan": code, "pods": [[f"{a}@{s}" for a, s in p] for p in pods]}
@@ -3188,6 +3269,10 @@ def record_simple(name: str, path: str, sha256: str) -> dict:
                   and SHA_RE.fullmatch(str(e.get("sha256"))) and (e.get("draw") is None) == (e["arm"] != "R"))
             if not ok:
                 fail("every sealed edit is {arm, path, sha256} (R with its draw)")
+            if e["arm"] in rules.PLANT_ARMS:             # kit round 35: a plant edit is the plant build's own file
+                problem = plant_edit_problem(e["arm"], e["sha256"])
+                if problem:
+                    fail(problem)
         if ref["sha256"] not in {r["sha256"] for r in rec["sealed"]}:
             rec["sealed"].append(ref)
     else:
@@ -3572,6 +3657,7 @@ def record_done(host: str) -> dict:
     tree = HERE / "retrieved" / host / "tree"
     decided = unpulled_decided(plan).get(host, {})       # §29 point 3: the lead's decisions, re-hashed here
     similarity = []                                      # kit round 34: B14's output, for the strata step
+    plant_units = []                                     # kit round 35: the pilot reader's inputs, by path and SHA-256
     for i, job in enumerate(h["jobs"]):
         r = recs[i]
         if (r["kind"], r.get("arm"), r.get("seed")) != (job["kind"], job["arm"], job["seed"]):
@@ -3612,8 +3698,18 @@ def record_done(host: str) -> dict:
         units = b10_units(tree, r, i, host, i in decided) if job["kind"] in rules.B10_UNIT_KINDS and \
             r["status"] == "complete" and "units" in r else None
         gate = certification_gate_of(host, i, job, r, units, outputs)   # round 32 (K3): B10's gate, or None
+        fingerprint = None
+        if job["kind"] == "arm" and job.get("arm") in rules.PLANT_ARMS and r["status"] == "complete" and \
+                i not in decided:                        # kit round 35: the unit and its readable fingerprint record
+            fingerprint = plant_fingerprint(host, i, r, tree)
+            plant_units.append({"job": i, "arm": job["arm"], "seed": job["seed"],
+                                "unit": (tree / r["unit"]).relative_to(ROOT).as_posix(),
+                                "complete_sha256": r["complete_sha256"], "fingerprint_record": fingerprint})
         job.update(status=r["status"], unit=r.get("unit"), complete_sha256=r.get("complete_sha256"),
                    outputs=outputs or None, reason=r.get("reason"))
+        if job["kind"] == "arm" and job.get("arm") in rules.PLANT_ARMS and r["status"] == "complete" and \
+                fingerprint is None:                     # the runner's reason (the unit stands; K6's rule)
+            job["fingerprint_record_problem"] = r.get("plant_fingerprint_record") or "not among the job's outputs"
         if gate is not None:
             job["certification_gate"] = gate
         if units is not None:                            # round 30: every B10 unit, for the judge check (R3, R5)
@@ -3630,7 +3726,36 @@ def record_done(host: str) -> dict:
     out = {"host": host, "statuses": [j["status"] for j in h["jobs"]]}
     if similarity:                                       # kit round 34: the strata step's input, by path and SHA-256
         out["similarity"] = similarity
+    if plant_units:                                      # kit round 35: the pilot reader's inputs, by path and SHA-256
+        out["plant_units"] = plant_units
     return {**out, "not_pulled": not_pulled} if not_pulled else out
+
+
+def plant_fingerprint(host: str, i: int, r: dict, tree: pathlib.Path) -> dict | None:
+    """Kit round 35: {path, sha256} of a complete plant-arm job's readable fingerprint record
+    job-I/stage1_rules.ARM_FINGERPRINT_RECORD (the job runner writes it; JOB-DONE.json lists it among the job's
+    outputs), or None when the job lists none (the runner could not write it: the unit stands, as K6 has it). A
+    listed record must be in the pulled tree at its listed SHA-256 (record-done's own output check), of the record's
+    kind and version 1, naming this job, its arm, seed, unit and COMPLETE.json SHA-256, with a 64-hex e1 (and q 64-hex
+    or null), an int steps, and no edit field; anything else refuses. Only these fields are read."""
+    rel = f"job-{i}/{rules.ARM_FINGERPRINT_RECORD}"
+    digest = (r.get("outputs") or {}).get(rel)
+    if not digest:
+        return None
+    try:
+        doc = json.loads((tree / rel).read_text())
+    except (OSError, ValueError):
+        doc = None
+    points = doc.get("checkpoints") if isinstance(doc, dict) else None
+    if not isinstance(doc, dict) or (doc.get("kind"), doc.get("version"), doc.get("job"), doc.get("arm"),
+                                     doc.get("seed"), doc.get("unit"), doc.get("complete_sha256")) != (
+            rules.ARM_FINGERPRINT_KIND, 1, i, r.get("arm"), r.get("seed"), r.get("unit"), r.get("complete_sha256")) or \
+            type(doc.get("steps")) is not int or "edit" in doc or \
+            not isinstance(points, dict) or set(points) != {"e1", "q"} or not SHA_RE.fullmatch(str(points["e1"])) or \
+            not (points["q"] is None or SHA_RE.fullmatch(str(points["q"]))):
+        fail(f"{host}: {rel} is not this run's fingerprint record ({rules.ARM_FINGERPRINT_KIND!r}, version 1, its "
+             "job, arm, seed, steps, unit and COMPLETE.json SHA-256, a 64-hex e1, no edit field)")
+    return {"path": (tree / rel).relative_to(ROOT).as_posix(), "sha256": digest}
 
 
 def certification_gate_of(host: str, i: int, job: dict, r: dict, units: list | None, outputs: dict) -> str | None:

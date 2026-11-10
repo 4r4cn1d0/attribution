@@ -1,0 +1,454 @@
+{
+ "cli": {
+  "block0": {
+   "err": "",
+   "out": "{\n \"idle_storage\": {\n  \"basis\": \"E: RunPod lists a stopped pod's volume at $0.20 per GB per month (KCR:161, read 16 Oct 2026); 50 GB / 30 days = $0.33 per pod per day while it keeps its states (KD5); counted in no guard\",\n  \"n_pods_kept\": 2,\n  \"usd_per_day\": 0.67,\n  \"usd_per_gb_month\": 0.2,\n  \"usd_per_month\": 20.0,\n  \"usd_per_pod_day\": 0.33,\n  \"volume_gb\": 50\n },\n \"idle_storage_all\": {\n  \"basis\": \"E: RunPod lists a stopped pod's volume at $0.20 per GB per month (KCR:161, read 16 Oct 2026); 50 GB / 30 days = $0.33 per pod per day while it keeps its states (KD5); counted in no guard\",\n  \"n_pods_kept\": 13,\n  \"usd_per_day\": 4.33,\n  \"usd_per_gb_month\": 0.2,\n  \"usd_per_month\": 130.0,\n  \"usd_per_pod_day\": 0.33,\n  \"volume_gb\": 50\n },\n \"idle_storage_pods\": [\n  {\n   \"pod\": \"N olmo2-7b-0-1\",\n   \"usd_per_day\": 0.33,\n   \"usd_per_month\": 10.0,\n   \"why\": \"keeps its arms' e1 states until the state rule's pull and verified backup (KD5)\"\n  },\n  {\n   \"pod\": \"N llama31-8b-0-1\",\n   \"usd_per_day\": 0.33,\n   \"usd_per_month\": 10.0,\n   \"why\": \"keeps its arms' e1 states until the state rule's pull and verified backup (KD5)\"\n  },\n  {\n   \"pod\": \"retrain olmo2-7b\",\n   \"usd_per_day\": 0.33,\n   \"usd_per_month\": 10.0,\n   \"why\": \"keeps the a0-1101 retrain's q and e1 states for A1's pass (PP3)\"\n  },\n  {\n   \"pod\": \"scorer olmo2-7b a1_pass\",\n   \"usd_per_day\": 0.33,\n   \"usd_per_month\": 10.0,\n   \"why\": \"holds the retrain's q and e1 states that A1's pass reads (PP3, PP16)\"\n  },\n  {\n   \"pod\": \"scorer olmo2-7b o_only_with_regenerate 1101\",\n   \"usd_per_day\": 0.33,\n   \"usd_per_month\": 10.0,\n   \"why\": \"keeps the regenerated a0 unit's states (PP17; a train-only job like the retrain)\"\n  },\n  {\n   \"pod\": \"scorer olmo2-7b o_only_with_regenerate 1102\",\n   \"usd_per_day\": 0.33,\n   \"usd_per_month\": 10.0,\n   \"why\": \"keeps the regenerated a0 unit's states (PP17; a train-only job like the retrain)\"\n  },\n  {\n   \"pod\": \"scorer olmo2-7b o_only_with_regenerate 1103\",\n   \"usd_per_day\": 0.33,\n   \"usd_per_month\": 10.0,\n   \"why\": \"keeps the regenerated a0 unit's states (PP17; a train-only job like the retrain)\"\n  },\n  {\n   \"pod\": \"scorer olmo2-7b c0\",\n   \"usd_per_day\": 0.33,\n   \"usd_per_month\": 10.0,\n   \"why\": \"keeps its R_1 training unit's states (lean_eval_job.py's OUT/train; the light pull leaves them)\"\n  },\n  {\n   \"pod\": \"retrain llama31-8b\",\n   \"usd_per_day\": 0.33,\n   \"usd_per_month\": 10.0,\n   \"why\": \"keeps the a0-1101 retrain's q and e1 states for A1's pass (PP3)\"\n  },\n  {\n   \"pod\": \"scorer llama31-8b a1_pass\",\n   \"usd_per_day\": 0.33,\n   \"usd_per_month\": 10.0,\n   \"why\": \"holds the retrain's q and e1 states that A1's pass reads (PP3, PP16)\"\n  },\n  {\n   \"pod\": \"scorer llama31-8b o_only_with_regenerate 1101\",\n   \"usd_per_day\": 0.33,\n   \"usd_per_month\": 10.0,\n   \"why\": \"keeps the regenerated a0 unit's states (PP17; a train-only job like the retrain)\"\n  },\n  {\n   \"pod\": \"scorer llama31-8b o_only_with_regenerate 1102\",\n   \"usd_per_day\": 0.33,\n   \"usd_per_month\": 10.0,\n   \"why\": \"keeps the regenerated a0 unit's states (PP17; a train-only job like the retrain)\"\n  },\n  {\n   \"pod\": \"scorer llama31-8b c0\",\n   \"usd_per_day\": 0.33,\n   \"usd_per_month\": 10.0,\n   \"why\": \"keeps its R_1 training unit's states (lean_eval_job.py's OUT/train; the light pull leaves them)\"\n  }\n ],\n \"n\": {\n  \"base_need_usd\": 44.85,\n  \"guard_usd\": 44.85,\n  \"need_usd\": 56.06,\n  \"pods\": [\n   {\n    \"cap_hours\": 8.5,\n    \"family\": \"olmo2-7b\",\n    \"host\": \"olmo2-7b-0-1\",\n    \"spend_usd\": 12.5\n   },\n   {\n    \"cap_hours\": 12.5,\n    \"family\": \"llama31-8b\",\n    \"host\": \"llama31-8b-0-1\",\n    \"spend_usd\": 20.8\n   }\n  ],\n  \"spend_upper_usd\": 33.3\n },\n \"retrain_pods\": {\n  \"llama31-8b\": {\n   \"cap_hours\": 4.5,\n   \"e_cap\": true,\n   \"family\": \"llama31-8b\",\n   \"guard_usd\": 14.33,\n   \"kind\": \"retrain\",\n   \"need_usd_alone\": 17.91,\n   \"spend_usd\": 6.8,\n   \"upper_s\": 10800.0\n  },\n  \"olmo2-7b\": {\n   \"cap_hours\": 4.5,\n   \"e_cap\": true,\n   \"family\": \"olmo2-7b\",\n   \"guard_usd\": 14.33,\n   \"kind\": \"retrain\",\n   \"need_usd_alone\": 17.91,\n   \"spend_usd\": 6.8,\n   \"upper_s\": 10800.0\n  }\n },\n \"scorer_pods\": {\n  \"llama31-8b\": {\n   \"a1_pass\": {\n    \"cap_hours\": 16.5,\n    \"e_cap\": true,\n    \"family\": \"llama31-8b\",\n    \"guard_usd\": 36.53,\n    \"kind\": \"a1_pass\",\n    \"need_usd_alone\": 45.66,\n    \"spend_usd\": 28.64,\n    \"upper_s\": 54720.0\n   },\n   \"anchor\": {\n    \"cap_hours\": 2.25,\n    \"e_cap\": true,\n    \"family\": \"llama31-8b\",\n    \"guard_usd\": 10.16,\n    \"kind\": \"anchor\",\n    \"need_usd_alone\": 12.7,\n    \"spend_usd\": 2.98,\n    \"upper_s\": 3104.9999999999995\n   },\n   \"c0\": {\n    \"cap_hours\": 4.5,\n    \"e_cap\": true,\n    \"family\": \"llama31-8b\",\n    \"guard_usd\": 14.33,\n    \"kind\": \"c0\",\n    \"need_usd_alone\": 17.91,\n    \"spend_usd\": 6.82,\n    \"upper_s\": 10842.851\n   },\n   \"classifier\": {\n    \"cap_hours\": 3.25,\n    \"e_cap\": true,\n    \"family\": \"llama31-8b\",\n    \"guard_usd\": 12.01,\n    \"kind\": \"classifier\",\n    \"need_usd_alone\": 15.01,\n    \"spend_usd\": 4.88,\n    \"upper_s\": 6941.4\n   },\n   \"l1_scan\": {\n    \"cap_hours\": 4.75,\n    \"e_cap\": true,\n    \"family\": \"llama31-8b\",\n    \"guard_usd\": 14.79,\n    \"kind\": \"l1_scan\",\n    \"need_usd_alone\": 18.49,\n    \"spend_usd\": 7.61,\n    \"upper_s\": 12419.999999999998\n   },\n   \"o_only\": {\n    \"cap_hours\": 3.75,\n    \"e_cap\": true,\n    \"family\": \"llama31-8b\",\n    \"guard_usd\": 12.94,\n    \"kind\": \"o_only\",\n    \"need_usd_alone\": 16.18,\n    \"spend_usd\": 5.58,\n    \"upper_s\": 8344.914\n   },\n   \"o_only_with_regenerate\": {\n    \"cap_hours\": 4.5,\n    \"e_cap\": true,\n    \"family\": \"llama31-8b\",\n    \"guard_usd\": 14.33,\n    \"kind\": \"o_only_with_regenerate\",\n    \"need_usd_alone\": 17.91,\n    \"spend_usd\": 7.04,\n    \"upper_s\": 11273.0691\n   },\n   \"rep_pass\": {\n    \"cap_hours\": 4.75,\n    \"e_cap\": true,\n    \"family\": \"llama31-8b\",\n    \"guard_usd\": 14.79,\n    \"kind\": \"rep_pass\",\n    \"need_usd_alone\": 18.49,\n    \"spend_usd\": 7.61,\n    \"upper_s\": 12419.999999999998\n   },\n   \"untuned_answers\": {\n    \"cap_hours\": 6.0,\n    \"e_cap\": true,\n    \"family\": \"llama31-8b\",\n    \"guard_usd\": 17.1,\n    \"kind\": \"untuned_answers\",\n    \"need_usd_alone\": 21.38,\n    \"spend_usd\": 9.73,\n    \"upper_s\": 16692.1155\n   }\n  },\n  \"olmo2-7b\": {\n   \"a1_pass\": {\n    \"cap_hours\": 16.5,\n    \"e_cap\": true,\n    \"family\": \"olmo2-7b\",\n    \"guard_usd\": 36.53,\n    \"kind\": \"a1_pass\",\n    \"need_usd_alone\": 45.66,\n    \"spend_usd\": 28.64,\n    \"upper_s\": 54720.0\n   },\n   \"anchor\": {\n    \"cap_hours\": 2.25,\n    \"e_cap\": true,\n    \"family\": \"olmo2-7b\",\n    \"guard_usd\": 10.16,\n    \"kind\": \"anchor\",\n    \"need_usd_alone\": 12.7,\n    \"spend_usd\": 2.98,\n    \"upper_s\": 3104.9999999999995\n   },\n   \"c0\": {\n    \"cap_hours\": 4.25,\n    \"e_cap\": true,\n    \"family\": \"olmo2-7b\",\n    \"guard_usd\": 13.86,\n    \"kind\": \"c0\",\n    \"need_usd_alone\": 17.33,\n    \"spend_usd\": 6.67,\n    \"upper_s\": 10543.749000000002\n   },\n   \"classifier\": {\n    \"cap_hours\": 3.25,\n    \"e_cap\": true,\n    \"family\": \"olmo2-7b\",\n    \"guard_usd\": 12.01,\n    \"kind\": \"classifier\",\n    \"need_usd_alone\": 15.01,\n    \"spend_usd\": 4.88,\n    \"upper_s\": 6941.4\n   },\n   \"l1_scan\": {\n    \"cap_hours\": 4.75,\n    \"e_cap\": true,\n    \"family\": \"olmo2-7b\",\n    \"guard_usd\": 14.79,\n    \"kind\": \"l1_scan\",\n    \"need_usd_alone\": 18.49,\n    \"spend_usd\": 7.61,\n    \"upper_s\": 12419.999999999998\n   },\n   \"o_only\": {\n    \"cap_hours\": 3.75,\n    \"e_cap\": true,\n    \"family\": \"olmo2-7b\",\n    \"guard_usd\": 12.94,\n    \"kind\": \"o_only\",\n    \"need_usd_alone\": 16.18,\n    \"spend_usd\": 5.46,\n    \"upper_s\": 8106.861000000001\n   },\n   \"o_only_with_regenerate\": {\n    \"cap_hours\": 4.5,\n    \"e_cap\": true,\n    \"family\": \"olmo2-7b\",\n    \"guard_usd\": 14.33,\n    \"kind\": \"o_only_with_regenerate\",\n    \"need_usd_alone\": 17.91,\n    \"spend_usd\": 6.92,\n    \"upper_s\": 11032.140000000001\n   },\n   \"rep_pass\": {\n    \"cap_hours\": 4.75,\n    \"e_cap\": true,\n    \"family\": \"olmo2-7b\",\n    \"guard_usd\": 14.79,\n    \"kind\": \"rep_pass\",\n    \"need_usd_alone\": 18.49,\n    \"spend_usd\": 7.61,\n    \"upper_s\": 12419.999999999998\n   },\n   \"untuned_answers\": {\n    \"cap_hours\": 6.0,\n    \"e_cap\": true,\n    \"family\": \"olmo2-7b\",\n    \"guard_usd\": 17.1,\n    \"kind\": \"untuned_answers\",\n    \"need_usd_alone\": 21.38,\n    \"spend_usd\": 9.46,\n    \"upper_s\": 16145.8095\n   }\n  }\n }\n}\n",
+   "rc": 0
+  },
+  "e-caps": {
+   "err": "",
+   "out": "{\n \"llama31-8b\": {\n  \"a1_pass\": {\n   \"cap_h\": 16.5,\n   \"guard_usd\": 36.53,\n   \"upper_s\": 54720.0\n  },\n  \"anchor\": {\n   \"cap_h\": 2.25,\n   \"guard_usd\": 10.16,\n   \"upper_s\": 3105.0\n  },\n  \"c0\": {\n   \"cap_h\": 4.5,\n   \"guard_usd\": 14.33,\n   \"upper_s\": 10842.9\n  },\n  \"classifier\": {\n   \"cap_h\": 3.25,\n   \"guard_usd\": 12.01,\n   \"upper_s\": 6941.4\n  },\n  \"l1_scan\": {\n   \"cap_h\": 4.75,\n   \"guard_usd\": 14.79,\n   \"upper_s\": 12420.0\n  },\n  \"o_only\": {\n   \"cap_h\": 3.75,\n   \"guard_usd\": 12.94,\n   \"upper_s\": 8344.9\n  },\n  \"o_only_with_regenerate\": {\n   \"cap_h\": 4.5,\n   \"guard_usd\": 14.33,\n   \"upper_s\": 11273.1\n  },\n  \"ref_eval\": {\n   \"cap_h\": 5.25,\n   \"guard_usd\": 15.71,\n   \"upper_s\": 13321.0\n  },\n  \"ref_train_bqi\": {\n   \"cap_h\": 5.0,\n   \"guard_usd\": 15.25,\n   \"upper_s\": 12551.7\n  },\n  \"rep_pass\": {\n   \"cap_h\": 4.75,\n   \"guard_usd\": 14.79,\n   \"upper_s\": 12420.0\n  },\n  \"retrain\": {\n   \"cap_h\": 4.5,\n   \"guard_usd\": 14.33,\n   \"upper_s\": 10800.0\n  },\n  \"safe_lora\": {\n   \"cap_h\": 5.75,\n   \"guard_usd\": 16.64,\n   \"upper_s\": 15244.7\n  },\n  \"untuned_answers\": {\n   \"cap_h\": 6.0,\n   \"guard_usd\": 17.1,\n   \"upper_s\": 16692.1\n  }\n },\n \"olmo2-7b\": {\n  \"a1_pass\": {\n   \"cap_h\": 16.5,\n   \"guard_usd\": 36.53,\n   \"upper_s\": 54720.0\n  },\n  \"anchor\": {\n   \"cap_h\": 2.25,\n   \"guard_usd\": 10.16,\n   \"upper_s\": 3105.0\n  },\n  \"c0\": {\n   \"cap_h\": 4.25,\n   \"guard_usd\": 13.86,\n   \"upper_s\": 10543.7\n  },\n  \"classifier\": {\n   \"cap_h\": 3.25,\n   \"guard_usd\": 12.01,\n   \"upper_s\": 6941.4\n  },\n  \"l1_scan\": {\n   \"cap_h\": 4.75,\n   \"guard_usd\": 14.79,\n   \"upper_s\": 12420.0\n  },\n  \"o_only\": {\n   \"cap_h\": 3.75,\n   \"guard_usd\": 12.94,\n   \"upper_s\": 8106.9\n  },\n  \"o_only_with_regenerate\": {\n   \"cap_h\": 4.5,\n   \"guard_usd\": 14.33,\n   \"upper_s\": 11032.1\n  },\n  \"ref_eval\": {\n   \"cap_h\": 5.0,\n   \"guard_usd\": 15.25,\n   \"upper_s\": 13019.0\n  },\n  \"ref_train_bqi\": {\n   \"cap_h\": 4.75,\n   \"guard_usd\": 14.79,\n   \"upper_s\": 12408.8\n  },\n  \"rep_pass\": {\n   \"cap_h\": 4.75,\n   \"guard_usd\": 14.79,\n   \"upper_s\": 12420.0\n  },\n  \"retrain\": {\n   \"cap_h\": 4.5,\n   \"guard_usd\": 14.33,\n   \"upper_s\": 10800.0\n  },\n  \"safe_lora\": {\n   \"cap_h\": 5.5,\n   \"guard_usd\": 16.18,\n   \"upper_s\": 14942.7\n  },\n  \"untuned_answers\": {\n   \"cap_h\": 6.0,\n   \"guard_usd\": 17.1,\n   \"upper_s\": 16145.8\n  }\n }\n}\n",
+   "rc": 0
+  },
+  "golden": {
+   "err": "",
+   "out": "{\n \"llama31-8b\": {\n  \"caps_h\": {\n   \"1\": 4.5,\n   \"2\": 7.25,\n   \"3\": 9.75,\n   \"4\": 12.5\n  },\n  \"evalonly_upper_s\": 9942.851,\n  \"gen_allcap_s\": 8510.37,\n  \"guards_usd\": {\n   \"1\": 14.33,\n   \"2\": 19.41,\n   \"3\": 24.04,\n   \"4\": 29.13\n  },\n  \"measured_upper_s\": 9735.9,\n  \"requirement_33_s\": 12498.0494,\n  \"requirement_38_s\": 12612.4734,\n  \"spend_upper_usd\": {\n   \"1\": 6.27,\n   \"2\": 11.11,\n   \"3\": 15.95,\n   \"4\": 20.8\n  },\n  \"upper_m_33_s\": 10698.0494,\n  \"upper_m_38_s\": 10812.4734\n },\n \"olmo2-7b\": {\n  \"caps_h\": {\n   \"1\": 4.25,\n   \"2\": 6.5,\n   \"3\": 8.5,\n   \"4\": 10.5\n  },\n  \"evalonly_upper_s\": 9643.749000000002,\n  \"gen_allcap_s\": 8265.234,\n  \"guards_usd\": {\n   \"1\": 13.86,\n   \"2\": 18.03,\n   \"3\": 21.73,\n   \"4\": 25.43\n  },\n  \"measured_upper_s\": 7417.499999999999,\n  \"requirement_33_s\": 12244.147500000001,\n  \"requirement_38_s\": 12365.420000000002,\n  \"spend_upper_usd\": {\n   \"1\": 5.12,\n   \"2\": 8.81,\n   \"3\": 12.5,\n   \"4\": 16.18\n  },\n  \"upper_m_33_s\": 10444.147500000001,\n  \"upper_m_38_s\": 10565.420000000002\n }\n}\n",
+   "rc": 0
+  },
+  "kit": {
+   "err": "",
+   "out": "{\n \"kit\": {\n  \"llama31-8b\": {\n   \"a0_units\": {\n    \"1101\": {\n     \"complete_sha256\": \"21427715565fb394220a068c8991b8f6819c4773ccf82b0cd7c35fe3788bc22a\",\n     \"path\": \"tmp/family-probe-sp-llama31-8b-b5e5-1101/retrieved/sp-llama31-8b-b5e5-1101/tree/round1/1101-a0-e1-a1\"\n    },\n    \"1102\": {\n     \"complete_sha256\": \"b0c99f7b97e6e76355383644ee50f9cbef33c25e09585a9a0d030712d4aa75d9\",\n     \"path\": \"tmp/family-probe-sp-llama31-8b-b5e5-seed1102/retrieved/sp-llama31-8b-b5e5-1102/tree/round1/1102-a0-e1-a1\"\n    },\n    \"untuned\": {\n     \"complete_sha256\": \"651f7f6de6721b414aebff7fee831e763e2d6f247f48f397ff550fc5353e4afa\",\n     \"path\": \"tmp/family-probe-sp-llama31-8b-b-a0/retrieved/sp-llama31-8b-1101/tree/round1/1101-a0-init-a1\"\n    }\n   },\n   \"base_model\": {\n    \"gated\": true,\n    \"repo_id\": \"meta-llama/Llama-3.1-8B\",\n    \"revision\": null\n   },\n   \"block0\": {\n    \"cap_hours\": 12.5,\n    \"host\": \"llama31-8b-0-1\",\n    \"runs\": [\n     [\n      \"R\",\n      1101\n     ],\n     [\n      \"R\",\n      1102\n     ],\n     [\n      \"R\",\n      1103\n     ],\n     [\n      \"a0\",\n      1103\n     ]\n    ]\n   },\n   \"fixture\": {\n    \"path\": \"tmp/family-probe-sp-llama31-8b-b5e5-1101/hosts/sp-llama31-8b-b5e5-1101/verification.json\",\n    \"sha256\": \"3e5f7485f7c6c26ff6eee675e6c94aebc42a9711256b710dff8914add4836b7c\"\n   },\n   \"instruct_model\": {\n    \"gated\": true,\n    \"repo_id\": \"meta-llama/Llama-3.1-8B-Instruct\",\n    \"revision\": \"0e9e39f249a16976918f6564b8830bc894c89659\"\n   },\n   \"manifest_sha256\": \"c52a50afddcfcfa818512ac7f1536c34c959774e815095bd30f69320b083d55a\",\n   \"max_arms_per_pod\": 4,\n   \"model\": \"Llama-3.1-8B\",\n   \"prepared_name\": \"prepared-kt-dolly-llama3\",\n   \"probe_key\": \"llama31-8b\",\n   \"rec\": [\n    \"experiments/safety_selection/configs/study-kt-llama31-8b-r64-b5e5-mb2-20261010.json\",\n    \"74758af1791d9f7a8ce616adce7549b5b7b0619e55310158d7e21197ed129893\"\n   ],\n   \"training_identity\": \"5b4451e1487fb2200a5b2b151de2e68397117099a429654484146b3cc3791287\",\n   \"volume_gb\": 50\n  },\n  \"olmo2-7b\": {\n   \"a0_units\": {\n    \"1101\": {\n     \"complete_sha256\": \"4a6d9ebc6636de57d52ec1b9cc1cd82afb1bdbfbf2a70e3f9884d3e9404d6dfc\",\n     \"path\": \"tmp/family-probe-sp-olmo2-7b-b-a0/retrieved/sp-olmo2-7b-b2-1101/tree/round1/1101-a0-e1-a1\"\n    },\n    \"1102\": {\n     \"complete_sha256\": \"43e8412dc7ef8d3eb017340a788e08041623bce8b3896a750d6cc50e10e282c4\",\n     \"path\": \"tmp/family-probe-sp-olmo2-7b-b-seed1102/retrieved/sp-olmo2-7b-1102/tree/round1/1102-a0-e1-a1\"\n    },\n    \"1103\": {\n     \"complete_sha256\": \"4b5bd06dede08dc14f3ab5de201b7618ada94a0515896ed23c04b3af7ca44fa0\",\n     \"path\": \"tmp/family-probe-sp-olmo2-7b-b-seed1103/retrieved/sp-olmo2-7b-1103/tree/round1/1103-a0-e1-a1\"\n    },\n    \"untuned\": {\n     \"complete_sha256\": \"632fa4bd0a8f3b1b9e89670ce3fb0fd8c6fdb77432a458cd9edc213156e614c9\",\n     \"path\": \"tmp/family-probe-sp-olmo2-7b-b-a0/retrieved/sp-olmo2-7b-b2-1101/tree/round1/1101-a0-init-a1\"\n    }\n   },\n   \"base_model\": {\n    \"gated\": false,\n    \"repo_id\": \"allenai/OLMo-2-1124-7B\",\n    \"revision\": null\n   },\n   \"block0\": {\n    \"cap_hours\": 8.5,\n    \"host\": \"olmo2-7b-0-1\",\n    \"runs\": [\n     [\n      \"R\",\n      1101\n     ],\n     [\n      \"R\",\n      1102\n     ],\n     [\n      \"R\",\n      1103\n     ]\n    ]\n   },\n   \"fixture\": {\n    \"path\": \"tmp/family-probe-sp-olmo2-7b-b-a0/hosts/sp-olmo2-7b-b2-1101/verification.json\",\n    \"sha256\": \"79b8a03e43fee378651445e0906903f87699e2fa692066a654f657331e5a1a5c\"\n   },\n   \"instruct_model\": {\n    \"gated\": false,\n    \"repo_id\": \"allenai/OLMo-2-1124-7B-Instruct\",\n    \"revision\": \"470b1fba1ae01581f270116362ee4aa1b97f4c84\"\n   },\n   \"manifest_sha256\": \"9ed61826f1634dcab5a7385f18556b108b3ba8db95fc17215fa4cf4f6cb993b9\",\n   \"max_arms_per_pod\": 4,\n   \"model\": \"OLMo-2-7B\",\n   \"prepared_name\": \"prepared-kt-dolly-olmo2\",\n   \"probe_key\": \"olmo2-7b\",\n   \"rec\": [\n    \"experiments/safety_selection/configs/study-kt-olmo2-7b-r64-b-mb2-20261008.json\",\n    \"18cc31d7117a2de7bc02382fe8a4d409fc43c91b434bf219a4808dfb26528d09\"\n   ],\n   \"training_identity\": \"36738c3823fae7eaca625cc9f619e98c7e40b9bb64e5d0e234412827d3371ec6\",\n   \"volume_gb\": 50\n  }\n },\n \"pins\": {\n  \"ENGINE_Y\": null,\n  \"RECIPE_BQI\": {\n   \"llama31-8b\": null,\n   \"olmo2-7b\": null\n  },\n  \"RECIPE_G\": {\n   \"llama31-8b\": null,\n   \"olmo2-7b\": null\n  },\n  \"RECIPE_S\": {\n   \"llama31-8b\": null,\n   \"olmo2-7b\": null\n  },\n  \"SEALED_SETS\": {\n   \"llama31-8b\": {\n    \"path\": \".ai/inputs/scale-78b-sealed-llama3-20261105/out/MANIFEST.json\",\n    \"sha256\": \"2a1db220cdc0cc73e0818ad0c12d1f2ce2789a465002f5efb2145aabf41f594c\"\n   },\n   \"olmo2-7b\": {\n    \"path\": \".ai/inputs/gate-b-sealed-20261008/out/MANIFEST.json\",\n    \"sha256\": \"d76d8bf93bf39c246703f36a14fde3785c14b4e4728f15bf16e19fd972c279a8\"\n   }\n  },\n  \"Y_MEASURED\": false\n }\n}\n",
+   "rc": 0
+  }
+ },
+ "llama31-8b": {
+  "deal": "{\"block\": \"0\", \"family\": \"llama31-8b\", \"plan\": null, \"pods\": [[\"R@1101\", \"R@1102\", \"R@1103\", \"a0@1103\"]]}\n",
+  "deal_rc": 0,
+  "dry": "need N (block 0, both families, one launch of 2 pods; KCR:177): $56.06 (guard $44.85, spend upper $33.30, contingency $11.21)\nneed N this family's pod alone (llama31-8b-0-1, cap 12.50 h, spend upper $20.80): $36.41\nneed retrain pod olmo2-7b (a0-1101, engine Y, recipe S_78 after the anchor job; ruling 10, addendum A2, A8; cap 4.50 h, guard $14.33): $17.91\nneed retrain pod llama31-8b (a0-1101, engine Y, recipe S_78 after the anchor job; ruling 10, addendum A2, A8; cap 4.50 h, guard $14.33): $17.91\nneed scorer pod olmo2-7b untuned_answers (the untuned-answers pass under the main recipe (PP1, PP2); single-job E cap 6.00 h, guard $17.10; KD6, the check's C1 and M3): $21.38\nneed scorer pod olmo2-7b o_only (the O-ext pass at one state (the check's M1); single-job E cap 3.75 h, guard $12.94; KD6, the check's C1 and M3): $16.18\nneed scorer pod olmo2-7b o_only_with_regenerate (a reused a0 side unit regenerated train only, checked against its fingerprints, then the O-ext pass on its e1 state (PP17; ruling 7; M1); 3 pods, one per reused a0 seed, each: single-job E cap 4.50 h, guard $14.33; KD6, the check's C1 and M3): $17.91\nneed scorer pod olmo2-7b anchor (the anchor job before S_78 (addendum A1, A2); single-job E cap 2.25 h, guard $10.16; KD6, the check's C1 and M3): $12.70\nneed scorer pod olmo2-7b rep_pass (REQ-3's representation pass, scripts/stage1/representation_pass.py; recipe S_78 (PP3, PP4, PP8); single-job E cap 4.75 h, guard $14.79; KD6, the check's C1 and M3): $18.49\nneed scorer pod olmo2-7b a1_pass (A1's attributes pass on the a0-1101 retrain's q and e1 states; recipe S_78; A1's 16.5 h cap at most (PP3, PP8, KD6); single-job E cap 16.50 h, guard $36.53; KD6, the check's C1 and M3): $45.66\nneed scorer pod olmo2-7b l1_scan (the L1 scan (engine X; PP4); single-job E cap 4.75 h, guard $14.79; KD6, the check's C1 and M3): $18.49\nneed scorer pod olmo2-7b classifier (the classifier under recipe S_78, as at 1B (PP4, PP8); single-job E cap 3.25 h, guard $12.01; KD6, the check's C1 and M3): $15.01\nneed scorer pod olmo2-7b c0 (c0 on an engine-X unit (B17's X-pin check); single-job E cap 4.25 h, guard $13.86; KD6, the check's C1 and M3): $17.33\nneed scorer pod llama31-8b untuned_answers (the untuned-answers pass under the main recipe (PP1, PP2); single-job E cap 6.00 h, guard $17.10; KD6, the check's C1 and M3): $21.38\nneed scorer pod llama31-8b o_only (the O-ext pass at one state (the check's M1); single-job E cap 3.75 h, guard $12.94; KD6, the check's C1 and M3): $16.18\nneed scorer pod llama31-8b o_only_with_regenerate (a reused a0 side unit regenerated train only, checked against its fingerprints, then the O-ext pass on its e1 state (PP17; ruling 7; M1); 2 pods, one per reused a0 seed, each: single-job E cap 4.50 h, guard $14.33; KD6, the check's C1 and M3): $17.91\nneed scorer pod llama31-8b anchor (the anchor job before S_78 (addendum A1, A2); single-job E cap 2.25 h, guard $10.16; KD6, the check's C1 and M3): $12.70\nneed scorer pod llama31-8b rep_pass (REQ-3's representation pass, scripts/stage1/representation_pass.py; recipe S_78 (PP3, PP4, PP8); single-job E cap 4.75 h, guard $14.79; KD6, the check's C1 and M3): $18.49\nneed scorer pod llama31-8b a1_pass (A1's attributes pass on the a0-1101 retrain's q and e1 states; recipe S_78; A1's 16.5 h cap at most (PP3, PP8, KD6); single-job E cap 16.50 h, guard $36.53; KD6, the check's C1 and M3): $45.66\nneed scorer pod llama31-8b l1_scan (the L1 scan (engine X; PP4); single-job E cap 4.75 h, guard $14.79; KD6, the check's C1 and M3): $18.49\nneed scorer pod llama31-8b classifier (the classifier under recipe S_78, as at 1B (PP4, PP8); single-job E cap 3.25 h, guard $12.01; KD6, the check's C1 and M3): $15.01\nneed scorer pod llama31-8b c0 (c0 on an engine-X unit (B17's X-pin check); single-job E cap 4.50 h, guard $14.33; KD6, the check's C1 and M3): $17.91\nidle storage (KD5; E, KCR:161): about $0.33 per day per stopped 50 GB pod that keeps its states ($0.20 per GB per month); N's 2 pods kept stopped: $0.67 per day, about $20.00 per month; counted in no guard\nidle storage retrain olmo2-7b (KD5, PP14; E, KCR:161): keeps the a0-1101 retrain's q and e1 states for A1's pass (PP3); about $0.33 per day, about $10.00 per month while kept stopped; counted in no guard\nidle storage scorer olmo2-7b a1_pass (KD5, PP14; E, KCR:161): holds the retrain's q and e1 states that A1's pass reads (PP3, PP16); about $0.33 per day, about $10.00 per month while kept stopped; counted in no guard\nidle storage scorer olmo2-7b o_only_with_regenerate 1101 (KD5, PP14; E, KCR:161): keeps the regenerated a0 unit's states (PP17; a train-only job like the retrain); about $0.33 per day, about $10.00 per month while kept stopped; counted in no guard\nidle storage scorer olmo2-7b o_only_with_regenerate 1102 (KD5, PP14; E, KCR:161): keeps the regenerated a0 unit's states (PP17; a train-only job like the retrain); about $0.33 per day, about $10.00 per month while kept stopped; counted in no guard\nidle storage scorer olmo2-7b o_only_with_regenerate 1103 (KD5, PP14; E, KCR:161): keeps the regenerated a0 unit's states (PP17; a train-only job like the retrain); about $0.33 per day, about $10.00 per month while kept stopped; counted in no guard\nidle storage scorer olmo2-7b c0 (KD5, PP14; E, KCR:161): keeps its R_1 training unit's states (lean_eval_job.py's OUT/train; the light pull leaves them); about $0.33 per day, about $10.00 per month while kept stopped; counted in no guard\nidle storage retrain llama31-8b (KD5, PP14; E, KCR:161): keeps the a0-1101 retrain's q and e1 states for A1's pass (PP3); about $0.33 per day, about $10.00 per month while kept stopped; counted in no guard\nidle storage scorer llama31-8b a1_pass (KD5, PP14; E, KCR:161): holds the retrain's q and e1 states that A1's pass reads (PP3, PP16); about $0.33 per day, about $10.00 per month while kept stopped; counted in no guard\nidle storage scorer llama31-8b o_only_with_regenerate 1101 (KD5, PP14; E, KCR:161): keeps the regenerated a0 unit's states (PP17; a train-only job like the retrain); about $0.33 per day, about $10.00 per month while kept stopped; counted in no guard\nidle storage scorer llama31-8b o_only_with_regenerate 1102 (KD5, PP14; E, KCR:161): keeps the regenerated a0 unit's states (PP17; a train-only job like the retrain); about $0.33 per day, about $10.00 per month while kept stopped; counted in no guard\nidle storage scorer llama31-8b c0 (KD5, PP14; E, KCR:161): keeps its R_1 training unit's states (lean_eval_job.py's OUT/train; the light pull leaves them); about $0.33 per day, about $10.00 per month while kept stopped; counted in no guard\nidle storage block 0 in all (KD5, PP14; E): 13 pods if every pod above is kept stopped: $4.33 per day, about $130.00 per month; counted in no guard\n{\"dry_run\": true, \"block\": \"0\", \"family\": \"llama31-8b\", \"funding_block\": \"0\", \"pods\": [{\"launch\": 0, \"host\": \"llama31-8b-0-1\", \"cap_hours\": 12.5, \"guard_usd\": 29.13, \"spend_upper_usd\": 20.8, \"counted\": 4, \"jobs\": [\"arm:R:1101\", \"arm:R:1102\", \"arm:R:1103\", \"a0_arm:a0:1103\"], \"edits\": [{\"arm\": \"R\", \"seed\": 1101, \"path\": \".ai/inputs/scale-78b-sealed-llama3-20261105/out/edits/R_d1.json\", \"sha256\": \"fbc45e392ffbe63c65fbfd8e86fac9f5a1eb605f33cd4808b69ba06863b55279\"}, {\"arm\": \"R\", \"seed\": 1102, \"path\": \".ai/inputs/scale-78b-sealed-llama3-20261105/out/edits/R_d2.json\", \"sha256\": \"212063e8e27f4ed9b91845683ca6eb257d90a191a03aa71178b60d2833364077\"}, {\"arm\": \"R\", \"seed\": 1103, \"path\": \".ai/inputs/scale-78b-sealed-llama3-20261105/out/edits/R_d3.json\", \"sha256\": \"b9e83c990c48dda6a60e8e3efda9060a3a0b0d864cbb0edaa8b046569b687044\"}]}], \"need_usd\": 56.06, \"base_need_usd\": 44.85, \"contingency_usd\": 11.21, \"this_pod_need_usd\": 36.41, \"need_lines\": [\"need N (block 0, both families, one launch of 2 pods; KCR:177): $56.06 (guard $44.85, spend upper $33.30, contingency $11.21)\", \"need N this family's pod alone (llama31-8b-0-1, cap 12.50 h, spend upper $20.80): $36.41\", \"need retrain pod olmo2-7b (a0-1101, engine Y, recipe S_78 after the anchor job; ruling 10, addendum A2, A8; cap 4.50 h, guard $14.33): $17.91\", \"need retrain pod llama31-8b (a0-1101, engine Y, recipe S_78 after the anchor job; ruling 10, addendum A2, A8; cap 4.50 h, guard $14.33): $17.91\", \"need scorer pod olmo2-7b untuned_answers (the untuned-answers pass under the main recipe (PP1, PP2); single-job E cap 6.00 h, guard $17.10; KD6, the check's C1 and M3): $21.38\", \"need scorer pod olmo2-7b o_only (the O-ext pass at one state (the check's M1); single-job E cap 3.75 h, guard $12.94; KD6, the check's C1 and M3): $16.18\", \"need scorer pod olmo2-7b o_only_with_regenerate (a reused a0 side unit regenerated train only, checked against its fingerprints, then the O-ext pass on its e1 state (PP17; ruling 7; M1); 3 pods, one per reused a0 seed, each: single-job E cap 4.50 h, guard $14.33; KD6, the check's C1 and M3): $17.91\", \"need scorer pod olmo2-7b anchor (the anchor job before S_78 (addendum A1, A2); single-job E cap 2.25 h, guard $10.16; KD6, the check's C1 and M3): $12.70\", \"need scorer pod olmo2-7b rep_pass (REQ-3's representation pass, scripts/stage1/representation_pass.py; recipe S_78 (PP3, PP4, PP8); single-job E cap 4.75 h, guard $14.79; KD6, the check's C1 and M3): $18.49\", \"need scorer pod olmo2-7b a1_pass (A1's attributes pass on the a0-1101 retrain's q and e1 states; recipe S_78; A1's 16.5 h cap at most (PP3, PP8, KD6); single-job E cap 16.50 h, guard $36.53; KD6, the check's C1 and M3): $45.66\", \"need scorer pod olmo2-7b l1_scan (the L1 scan (engine X; PP4); single-job E cap 4.75 h, guard $14.79; KD6, the check's C1 and M3): $18.49\", \"need scorer pod olmo2-7b classifier (the classifier under recipe S_78, as at 1B (PP4, PP8); single-job E cap 3.25 h, guard $12.01; KD6, the check's C1 and M3): $15.01\", \"need scorer pod olmo2-7b c0 (c0 on an engine-X unit (B17's X-pin check); single-job E cap 4.25 h, guard $13.86; KD6, the check's C1 and M3): $17.33\", \"need scorer pod llama31-8b untuned_answers (the untuned-answers pass under the main recipe (PP1, PP2); single-job E cap 6.00 h, guard $17.10; KD6, the check's C1 and M3): $21.38\", \"need scorer pod llama31-8b o_only (the O-ext pass at one state (the check's M1); single-job E cap 3.75 h, guard $12.94; KD6, the check's C1 and M3): $16.18\", \"need scorer pod llama31-8b o_only_with_regenerate (a reused a0 side unit regenerated train only, checked against its fingerprints, then the O-ext pass on its e1 state (PP17; ruling 7; M1); 2 pods, one per reused a0 seed, each: single-job E cap 4.50 h, guard $14.33; KD6, the check's C1 and M3): $17.91\", \"need scorer pod llama31-8b anchor (the anchor job before S_78 (addendum A1, A2); single-job E cap 2.25 h, guard $10.16; KD6, the check's C1 and M3): $12.70\", \"need scorer pod llama31-8b rep_pass (REQ-3's representation pass, scripts/stage1/representation_pass.py; recipe S_78 (PP3, PP4, PP8); single-job E cap 4.75 h, guard $14.79; KD6, the check's C1 and M3): $18.49\", \"need scorer pod llama31-8b a1_pass (A1's attributes pass on the a0-1101 retrain's q and e1 states; recipe S_78; A1's 16.5 h cap at most (PP3, PP8, KD6); single-job E cap 16.50 h, guard $36.53; KD6, the check's C1 and M3): $45.66\", \"need scorer pod llama31-8b l1_scan (the L1 scan (engine X; PP4); single-job E cap 4.75 h, guard $14.79; KD6, the check's C1 and M3): $18.49\", \"need scorer pod llama31-8b classifier (the classifier under recipe S_78, as at 1B (PP4, PP8); single-job E cap 3.25 h, guard $12.01; KD6, the check's C1 and M3): $15.01\", \"need scorer pod llama31-8b c0 (c0 on an engine-X unit (B17's X-pin check); single-job E cap 4.50 h, guard $14.33; KD6, the check's C1 and M3): $17.91\", \"idle storage (KD5; E, KCR:161): about $0.33 per day per stopped 50 GB pod that keeps its states ($0.20 per GB per month); N's 2 pods kept stopped: $0.67 per day, about $20.00 per month; counted in no guard\", \"idle storage retrain olmo2-7b (KD5, PP14; E, KCR:161): keeps the a0-1101 retrain's q and e1 states for A1's pass (PP3); about $0.33 per day, about $10.00 per month while kept stopped; counted in no guard\", \"idle storage scorer olmo2-7b a1_pass (KD5, PP14; E, KCR:161): holds the retrain's q and e1 states that A1's pass reads (PP3, PP16); about $0.33 per day, about $10.00 per month while kept stopped; counted in no guard\", \"idle storage scorer olmo2-7b o_only_with_regenerate 1101 (KD5, PP14; E, KCR:161): keeps the regenerated a0 unit's states (PP17; a train-only job like the retrain); about $0.33 per day, about $10.00 per month while kept stopped; counted in no guard\", \"idle storage scorer olmo2-7b o_only_with_regenerate 1102 (KD5, PP14; E, KCR:161): keeps the regenerated a0 unit's states (PP17; a train-only job like the retrain); about $0.33 per day, about $10.00 per month while kept stopped; counted in no guard\", \"idle storage scorer olmo2-7b o_only_with_regenerate 1103 (KD5, PP14; E, KCR:161): keeps the regenerated a0 unit's states (PP17; a train-only job like the retrain); about $0.33 per day, about $10.00 per month while kept stopped; counted in no guard\", \"idle storage scorer olmo2-7b c0 (KD5, PP14; E, KCR:161): keeps its R_1 training unit's states (lean_eval_job.py's OUT/train; the light pull leaves them); about $0.33 per day, about $10.00 per month while kept stopped; counted in no guard\", \"idle storage retrain llama31-8b (KD5, PP14; E, KCR:161): keeps the a0-1101 retrain's q and e1 states for A1's pass (PP3); about $0.33 per day, about $10.00 per month while kept stopped; counted in no guard\", \"idle storage scorer llama31-8b a1_pass (KD5, PP14; E, KCR:161): holds the retrain's q and e1 states that A1's pass reads (PP3, PP16); about $0.33 per day, about $10.00 per month while kept stopped; counted in no guard\", \"idle storage scorer llama31-8b o_only_with_regenerate 1101 (KD5, PP14; E, KCR:161): keeps the regenerated a0 unit's states (PP17; a train-only job like the retrain); about $0.33 per day, about $10.00 per month while kept stopped; counted in no guard\", \"idle storage scorer llama31-8b o_only_with_regenerate 1102 (KD5, PP14; E, KCR:161): keeps the regenerated a0 unit's states (PP17; a train-only job like the retrain); about $0.33 per day, about $10.00 per month while kept stopped; counted in no guard\", \"idle storage scorer llama31-8b c0 (KD5, PP14; E, KCR:161): keeps its R_1 training unit's states (lean_eval_job.py's OUT/train; the light pull leaves them); about $0.33 per day, about $10.00 per month while kept stopped; counted in no guard\", \"idle storage block 0 in all (KD5, PP14; E): 13 pods if every pod above is kept stopped: $4.33 per day, about $130.00 per month; counted in no guard\"], \"retrain_pods\": {\"olmo2-7b\": {\"cap_hours\": 4.5, \"need_usd\": 17.91}, \"llama31-8b\": {\"cap_hours\": 4.5, \"need_usd\": 17.91}}, \"scorer_pods\": {\"olmo2-7b\": {\"untuned_answers\": {\"cap_hours\": 6.0, \"need_usd\": 21.38}, \"o_only\": {\"cap_hours\": 3.75, \"need_usd\": 16.18}, \"o_only_with_regenerate\": {\"cap_hours\": 4.5, \"need_usd\": 17.91}, \"anchor\": {\"cap_hours\": 2.25, \"need_usd\": 12.7}, \"rep_pass\": {\"cap_hours\": 4.75, \"need_usd\": 18.49}, \"a1_pass\": {\"cap_hours\": 16.5, \"need_usd\": 45.66}, \"l1_scan\": {\"cap_hours\": 4.75, \"need_usd\": 18.49}, \"classifier\": {\"cap_hours\": 3.25, \"need_usd\": 15.01}, \"c0\": {\"cap_hours\": 4.25, \"need_usd\": 17.33}}, \"llama31-8b\": {\"untuned_answers\": {\"cap_hours\": 6.0, \"need_usd\": 21.38}, \"o_only\": {\"cap_hours\": 3.75, \"need_usd\": 16.18}, \"o_only_with_regenerate\": {\"cap_hours\": 4.5, \"need_usd\": 17.91}, \"anchor\": {\"cap_hours\": 2.25, \"need_usd\": 12.7}, \"rep_pass\": {\"cap_hours\": 4.75, \"need_usd\": 18.49}, \"a1_pass\": {\"cap_hours\": 16.5, \"need_usd\": 45.66}, \"l1_scan\": {\"cap_hours\": 4.75, \"need_usd\": 18.49}, \"classifier\": {\"cap_hours\": 3.25, \"need_usd\": 15.01}, \"c0\": {\"cap_hours\": 4.5, \"need_usd\": 17.91}}}, \"idle_storage\": {\"volume_gb\": 50, \"usd_per_gb_month\": 0.2, \"usd_per_pod_day\": 0.33, \"n_pods_kept\": 2, \"usd_per_day\": 0.67, \"usd_per_month\": 20.0, \"basis\": \"E: RunPod lists a stopped pod's volume at $0.20 per GB per month (KCR:161, read 16 Oct 2026); 50 GB / 30 days = $0.33 per pod per day while it keeps its states (KD5); counted in no guard\"}, \"idle_storage_pods\": [{\"pod\": \"N olmo2-7b-0-1\", \"why\": \"keeps its arms' e1 states until the state rule's pull and verified backup (KD5)\", \"usd_per_day\": 0.33, \"usd_per_month\": 10.0}, {\"pod\": \"N llama31-8b-0-1\", \"why\": \"keeps its arms' e1 states until the state rule's pull and verified backup (KD5)\", \"usd_per_day\": 0.33, \"usd_per_month\": 10.0}, {\"pod\": \"retrain olmo2-7b\", \"why\": \"keeps the a0-1101 retrain's q and e1 states for A1's pass (PP3)\", \"usd_per_day\": 0.33, \"usd_per_month\": 10.0}, {\"pod\": \"scorer olmo2-7b a1_pass\", \"why\": \"holds the retrain's q and e1 states that A1's pass reads (PP3, PP16)\", \"usd_per_day\": 0.33, \"usd_per_month\": 10.0}, {\"pod\": \"scorer olmo2-7b o_only_with_regenerate 1101\", \"why\": \"keeps the regenerated a0 unit's states (PP17; a train-only job like the retrain)\", \"usd_per_day\": 0.33, \"usd_per_month\": 10.0}, {\"pod\": \"scorer olmo2-7b o_only_with_regenerate 1102\", \"why\": \"keeps the regenerated a0 unit's states (PP17; a train-only job like the retrain)\", \"usd_per_day\": 0.33, \"usd_per_month\": 10.0}, {\"pod\": \"scorer olmo2-7b o_only_with_regenerate 1103\", \"why\": \"keeps the regenerated a0 unit's states (PP17; a train-only job like the retrain)\", \"usd_per_day\": 0.33, \"usd_per_month\": 10.0}, {\"pod\": \"scorer olmo2-7b c0\", \"why\": \"keeps its R_1 training unit's states (lean_eval_job.py's OUT/train; the light pull leaves them)\", \"usd_per_day\": 0.33, \"usd_per_month\": 10.0}, {\"pod\": \"retrain llama31-8b\", \"why\": \"keeps the a0-1101 retrain's q and e1 states for A1's pass (PP3)\", \"usd_per_day\": 0.33, \"usd_per_month\": 10.0}, {\"pod\": \"scorer llama31-8b a1_pass\", \"why\": \"holds the retrain's q and e1 states that A1's pass reads (PP3, PP16)\", \"usd_per_day\": 0.33, \"usd_per_month\": 10.0}, {\"pod\": \"scorer llama31-8b o_only_with_regenerate 1101\", \"why\": \"keeps the regenerated a0 unit's states (PP17; a train-only job like the retrain)\", \"usd_per_day\": 0.33, \"usd_per_month\": 10.0}, {\"pod\": \"scorer llama31-8b o_only_with_regenerate 1102\", \"why\": \"keeps the regenerated a0 unit's states (PP17; a train-only job like the retrain)\", \"usd_per_day\": 0.33, \"usd_per_month\": 10.0}, {\"pod\": \"scorer llama31-8b c0\", \"why\": \"keeps its R_1 training unit's states (lean_eval_job.py's OUT/train; the light pull leaves them)\", \"usd_per_day\": 0.33, \"usd_per_month\": 10.0}], \"idle_storage_all\": {\"volume_gb\": 50, \"usd_per_gb_month\": 0.2, \"usd_per_pod_day\": 0.33, \"n_pods_kept\": 13, \"usd_per_day\": 4.33, \"usd_per_month\": 130.0, \"basis\": \"E: RunPod lists a stopped pod's volume at $0.20 per GB per month (KCR:161, read 16 Oct 2026); 50 GB / 30 days = $0.33 per pod per day while it keeps its states (KD5); counted in no guard\"}, \"main_config\": {\"path\": \"experiments/safety_selection/configs/study-kt-llama31-8b-r64-b5e5-mb2-20261010.json\", \"config_sha256\": \"74758af1791d9f7a8ce616adce7549b5b7b0619e55310158d7e21197ed129893\"}, \"gate_b_hold_usd\": 0.0}\n",
+  "dry_rc": 0,
+  "extra": {
+   "BLOCK0_R_DRAWS": [
+    1,
+    2,
+    3
+   ],
+   "BLOCK_KINDS_0": [
+    "arm",
+    "a0_arm"
+   ],
+   "FUNDING_BLOCK_0": "0",
+   "HOST_PREFIX_0": "llama31-8b-0",
+   "REJUDGED_PINS_0": [],
+   "block0_jobs": [
+    {
+     "arm": "R",
+     "counted": 1,
+     "family": "llama31-8b",
+     "kind": "arm",
+     "measured_upper_s": 9735.9,
+     "n_points": 1,
+     "seed": 1101,
+     "spend_upper_s": 9735.9,
+     "start_requirement_s": 12498.0494,
+     "status": "planned",
+     "steps": 33,
+     "unmeasured": false,
+     "upper_s": 10698.0494
+    },
+    {
+     "arm": "R",
+     "counted": 1,
+     "family": "llama31-8b",
+     "kind": "arm",
+     "measured_upper_s": 9735.9,
+     "n_points": 1,
+     "seed": 1102,
+     "spend_upper_s": 9735.9,
+     "start_requirement_s": 12498.0494,
+     "status": "planned",
+     "steps": 33,
+     "unmeasured": false,
+     "upper_s": 10698.0494
+    },
+    {
+     "arm": "R",
+     "counted": 1,
+     "family": "llama31-8b",
+     "kind": "arm",
+     "measured_upper_s": 9735.9,
+     "n_points": 1,
+     "seed": 1103,
+     "spend_upper_s": 9735.9,
+     "start_requirement_s": 12498.0494,
+     "status": "planned",
+     "steps": 33,
+     "unmeasured": false,
+     "upper_s": 10698.0494
+    },
+    {
+     "arm": "a0",
+     "counted": 1,
+     "family": "llama31-8b",
+     "kind": "a0_arm",
+     "measured_upper_s": 9735.9,
+     "n_points": 1,
+     "seed": 1103,
+     "spend_upper_s": 9735.9,
+     "start_requirement_s": 12612.4734,
+     "status": "planned",
+     "steps": 38,
+     "unmeasured": false,
+     "upper_s": 10812.4734
+    }
+   ],
+   "block_runs_0": [
+    [
+     "R",
+     1101
+    ],
+    [
+     "R",
+     1102
+    ],
+    [
+     "R",
+     1103
+    ],
+    [
+     "a0",
+     1103
+    ]
+   ],
+   "deal_0": [
+    [
+     [
+      "R",
+      1101
+     ],
+     [
+      "R",
+      1102
+     ],
+     [
+      "R",
+      1103
+     ],
+     [
+      "a0",
+      1103
+     ]
+    ]
+   ]
+  },
+  "plan_len": 14605,
+  "plan_sha256": "c3efb185a3dd5a0b4b97ccce5b13da0e6038ff962848329524e4db654b60201f",
+  "real": "need N (block 0, both families, one launch of 2 pods; KCR:177): $56.06 (guard $44.85, spend upper $33.30, contingency $11.21)\nneed N this family's pod alone (llama31-8b-0-1, cap 12.50 h, spend upper $20.80): $36.41\nneed retrain pod olmo2-7b (a0-1101, engine Y, recipe S_78 after the anchor job; ruling 10, addendum A2, A8; cap 4.50 h, guard $14.33): $17.91\nneed retrain pod llama31-8b (a0-1101, engine Y, recipe S_78 after the anchor job; ruling 10, addendum A2, A8; cap 4.50 h, guard $14.33): $17.91\nneed scorer pod olmo2-7b untuned_answers (the untuned-answers pass under the main recipe (PP1, PP2); single-job E cap 6.00 h, guard $17.10; KD6, the check's C1 and M3): $21.38\nneed scorer pod olmo2-7b o_only (the O-ext pass at one state (the check's M1); single-job E cap 3.75 h, guard $12.94; KD6, the check's C1 and M3): $16.18\nneed scorer pod olmo2-7b o_only_with_regenerate (a reused a0 side unit regenerated train only, checked against its fingerprints, then the O-ext pass on its e1 state (PP17; ruling 7; M1); 3 pods, one per reused a0 seed, each: single-job E cap 4.50 h, guard $14.33; KD6, the check's C1 and M3): $17.91\nneed scorer pod olmo2-7b anchor (the anchor job before S_78 (addendum A1, A2); single-job E cap 2.25 h, guard $10.16; KD6, the check's C1 and M3): $12.70\nneed scorer pod olmo2-7b rep_pass (REQ-3's representation pass, scripts/stage1/representation_pass.py; recipe S_78 (PP3, PP4, PP8); single-job E cap 4.75 h, guard $14.79; KD6, the check's C1 and M3): $18.49\nneed scorer pod olmo2-7b a1_pass (A1's attributes pass on the a0-1101 retrain's q and e1 states; recipe S_78; A1's 16.5 h cap at most (PP3, PP8, KD6); single-job E cap 16.50 h, guard $36.53; KD6, the check's C1 and M3): $45.66\nneed scorer pod olmo2-7b l1_scan (the L1 scan (engine X; PP4); single-job E cap 4.75 h, guard $14.79; KD6, the check's C1 and M3): $18.49\nneed scorer pod olmo2-7b classifier (the classifier under recipe S_78, as at 1B (PP4, PP8); single-job E cap 3.25 h, guard $12.01; KD6, the check's C1 and M3): $15.01\nneed scorer pod olmo2-7b c0 (c0 on an engine-X unit (B17's X-pin check); single-job E cap 4.25 h, guard $13.86; KD6, the check's C1 and M3): $17.33\nneed scorer pod llama31-8b untuned_answers (the untuned-answers pass under the main recipe (PP1, PP2); single-job E cap 6.00 h, guard $17.10; KD6, the check's C1 and M3): $21.38\nneed scorer pod llama31-8b o_only (the O-ext pass at one state (the check's M1); single-job E cap 3.75 h, guard $12.94; KD6, the check's C1 and M3): $16.18\nneed scorer pod llama31-8b o_only_with_regenerate (a reused a0 side unit regenerated train only, checked against its fingerprints, then the O-ext pass on its e1 state (PP17; ruling 7; M1); 2 pods, one per reused a0 seed, each: single-job E cap 4.50 h, guard $14.33; KD6, the check's C1 and M3): $17.91\nneed scorer pod llama31-8b anchor (the anchor job before S_78 (addendum A1, A2); single-job E cap 2.25 h, guard $10.16; KD6, the check's C1 and M3): $12.70\nneed scorer pod llama31-8b rep_pass (REQ-3's representation pass, scripts/stage1/representation_pass.py; recipe S_78 (PP3, PP4, PP8); single-job E cap 4.75 h, guard $14.79; KD6, the check's C1 and M3): $18.49\nneed scorer pod llama31-8b a1_pass (A1's attributes pass on the a0-1101 retrain's q and e1 states; recipe S_78; A1's 16.5 h cap at most (PP3, PP8, KD6); single-job E cap 16.50 h, guard $36.53; KD6, the check's C1 and M3): $45.66\nneed scorer pod llama31-8b l1_scan (the L1 scan (engine X; PP4); single-job E cap 4.75 h, guard $14.79; KD6, the check's C1 and M3): $18.49\nneed scorer pod llama31-8b classifier (the classifier under recipe S_78, as at 1B (PP4, PP8); single-job E cap 3.25 h, guard $12.01; KD6, the check's C1 and M3): $15.01\nneed scorer pod llama31-8b c0 (c0 on an engine-X unit (B17's X-pin check); single-job E cap 4.50 h, guard $14.33; KD6, the check's C1 and M3): $17.91\nidle storage (KD5; E, KCR:161): about $0.33 per day per stopped 50 GB pod that keeps its states ($0.20 per GB per month); N's 2 pods kept stopped: $0.67 per day, about $20.00 per month; counted in no guard\nidle storage retrain olmo2-7b (KD5, PP14; E, KCR:161): keeps the a0-1101 retrain's q and e1 states for A1's pass (PP3); about $0.33 per day, about $10.00 per month while kept stopped; counted in no guard\nidle storage scorer olmo2-7b a1_pass (KD5, PP14; E, KCR:161): holds the retrain's q and e1 states that A1's pass reads (PP3, PP16); about $0.33 per day, about $10.00 per month while kept stopped; counted in no guard\nidle storage scorer olmo2-7b o_only_with_regenerate 1101 (KD5, PP14; E, KCR:161): keeps the regenerated a0 unit's states (PP17; a train-only job like the retrain); about $0.33 per day, about $10.00 per month while kept stopped; counted in no guard\nidle storage scorer olmo2-7b o_only_with_regenerate 1102 (KD5, PP14; E, KCR:161): keeps the regenerated a0 unit's states (PP17; a train-only job like the retrain); about $0.33 per day, about $10.00 per month while kept stopped; counted in no guard\nidle storage scorer olmo2-7b o_only_with_regenerate 1103 (KD5, PP14; E, KCR:161): keeps the regenerated a0 unit's states (PP17; a train-only job like the retrain); about $0.33 per day, about $10.00 per month while kept stopped; counted in no guard\nidle storage scorer olmo2-7b c0 (KD5, PP14; E, KCR:161): keeps its R_1 training unit's states (lean_eval_job.py's OUT/train; the light pull leaves them); about $0.33 per day, about $10.00 per month while kept stopped; counted in no guard\nidle storage retrain llama31-8b (KD5, PP14; E, KCR:161): keeps the a0-1101 retrain's q and e1 states for A1's pass (PP3); about $0.33 per day, about $10.00 per month while kept stopped; counted in no guard\nidle storage scorer llama31-8b a1_pass (KD5, PP14; E, KCR:161): holds the retrain's q and e1 states that A1's pass reads (PP3, PP16); about $0.33 per day, about $10.00 per month while kept stopped; counted in no guard\nidle storage scorer llama31-8b o_only_with_regenerate 1101 (KD5, PP14; E, KCR:161): keeps the regenerated a0 unit's states (PP17; a train-only job like the retrain); about $0.33 per day, about $10.00 per month while kept stopped; counted in no guard\nidle storage scorer llama31-8b o_only_with_regenerate 1102 (KD5, PP14; E, KCR:161): keeps the regenerated a0 unit's states (PP17; a train-only job like the retrain); about $0.33 per day, about $10.00 per month while kept stopped; counted in no guard\nidle storage scorer llama31-8b c0 (KD5, PP14; E, KCR:161): keeps its R_1 training unit's states (lean_eval_job.py's OUT/train; the light pull leaves them); about $0.33 per day, about $10.00 per month while kept stopped; counted in no guard\nidle storage block 0 in all (KD5, PP14; E): 13 pods if every pod above is kept stopped: $4.33 per day, about $130.00 per month; counted in no guard\n"
+ },
+ "olmo2-7b": {
+  "deal": "{\"block\": \"0\", \"family\": \"olmo2-7b\", \"plan\": null, \"pods\": [[\"R@1101\", \"R@1102\", \"R@1103\"]]}\n",
+  "deal_rc": 0,
+  "dry": "need N (block 0, both families, one launch of 2 pods; KCR:177): $56.06 (guard $44.85, spend upper $33.30, contingency $11.21)\nneed N this family's pod alone (olmo2-7b-0-1, cap 8.50 h, spend upper $12.50): $27.16\nneed retrain pod olmo2-7b (a0-1101, engine Y, recipe S_78 after the anchor job; ruling 10, addendum A2, A8; cap 4.50 h, guard $14.33): $17.91\nneed retrain pod llama31-8b (a0-1101, engine Y, recipe S_78 after the anchor job; ruling 10, addendum A2, A8; cap 4.50 h, guard $14.33): $17.91\nneed scorer pod olmo2-7b untuned_answers (the untuned-answers pass under the main recipe (PP1, PP2); single-job E cap 6.00 h, guard $17.10; KD6, the check's C1 and M3): $21.38\nneed scorer pod olmo2-7b o_only (the O-ext pass at one state (the check's M1); single-job E cap 3.75 h, guard $12.94; KD6, the check's C1 and M3): $16.18\nneed scorer pod olmo2-7b o_only_with_regenerate (a reused a0 side unit regenerated train only, checked against its fingerprints, then the O-ext pass on its e1 state (PP17; ruling 7; M1); 3 pods, one per reused a0 seed, each: single-job E cap 4.50 h, guard $14.33; KD6, the check's C1 and M3): $17.91\nneed scorer pod olmo2-7b anchor (the anchor job before S_78 (addendum A1, A2); single-job E cap 2.25 h, guard $10.16; KD6, the check's C1 and M3): $12.70\nneed scorer pod olmo2-7b rep_pass (REQ-3's representation pass, scripts/stage1/representation_pass.py; recipe S_78 (PP3, PP4, PP8); single-job E cap 4.75 h, guard $14.79; KD6, the check's C1 and M3): $18.49\nneed scorer pod olmo2-7b a1_pass (A1's attributes pass on the a0-1101 retrain's q and e1 states; recipe S_78; A1's 16.5 h cap at most (PP3, PP8, KD6); single-job E cap 16.50 h, guard $36.53; KD6, the check's C1 and M3): $45.66\nneed scorer pod olmo2-7b l1_scan (the L1 scan (engine X; PP4); single-job E cap 4.75 h, guard $14.79; KD6, the check's C1 and M3): $18.49\nneed scorer pod olmo2-7b classifier (the classifier under recipe S_78, as at 1B (PP4, PP8); single-job E cap 3.25 h, guard $12.01; KD6, the check's C1 and M3): $15.01\nneed scorer pod olmo2-7b c0 (c0 on an engine-X unit (B17's X-pin check); single-job E cap 4.25 h, guard $13.86; KD6, the check's C1 and M3): $17.33\nneed scorer pod llama31-8b untuned_answers (the untuned-answers pass under the main recipe (PP1, PP2); single-job E cap 6.00 h, guard $17.10; KD6, the check's C1 and M3): $21.38\nneed scorer pod llama31-8b o_only (the O-ext pass at one state (the check's M1); single-job E cap 3.75 h, guard $12.94; KD6, the check's C1 and M3): $16.18\nneed scorer pod llama31-8b o_only_with_regenerate (a reused a0 side unit regenerated train only, checked against its fingerprints, then the O-ext pass on its e1 state (PP17; ruling 7; M1); 2 pods, one per reused a0 seed, each: single-job E cap 4.50 h, guard $14.33; KD6, the check's C1 and M3): $17.91\nneed scorer pod llama31-8b anchor (the anchor job before S_78 (addendum A1, A2); single-job E cap 2.25 h, guard $10.16; KD6, the check's C1 and M3): $12.70\nneed scorer pod llama31-8b rep_pass (REQ-3's representation pass, scripts/stage1/representation_pass.py; recipe S_78 (PP3, PP4, PP8); single-job E cap 4.75 h, guard $14.79; KD6, the check's C1 and M3): $18.49\nneed scorer pod llama31-8b a1_pass (A1's attributes pass on the a0-1101 retrain's q and e1 states; recipe S_78; A1's 16.5 h cap at most (PP3, PP8, KD6); single-job E cap 16.50 h, guard $36.53; KD6, the check's C1 and M3): $45.66\nneed scorer pod llama31-8b l1_scan (the L1 scan (engine X; PP4); single-job E cap 4.75 h, guard $14.79; KD6, the check's C1 and M3): $18.49\nneed scorer pod llama31-8b classifier (the classifier under recipe S_78, as at 1B (PP4, PP8); single-job E cap 3.25 h, guard $12.01; KD6, the check's C1 and M3): $15.01\nneed scorer pod llama31-8b c0 (c0 on an engine-X unit (B17's X-pin check); single-job E cap 4.50 h, guard $14.33; KD6, the check's C1 and M3): $17.91\nidle storage (KD5; E, KCR:161): about $0.33 per day per stopped 50 GB pod that keeps its states ($0.20 per GB per month); N's 2 pods kept stopped: $0.67 per day, about $20.00 per month; counted in no guard\nidle storage retrain olmo2-7b (KD5, PP14; E, KCR:161): keeps the a0-1101 retrain's q and e1 states for A1's pass (PP3); about $0.33 per day, about $10.00 per month while kept stopped; counted in no guard\nidle storage scorer olmo2-7b a1_pass (KD5, PP14; E, KCR:161): holds the retrain's q and e1 states that A1's pass reads (PP3, PP16); about $0.33 per day, about $10.00 per month while kept stopped; counted in no guard\nidle storage scorer olmo2-7b o_only_with_regenerate 1101 (KD5, PP14; E, KCR:161): keeps the regenerated a0 unit's states (PP17; a train-only job like the retrain); about $0.33 per day, about $10.00 per month while kept stopped; counted in no guard\nidle storage scorer olmo2-7b o_only_with_regenerate 1102 (KD5, PP14; E, KCR:161): keeps the regenerated a0 unit's states (PP17; a train-only job like the retrain); about $0.33 per day, about $10.00 per month while kept stopped; counted in no guard\nidle storage scorer olmo2-7b o_only_with_regenerate 1103 (KD5, PP14; E, KCR:161): keeps the regenerated a0 unit's states (PP17; a train-only job like the retrain); about $0.33 per day, about $10.00 per month while kept stopped; counted in no guard\nidle storage scorer olmo2-7b c0 (KD5, PP14; E, KCR:161): keeps its R_1 training unit's states (lean_eval_job.py's OUT/train; the light pull leaves them); about $0.33 per day, about $10.00 per month while kept stopped; counted in no guard\nidle storage retrain llama31-8b (KD5, PP14; E, KCR:161): keeps the a0-1101 retrain's q and e1 states for A1's pass (PP3); about $0.33 per day, about $10.00 per month while kept stopped; counted in no guard\nidle storage scorer llama31-8b a1_pass (KD5, PP14; E, KCR:161): holds the retrain's q and e1 states that A1's pass reads (PP3, PP16); about $0.33 per day, about $10.00 per month while kept stopped; counted in no guard\nidle storage scorer llama31-8b o_only_with_regenerate 1101 (KD5, PP14; E, KCR:161): keeps the regenerated a0 unit's states (PP17; a train-only job like the retrain); about $0.33 per day, about $10.00 per month while kept stopped; counted in no guard\nidle storage scorer llama31-8b o_only_with_regenerate 1102 (KD5, PP14; E, KCR:161): keeps the regenerated a0 unit's states (PP17; a train-only job like the retrain); about $0.33 per day, about $10.00 per month while kept stopped; counted in no guard\nidle storage scorer llama31-8b c0 (KD5, PP14; E, KCR:161): keeps its R_1 training unit's states (lean_eval_job.py's OUT/train; the light pull leaves them); about $0.33 per day, about $10.00 per month while kept stopped; counted in no guard\nidle storage block 0 in all (KD5, PP14; E): 13 pods if every pod above is kept stopped: $4.33 per day, about $130.00 per month; counted in no guard\n{\"dry_run\": true, \"block\": \"0\", \"family\": \"olmo2-7b\", \"funding_block\": \"0\", \"pods\": [{\"launch\": 0, \"host\": \"olmo2-7b-0-1\", \"cap_hours\": 8.5, \"guard_usd\": 21.73, \"spend_upper_usd\": 12.5, \"counted\": 3, \"jobs\": [\"arm:R:1101\", \"arm:R:1102\", \"arm:R:1103\"], \"edits\": [{\"arm\": \"R\", \"seed\": 1101, \"path\": \".ai/inputs/gate-b-sealed-20261008/out/edits/R_d1.json\", \"sha256\": \"dccd526735716fd5b7ad1dae7f34c8d26ea60d3861854dec9ccf5742a9d4c29c\"}, {\"arm\": \"R\", \"seed\": 1102, \"path\": \".ai/inputs/gate-b-sealed-20261008/out/edits/R_d2.json\", \"sha256\": \"642a62f7d17e999842329731e74a03f0f7920936ae219739be811497c15fd71f\"}, {\"arm\": \"R\", \"seed\": 1103, \"path\": \".ai/inputs/gate-b-sealed-20261008/out/edits/R_d3.json\", \"sha256\": \"d836545ea92083daca44d56cc13acf368183eac268d760c07d2415b04c2f2420\"}]}], \"need_usd\": 56.06, \"base_need_usd\": 44.85, \"contingency_usd\": 11.21, \"this_pod_need_usd\": 27.16, \"need_lines\": [\"need N (block 0, both families, one launch of 2 pods; KCR:177): $56.06 (guard $44.85, spend upper $33.30, contingency $11.21)\", \"need N this family's pod alone (olmo2-7b-0-1, cap 8.50 h, spend upper $12.50): $27.16\", \"need retrain pod olmo2-7b (a0-1101, engine Y, recipe S_78 after the anchor job; ruling 10, addendum A2, A8; cap 4.50 h, guard $14.33): $17.91\", \"need retrain pod llama31-8b (a0-1101, engine Y, recipe S_78 after the anchor job; ruling 10, addendum A2, A8; cap 4.50 h, guard $14.33): $17.91\", \"need scorer pod olmo2-7b untuned_answers (the untuned-answers pass under the main recipe (PP1, PP2); single-job E cap 6.00 h, guard $17.10; KD6, the check's C1 and M3): $21.38\", \"need scorer pod olmo2-7b o_only (the O-ext pass at one state (the check's M1); single-job E cap 3.75 h, guard $12.94; KD6, the check's C1 and M3): $16.18\", \"need scorer pod olmo2-7b o_only_with_regenerate (a reused a0 side unit regenerated train only, checked against its fingerprints, then the O-ext pass on its e1 state (PP17; ruling 7; M1); 3 pods, one per reused a0 seed, each: single-job E cap 4.50 h, guard $14.33; KD6, the check's C1 and M3): $17.91\", \"need scorer pod olmo2-7b anchor (the anchor job before S_78 (addendum A1, A2); single-job E cap 2.25 h, guard $10.16; KD6, the check's C1 and M3): $12.70\", \"need scorer pod olmo2-7b rep_pass (REQ-3's representation pass, scripts/stage1/representation_pass.py; recipe S_78 (PP3, PP4, PP8); single-job E cap 4.75 h, guard $14.79; KD6, the check's C1 and M3): $18.49\", \"need scorer pod olmo2-7b a1_pass (A1's attributes pass on the a0-1101 retrain's q and e1 states; recipe S_78; A1's 16.5 h cap at most (PP3, PP8, KD6); single-job E cap 16.50 h, guard $36.53; KD6, the check's C1 and M3): $45.66\", \"need scorer pod olmo2-7b l1_scan (the L1 scan (engine X; PP4); single-job E cap 4.75 h, guard $14.79; KD6, the check's C1 and M3): $18.49\", \"need scorer pod olmo2-7b classifier (the classifier under recipe S_78, as at 1B (PP4, PP8); single-job E cap 3.25 h, guard $12.01; KD6, the check's C1 and M3): $15.01\", \"need scorer pod olmo2-7b c0 (c0 on an engine-X unit (B17's X-pin check); single-job E cap 4.25 h, guard $13.86; KD6, the check's C1 and M3): $17.33\", \"need scorer pod llama31-8b untuned_answers (the untuned-answers pass under the main recipe (PP1, PP2); single-job E cap 6.00 h, guard $17.10; KD6, the check's C1 and M3): $21.38\", \"need scorer pod llama31-8b o_only (the O-ext pass at one state (the check's M1); single-job E cap 3.75 h, guard $12.94; KD6, the check's C1 and M3): $16.18\", \"need scorer pod llama31-8b o_only_with_regenerate (a reused a0 side unit regenerated train only, checked against its fingerprints, then the O-ext pass on its e1 state (PP17; ruling 7; M1); 2 pods, one per reused a0 seed, each: single-job E cap 4.50 h, guard $14.33; KD6, the check's C1 and M3): $17.91\", \"need scorer pod llama31-8b anchor (the anchor job before S_78 (addendum A1, A2); single-job E cap 2.25 h, guard $10.16; KD6, the check's C1 and M3): $12.70\", \"need scorer pod llama31-8b rep_pass (REQ-3's representation pass, scripts/stage1/representation_pass.py; recipe S_78 (PP3, PP4, PP8); single-job E cap 4.75 h, guard $14.79; KD6, the check's C1 and M3): $18.49\", \"need scorer pod llama31-8b a1_pass (A1's attributes pass on the a0-1101 retrain's q and e1 states; recipe S_78; A1's 16.5 h cap at most (PP3, PP8, KD6); single-job E cap 16.50 h, guard $36.53; KD6, the check's C1 and M3): $45.66\", \"need scorer pod llama31-8b l1_scan (the L1 scan (engine X; PP4); single-job E cap 4.75 h, guard $14.79; KD6, the check's C1 and M3): $18.49\", \"need scorer pod llama31-8b classifier (the classifier under recipe S_78, as at 1B (PP4, PP8); single-job E cap 3.25 h, guard $12.01; KD6, the check's C1 and M3): $15.01\", \"need scorer pod llama31-8b c0 (c0 on an engine-X unit (B17's X-pin check); single-job E cap 4.50 h, guard $14.33; KD6, the check's C1 and M3): $17.91\", \"idle storage (KD5; E, KCR:161): about $0.33 per day per stopped 50 GB pod that keeps its states ($0.20 per GB per month); N's 2 pods kept stopped: $0.67 per day, about $20.00 per month; counted in no guard\", \"idle storage retrain olmo2-7b (KD5, PP14; E, KCR:161): keeps the a0-1101 retrain's q and e1 states for A1's pass (PP3); about $0.33 per day, about $10.00 per month while kept stopped; counted in no guard\", \"idle storage scorer olmo2-7b a1_pass (KD5, PP14; E, KCR:161): holds the retrain's q and e1 states that A1's pass reads (PP3, PP16); about $0.33 per day, about $10.00 per month while kept stopped; counted in no guard\", \"idle storage scorer olmo2-7b o_only_with_regenerate 1101 (KD5, PP14; E, KCR:161): keeps the regenerated a0 unit's states (PP17; a train-only job like the retrain); about $0.33 per day, about $10.00 per month while kept stopped; counted in no guard\", \"idle storage scorer olmo2-7b o_only_with_regenerate 1102 (KD5, PP14; E, KCR:161): keeps the regenerated a0 unit's states (PP17; a train-only job like the retrain); about $0.33 per day, about $10.00 per month while kept stopped; counted in no guard\", \"idle storage scorer olmo2-7b o_only_with_regenerate 1103 (KD5, PP14; E, KCR:161): keeps the regenerated a0 unit's states (PP17; a train-only job like the retrain); about $0.33 per day, about $10.00 per month while kept stopped; counted in no guard\", \"idle storage scorer olmo2-7b c0 (KD5, PP14; E, KCR:161): keeps its R_1 training unit's states (lean_eval_job.py's OUT/train; the light pull leaves them); about $0.33 per day, about $10.00 per month while kept stopped; counted in no guard\", \"idle storage retrain llama31-8b (KD5, PP14; E, KCR:161): keeps the a0-1101 retrain's q and e1 states for A1's pass (PP3); about $0.33 per day, about $10.00 per month while kept stopped; counted in no guard\", \"idle storage scorer llama31-8b a1_pass (KD5, PP14; E, KCR:161): holds the retrain's q and e1 states that A1's pass reads (PP3, PP16); about $0.33 per day, about $10.00 per month while kept stopped; counted in no guard\", \"idle storage scorer llama31-8b o_only_with_regenerate 1101 (KD5, PP14; E, KCR:161): keeps the regenerated a0 unit's states (PP17; a train-only job like the retrain); about $0.33 per day, about $10.00 per month while kept stopped; counted in no guard\", \"idle storage scorer llama31-8b o_only_with_regenerate 1102 (KD5, PP14; E, KCR:161): keeps the regenerated a0 unit's states (PP17; a train-only job like the retrain); about $0.33 per day, about $10.00 per month while kept stopped; counted in no guard\", \"idle storage scorer llama31-8b c0 (KD5, PP14; E, KCR:161): keeps its R_1 training unit's states (lean_eval_job.py's OUT/train; the light pull leaves them); about $0.33 per day, about $10.00 per month while kept stopped; counted in no guard\", \"idle storage block 0 in all (KD5, PP14; E): 13 pods if every pod above is kept stopped: $4.33 per day, about $130.00 per month; counted in no guard\"], \"retrain_pods\": {\"olmo2-7b\": {\"cap_hours\": 4.5, \"need_usd\": 17.91}, \"llama31-8b\": {\"cap_hours\": 4.5, \"need_usd\": 17.91}}, \"scorer_pods\": {\"olmo2-7b\": {\"untuned_answers\": {\"cap_hours\": 6.0, \"need_usd\": 21.38}, \"o_only\": {\"cap_hours\": 3.75, \"need_usd\": 16.18}, \"o_only_with_regenerate\": {\"cap_hours\": 4.5, \"need_usd\": 17.91}, \"anchor\": {\"cap_hours\": 2.25, \"need_usd\": 12.7}, \"rep_pass\": {\"cap_hours\": 4.75, \"need_usd\": 18.49}, \"a1_pass\": {\"cap_hours\": 16.5, \"need_usd\": 45.66}, \"l1_scan\": {\"cap_hours\": 4.75, \"need_usd\": 18.49}, \"classifier\": {\"cap_hours\": 3.25, \"need_usd\": 15.01}, \"c0\": {\"cap_hours\": 4.25, \"need_usd\": 17.33}}, \"llama31-8b\": {\"untuned_answers\": {\"cap_hours\": 6.0, \"need_usd\": 21.38}, \"o_only\": {\"cap_hours\": 3.75, \"need_usd\": 16.18}, \"o_only_with_regenerate\": {\"cap_hours\": 4.5, \"need_usd\": 17.91}, \"anchor\": {\"cap_hours\": 2.25, \"need_usd\": 12.7}, \"rep_pass\": {\"cap_hours\": 4.75, \"need_usd\": 18.49}, \"a1_pass\": {\"cap_hours\": 16.5, \"need_usd\": 45.66}, \"l1_scan\": {\"cap_hours\": 4.75, \"need_usd\": 18.49}, \"classifier\": {\"cap_hours\": 3.25, \"need_usd\": 15.01}, \"c0\": {\"cap_hours\": 4.5, \"need_usd\": 17.91}}}, \"idle_storage\": {\"volume_gb\": 50, \"usd_per_gb_month\": 0.2, \"usd_per_pod_day\": 0.33, \"n_pods_kept\": 2, \"usd_per_day\": 0.67, \"usd_per_month\": 20.0, \"basis\": \"E: RunPod lists a stopped pod's volume at $0.20 per GB per month (KCR:161, read 16 Oct 2026); 50 GB / 30 days = $0.33 per pod per day while it keeps its states (KD5); counted in no guard\"}, \"idle_storage_pods\": [{\"pod\": \"N olmo2-7b-0-1\", \"why\": \"keeps its arms' e1 states until the state rule's pull and verified backup (KD5)\", \"usd_per_day\": 0.33, \"usd_per_month\": 10.0}, {\"pod\": \"N llama31-8b-0-1\", \"why\": \"keeps its arms' e1 states until the state rule's pull and verified backup (KD5)\", \"usd_per_day\": 0.33, \"usd_per_month\": 10.0}, {\"pod\": \"retrain olmo2-7b\", \"why\": \"keeps the a0-1101 retrain's q and e1 states for A1's pass (PP3)\", \"usd_per_day\": 0.33, \"usd_per_month\": 10.0}, {\"pod\": \"scorer olmo2-7b a1_pass\", \"why\": \"holds the retrain's q and e1 states that A1's pass reads (PP3, PP16)\", \"usd_per_day\": 0.33, \"usd_per_month\": 10.0}, {\"pod\": \"scorer olmo2-7b o_only_with_regenerate 1101\", \"why\": \"keeps the regenerated a0 unit's states (PP17; a train-only job like the retrain)\", \"usd_per_day\": 0.33, \"usd_per_month\": 10.0}, {\"pod\": \"scorer olmo2-7b o_only_with_regenerate 1102\", \"why\": \"keeps the regenerated a0 unit's states (PP17; a train-only job like the retrain)\", \"usd_per_day\": 0.33, \"usd_per_month\": 10.0}, {\"pod\": \"scorer olmo2-7b o_only_with_regenerate 1103\", \"why\": \"keeps the regenerated a0 unit's states (PP17; a train-only job like the retrain)\", \"usd_per_day\": 0.33, \"usd_per_month\": 10.0}, {\"pod\": \"scorer olmo2-7b c0\", \"why\": \"keeps its R_1 training unit's states (lean_eval_job.py's OUT/train; the light pull leaves them)\", \"usd_per_day\": 0.33, \"usd_per_month\": 10.0}, {\"pod\": \"retrain llama31-8b\", \"why\": \"keeps the a0-1101 retrain's q and e1 states for A1's pass (PP3)\", \"usd_per_day\": 0.33, \"usd_per_month\": 10.0}, {\"pod\": \"scorer llama31-8b a1_pass\", \"why\": \"holds the retrain's q and e1 states that A1's pass reads (PP3, PP16)\", \"usd_per_day\": 0.33, \"usd_per_month\": 10.0}, {\"pod\": \"scorer llama31-8b o_only_with_regenerate 1101\", \"why\": \"keeps the regenerated a0 unit's states (PP17; a train-only job like the retrain)\", \"usd_per_day\": 0.33, \"usd_per_month\": 10.0}, {\"pod\": \"scorer llama31-8b o_only_with_regenerate 1102\", \"why\": \"keeps the regenerated a0 unit's states (PP17; a train-only job like the retrain)\", \"usd_per_day\": 0.33, \"usd_per_month\": 10.0}, {\"pod\": \"scorer llama31-8b c0\", \"why\": \"keeps its R_1 training unit's states (lean_eval_job.py's OUT/train; the light pull leaves them)\", \"usd_per_day\": 0.33, \"usd_per_month\": 10.0}], \"idle_storage_all\": {\"volume_gb\": 50, \"usd_per_gb_month\": 0.2, \"usd_per_pod_day\": 0.33, \"n_pods_kept\": 13, \"usd_per_day\": 4.33, \"usd_per_month\": 130.0, \"basis\": \"E: RunPod lists a stopped pod's volume at $0.20 per GB per month (KCR:161, read 16 Oct 2026); 50 GB / 30 days = $0.33 per pod per day while it keeps its states (KD5); counted in no guard\"}, \"main_config\": {\"path\": \"experiments/safety_selection/configs/study-kt-olmo2-7b-r64-b-mb2-20261008.json\", \"config_sha256\": \"18cc31d7117a2de7bc02382fe8a4d409fc43c91b434bf219a4808dfb26528d09\"}, \"gate_b_hold_usd\": 0.0}\n",
+  "dry_rc": 0,
+  "extra": {
+   "BLOCK0_R_DRAWS": [
+    1,
+    2,
+    3
+   ],
+   "BLOCK_KINDS_0": [
+    "arm",
+    "a0_arm"
+   ],
+   "FUNDING_BLOCK_0": "0",
+   "HOST_PREFIX_0": "olmo2-7b-0",
+   "REJUDGED_PINS_0": [],
+   "block0_jobs": [
+    {
+     "arm": "R",
+     "counted": 1,
+     "family": "olmo2-7b",
+     "kind": "arm",
+     "measured_upper_s": 7417.499999999999,
+     "n_points": 1,
+     "seed": 1101,
+     "spend_upper_s": 7417.499999999999,
+     "start_requirement_s": 12244.147500000001,
+     "status": "planned",
+     "steps": 33,
+     "unmeasured": false,
+     "upper_s": 10444.147500000001
+    },
+    {
+     "arm": "R",
+     "counted": 1,
+     "family": "olmo2-7b",
+     "kind": "arm",
+     "measured_upper_s": 7417.499999999999,
+     "n_points": 1,
+     "seed": 1102,
+     "spend_upper_s": 7417.499999999999,
+     "start_requirement_s": 12244.147500000001,
+     "status": "planned",
+     "steps": 33,
+     "unmeasured": false,
+     "upper_s": 10444.147500000001
+    },
+    {
+     "arm": "R",
+     "counted": 1,
+     "family": "olmo2-7b",
+     "kind": "arm",
+     "measured_upper_s": 7417.499999999999,
+     "n_points": 1,
+     "seed": 1103,
+     "spend_upper_s": 7417.499999999999,
+     "start_requirement_s": 12244.147500000001,
+     "status": "planned",
+     "steps": 33,
+     "unmeasured": false,
+     "upper_s": 10444.147500000001
+    }
+   ],
+   "block_runs_0": [
+    [
+     "R",
+     1101
+    ],
+    [
+     "R",
+     1102
+    ],
+    [
+     "R",
+     1103
+    ]
+   ],
+   "deal_0": [
+    [
+     [
+      "R",
+      1101
+     ],
+     [
+      "R",
+      1102
+     ],
+     [
+      "R",
+      1103
+     ]
+    ]
+   ]
+  },
+  "plan_len": 14106,
+  "plan_sha256": "bb849064b5c7da9b76c2c258d4f1fc0d40d266fb364e5f902c2bcfe94a769b58",
+  "real": "need N (block 0, both families, one launch of 2 pods; KCR:177): $56.06 (guard $44.85, spend upper $33.30, contingency $11.21)\nneed N this family's pod alone (olmo2-7b-0-1, cap 8.50 h, spend upper $12.50): $27.16\nneed retrain pod olmo2-7b (a0-1101, engine Y, recipe S_78 after the anchor job; ruling 10, addendum A2, A8; cap 4.50 h, guard $14.33): $17.91\nneed retrain pod llama31-8b (a0-1101, engine Y, recipe S_78 after the anchor job; ruling 10, addendum A2, A8; cap 4.50 h, guard $14.33): $17.91\nneed scorer pod olmo2-7b untuned_answers (the untuned-answers pass under the main recipe (PP1, PP2); single-job E cap 6.00 h, guard $17.10; KD6, the check's C1 and M3): $21.38\nneed scorer pod olmo2-7b o_only (the O-ext pass at one state (the check's M1); single-job E cap 3.75 h, guard $12.94; KD6, the check's C1 and M3): $16.18\nneed scorer pod olmo2-7b o_only_with_regenerate (a reused a0 side unit regenerated train only, checked against its fingerprints, then the O-ext pass on its e1 state (PP17; ruling 7; M1); 3 pods, one per reused a0 seed, each: single-job E cap 4.50 h, guard $14.33; KD6, the check's C1 and M3): $17.91\nneed scorer pod olmo2-7b anchor (the anchor job before S_78 (addendum A1, A2); single-job E cap 2.25 h, guard $10.16; KD6, the check's C1 and M3): $12.70\nneed scorer pod olmo2-7b rep_pass (REQ-3's representation pass, scripts/stage1/representation_pass.py; recipe S_78 (PP3, PP4, PP8); single-job E cap 4.75 h, guard $14.79; KD6, the check's C1 and M3): $18.49\nneed scorer pod olmo2-7b a1_pass (A1's attributes pass on the a0-1101 retrain's q and e1 states; recipe S_78; A1's 16.5 h cap at most (PP3, PP8, KD6); single-job E cap 16.50 h, guard $36.53; KD6, the check's C1 and M3): $45.66\nneed scorer pod olmo2-7b l1_scan (the L1 scan (engine X; PP4); single-job E cap 4.75 h, guard $14.79; KD6, the check's C1 and M3): $18.49\nneed scorer pod olmo2-7b classifier (the classifier under recipe S_78, as at 1B (PP4, PP8); single-job E cap 3.25 h, guard $12.01; KD6, the check's C1 and M3): $15.01\nneed scorer pod olmo2-7b c0 (c0 on an engine-X unit (B17's X-pin check); single-job E cap 4.25 h, guard $13.86; KD6, the check's C1 and M3): $17.33\nneed scorer pod llama31-8b untuned_answers (the untuned-answers pass under the main recipe (PP1, PP2); single-job E cap 6.00 h, guard $17.10; KD6, the check's C1 and M3): $21.38\nneed scorer pod llama31-8b o_only (the O-ext pass at one state (the check's M1); single-job E cap 3.75 h, guard $12.94; KD6, the check's C1 and M3): $16.18\nneed scorer pod llama31-8b o_only_with_regenerate (a reused a0 side unit regenerated train only, checked against its fingerprints, then the O-ext pass on its e1 state (PP17; ruling 7; M1); 2 pods, one per reused a0 seed, each: single-job E cap 4.50 h, guard $14.33; KD6, the check's C1 and M3): $17.91\nneed scorer pod llama31-8b anchor (the anchor job before S_78 (addendum A1, A2); single-job E cap 2.25 h, guard $10.16; KD6, the check's C1 and M3): $12.70\nneed scorer pod llama31-8b rep_pass (REQ-3's representation pass, scripts/stage1/representation_pass.py; recipe S_78 (PP3, PP4, PP8); single-job E cap 4.75 h, guard $14.79; KD6, the check's C1 and M3): $18.49\nneed scorer pod llama31-8b a1_pass (A1's attributes pass on the a0-1101 retrain's q and e1 states; recipe S_78; A1's 16.5 h cap at most (PP3, PP8, KD6); single-job E cap 16.50 h, guard $36.53; KD6, the check's C1 and M3): $45.66\nneed scorer pod llama31-8b l1_scan (the L1 scan (engine X; PP4); single-job E cap 4.75 h, guard $14.79; KD6, the check's C1 and M3): $18.49\nneed scorer pod llama31-8b classifier (the classifier under recipe S_78, as at 1B (PP4, PP8); single-job E cap 3.25 h, guard $12.01; KD6, the check's C1 and M3): $15.01\nneed scorer pod llama31-8b c0 (c0 on an engine-X unit (B17's X-pin check); single-job E cap 4.50 h, guard $14.33; KD6, the check's C1 and M3): $17.91\nidle storage (KD5; E, KCR:161): about $0.33 per day per stopped 50 GB pod that keeps its states ($0.20 per GB per month); N's 2 pods kept stopped: $0.67 per day, about $20.00 per month; counted in no guard\nidle storage retrain olmo2-7b (KD5, PP14; E, KCR:161): keeps the a0-1101 retrain's q and e1 states for A1's pass (PP3); about $0.33 per day, about $10.00 per month while kept stopped; counted in no guard\nidle storage scorer olmo2-7b a1_pass (KD5, PP14; E, KCR:161): holds the retrain's q and e1 states that A1's pass reads (PP3, PP16); about $0.33 per day, about $10.00 per month while kept stopped; counted in no guard\nidle storage scorer olmo2-7b o_only_with_regenerate 1101 (KD5, PP14; E, KCR:161): keeps the regenerated a0 unit's states (PP17; a train-only job like the retrain); about $0.33 per day, about $10.00 per month while kept stopped; counted in no guard\nidle storage scorer olmo2-7b o_only_with_regenerate 1102 (KD5, PP14; E, KCR:161): keeps the regenerated a0 unit's states (PP17; a train-only job like the retrain); about $0.33 per day, about $10.00 per month while kept stopped; counted in no guard\nidle storage scorer olmo2-7b o_only_with_regenerate 1103 (KD5, PP14; E, KCR:161): keeps the regenerated a0 unit's states (PP17; a train-only job like the retrain); about $0.33 per day, about $10.00 per month while kept stopped; counted in no guard\nidle storage scorer olmo2-7b c0 (KD5, PP14; E, KCR:161): keeps its R_1 training unit's states (lean_eval_job.py's OUT/train; the light pull leaves them); about $0.33 per day, about $10.00 per month while kept stopped; counted in no guard\nidle storage retrain llama31-8b (KD5, PP14; E, KCR:161): keeps the a0-1101 retrain's q and e1 states for A1's pass (PP3); about $0.33 per day, about $10.00 per month while kept stopped; counted in no guard\nidle storage scorer llama31-8b a1_pass (KD5, PP14; E, KCR:161): holds the retrain's q and e1 states that A1's pass reads (PP3, PP16); about $0.33 per day, about $10.00 per month while kept stopped; counted in no guard\nidle storage scorer llama31-8b o_only_with_regenerate 1101 (KD5, PP14; E, KCR:161): keeps the regenerated a0 unit's states (PP17; a train-only job like the retrain); about $0.33 per day, about $10.00 per month while kept stopped; counted in no guard\nidle storage scorer llama31-8b o_only_with_regenerate 1102 (KD5, PP14; E, KCR:161): keeps the regenerated a0 unit's states (PP17; a train-only job like the retrain); about $0.33 per day, about $10.00 per month while kept stopped; counted in no guard\nidle storage scorer llama31-8b c0 (KD5, PP14; E, KCR:161): keeps its R_1 training unit's states (lean_eval_job.py's OUT/train; the light pull leaves them); about $0.33 per day, about $10.00 per month while kept stopped; counted in no guard\nidle storage block 0 in all (KD5, PP14; E): 13 pods if every pod above is kept stopped: $4.33 per day, about $130.00 per month; counted in no guard\n"
+ },
+ "pod": {
+  "llama31-8b": {
+   "cap": 12.5,
+   "check_keys": [
+    [
+     "arm",
+     null
+    ],
+    [
+     "a0_arm",
+     null
+    ]
+   ],
+   "dec": [
+    {
+     "action": "run",
+     "reason": null,
+     "remaining_s": 1000000,
+     "requirement_s": 12498.0494,
+     "s": 1.0,
+     "s_obs": 1.0,
+     "s_pod": 1.0
+    },
+    {
+     "action": "defer",
+     "reason": "remaining",
+     "remaining_s": 3000.0,
+     "requirement_s": 12498.0494,
+     "s": 1.0,
+     "s_obs": 1.0,
+     "s_pod": 1.0
+    },
+    {
+     "action": "run",
+     "reason": null,
+     "remaining_s": 1000000,
+     "requirement_s": 12498.0494,
+     "s": 1.0,
+     "s_obs": 1.0,
+     "s_pod": 1.0
+    },
+    {
+     "action": "defer",
+     "reason": "remaining",
+     "remaining_s": 3000.0,
+     "requirement_s": 12498.0494,
+     "s": 1.0,
+     "s_obs": 1.0,
+     "s_pod": 1.0
+    },
+    {
+     "action": "run",
+     "reason": null,
+     "remaining_s": 1000000,
+     "requirement_s": 12498.0494,
+     "s": 1.0,
+     "s_obs": 1.0,
+     "s_pod": 1.0
+    },
+    {
+     "action": "defer",
+     "reason": "remaining",
+     "remaining_s": 3000.0,
+     "requirement_s": 12498.0494,
+     "s": 1.0,
+     "s_obs": 1.0,
+     "s_pod": 1.0
+    },
+    {
+     "action": "run",
+     "reason": null,
+     "remaining_s": 1000000,
+     "requirement_s": 12612.4734,
+     "s": 1.0,
+     "s_obs": 1.0,
+     "s_pod": 1.0
+    },
+    {
+     "action": "defer",
+     "reason": "remaining",
+     "remaining_s": 3000.0,
+     "requirement_s": 12612.4734,
+     "s": 1.0,
+     "s_obs": 1.0,
+     "s_pod": 1.0
+    }
+   ],
+   "e_c0": {
+    "cap_hours": 4.5,
+    "e_cap": true,
+    "family": "llama31-8b",
+    "guard_usd": 14.33,
+    "kind": "c0",
+    "spend_usd": 6.82,
+    "upper_s": 10842.851
+   },
+   "e_retrain": {
+    "cap_hours": 4.5,
+    "e_cap": true,
+    "family": "llama31-8b",
+    "guard_usd": 14.33,
+    "kind": "retrain",
+    "spend_usd": 6.8,
+    "upper_s": 10800.0
+   },
+   "req": [
+    12498.0494,
+    12498.0494,
+    12498.0494,
+    12612.4734
+   ],
+   "spend": 20.795623333333335
+  },
+  "olmo2-7b": {
+   "cap": 8.5,
+   "check_keys": [
+    [
+     "arm",
+     null
+    ],
+    [
+     "a0_arm",
+     null
+    ]
+   ],
+   "dec": [
+    {
+     "action": "run",
+     "reason": null,
+     "remaining_s": 1000000,
+     "requirement_s": 12244.147500000001,
+     "s": 1.0,
+     "s_obs": 1.0,
+     "s_pod": 1.0
+    },
+    {
+     "action": "defer",
+     "reason": "remaining",
+     "remaining_s": 3000.0,
+     "requirement_s": 12244.147500000001,
+     "s": 1.0,
+     "s_obs": 1.0,
+     "s_pod": 1.0
+    },
+    {
+     "action": "run",
+     "reason": null,
+     "remaining_s": 1000000,
+     "requirement_s": 12244.147500000001,
+     "s": 1.0,
+     "s_obs": 1.0,
+     "s_pod": 1.0
+    },
+    {
+     "action": "defer",
+     "reason": "remaining",
+     "remaining_s": 3000.0,
+     "requirement_s": 12244.147500000001,
+     "s": 1.0,
+     "s_obs": 1.0,
+     "s_pod": 1.0
+    },
+    {
+     "action": "run",
+     "reason": null,
+     "remaining_s": 1000000,
+     "requirement_s": 12244.147500000001,
+     "s": 1.0,
+     "s_obs": 1.0,
+     "s_pod": 1.0
+    },
+    {
+     "action": "defer",
+     "reason": "remaining",
+     "remaining_s": 3000.0,
+     "requirement_s": 12244.147500000001,
+     "s": 1.0,
+     "s_obs": 1.0,
+     "s_pod": 1.0
+    }
+   ],
+   "e_c0": {
+    "cap_hours": 4.25,
+    "e_cap": true,
+    "family": "olmo2-7b",
+    "guard_usd": 13.86,
+    "kind": "c0",
+    "spend_usd": 6.67,
+    "upper_s": 10543.749000000002
+   },
+   "e_retrain": {
+    "cap_hours": 4.5,
+    "e_cap": true,
+    "family": "olmo2-7b",
+    "guard_usd": 14.33,
+    "kind": "retrain",
+    "spend_usd": 6.8,
+    "upper_s": 10800.0
+   },
+   "req": [
+    12244.147500000001,
+    12244.147500000001,
+    12244.147500000001
+   ],
+   "spend": 12.496437499999999
+  }
+ }
+}

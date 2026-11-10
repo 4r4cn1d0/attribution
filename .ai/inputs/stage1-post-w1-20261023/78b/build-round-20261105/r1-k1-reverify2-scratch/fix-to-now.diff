@@ -1,0 +1,881 @@
+Only in /private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-epic-ritchie-cc4188/1a199637-2a19-4fac-9cf2-8b00c9c1b5ff/scratchpad/b78/ws-k/runkit/stage1-78b: COPY-MANIFEST.json
+Only in /private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-epic-ritchie-cc4188/1a199637-2a19-4fac-9cf2-8b00c9c1b5ff/scratchpad/b78/ws-k/runkit/stage1-78b: README.md
+diff -ru -x _ /private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-epic-ritchie-cc4188/1a199637-2a19-4fac-9cf2-8b00c9c1b5ff/scratchpad/b78/reports/r1-k1-scratch/fixcopy/runkit/stage1-78b/RULES-78B.md /private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-epic-ritchie-cc4188/1a199637-2a19-4fac-9cf2-8b00c9c1b5ff/scratchpad/b78/ws-k/runkit/stage1-78b/RULES-78B.md
+--- /private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-epic-ritchie-cc4188/1a199637-2a19-4fac-9cf2-8b00c9c1b5ff/scratchpad/b78/reports/r1-k1-scratch/fixcopy/runkit/stage1-78b/RULES-78B.md	2026-11-08 22:05:34
++++ /private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-epic-ritchie-cc4188/1a199637-2a19-4fac-9cf2-8b00c9c1b5ff/scratchpad/b78/ws-k/runkit/stage1-78b/RULES-78B.md	2026-11-08 23:28:39
+@@ -317,7 +317,9 @@
+   the noise reading, the balance; block A's init reads its families and refuses under a "review" provisional plan)
+   and `PLAN_B_78B` (plan, `sr2_adopted`; adopted: basis sigma_A and blinded_sigma.py's output and inputs hashes; not
+   adopted: `sr2_reason` and basis sigma_pool_N under [B] or sigma_F under [C], the hashes null; "review" plans
+-  nothing): both null, `block_init_or_refuse`.
++  nothing): both null, `block_init_or_refuse`. GXB R-24: the plan must be the one its basis gives by P1 §6.1:
++  sigma_A, the plan of the record's `sigma_A_pp` (`plan_for_sigma`, the seed rule); sigma_pool_N, GATE_78B's
++  provisional plan; sigma_F (only [C]), GATE_78B's `sigma_F_plan` (required under [C], null under [B]).
+ - **The anchor stops** (GXB O6; item 14; the fourth set's form, the one Track S reads): kind `scale-78b anchor stop`,
+   `stop_kind` `safe_anchors_below_64` (exit 3) or `harmful_prompt_does_not_encode` (exit 1 with the AnchorJobError
+   message; any other end is a crash), JOB-DONE.json SHA-256, `counts`: `anchor_exit_kind`, `anchor_stop_record`,
+@@ -328,8 +330,28 @@
+ - **ref_train** (Part 2 §3.2): a measured kind under `RECIPE_G` only. **The wrapper path**: `OEXT_UNIT_SCRIPT`,
+   `C0_SCRIPT` and `W1_18_SCRIPT` are Track O's `scripts/scale78b/oext_78b.py` (`OEXT_WRAPPER_COMMANDS`: unit, lean,
+   w1_18; the runner's command lines are K3's). `OEXT_78B[F]` (engine X) and `OEXT_78B_Y[F]` (engine Y; null; filled
+-  after ENGINE_Y and RECIPE_BQI) each pin the wrapper and exactly their own family's and engine's O-ext index
+-  (`scripts/scale78b/settings/oext_index__<F>__<E>.json`, K1's reading; GXB R-5).
++  after ENGINE_Y and RECIPE_BQI) each pin the wrapper and exactly their own family's and engine's O-ext index, by
++  Track O's names `scripts/scale78b/settings/OEXT-78B__<F>.json` (X) and `OEXT-78B-Y__<F>.json` (Y) (GXB R-5, R-22);
++  the family's W1-18 record may be the one entry under `.ai/inputs/stage1-post-w1-20261023/78b/w1-18/` (R-21).
+ - **Block 0** keeps 3481d85's plan.json byte for byte: the job keys `oext` and `padded_tokens_per_step` are written on
+   block A and B jobs only (GXB R-3; test_42).
++
++### K2's and K3's acceptance items from R1 (GXB R-16, R-26)
++
++- **KR4, the pod side of a stop.** Once `ANCHOR_STOP[F]` is pinned, every process that calls `family_stopped` (the
++  pod's `check_keys` and `job_decision`, the planner, the pack) refuses until it has read the stop record through
++  `anchor_stop_or_refuse(family, bytes, job_done_sha256)`. K2's planner and K3's runner and pack call it before a
++  stopped family's MAIN_F retrain pod (and any other job of that family), and the pack carries the record (by path and
++  SHA-256) into the pod's setup.
++- **KR5.** One shared stop-record fixture read by K2's writer, RK's `anchor_stop_problem` and Track S's reader, with a
++  cross-track test.
++- **KR6 / K-1.** The planner's c0 / O-ext script check becomes a check of the command word, read from
++  `OEXT_WRAPPER_COMMANDS`; the scorer mutant K4bf-m-c0-needs-oext-script moves there.
++- **K-8.** The inherited 1B branch record goes; `BRANCH_78B[F]` is the only branch source, read by its bytes at its pin.
++- The kept S4 count for `block_runs_78b(..., kept)` comes from the untuned pass's dose record, not a caller.
++- **R-16.** The four seed-only `sc_input_names` / `sc_input_pins` call sites (runner :466, :483; pack :432; planner
++  :1306) move to `sc_unit_input_names` / `sc_unit_input_pins`, and the seed-only form is deleted; test_41's list is
++  empty by K3's end.
++- **R-18.** K3 rewrites the runner's O-ext command lines (`oext_78b.py <command> --family F ...`) and the scorer test's
++  assertions on them.
+ 
+Only in /private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-epic-ritchie-cc4188/1a199637-2a19-4fac-9cf2-8b00c9c1b5ff/scratchpad/b78/ws-k/runkit/stage1-78b: account.py
+Only in /private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-epic-ritchie-cc4188/1a199637-2a19-4fac-9cf2-8b00c9c1b5ff/scratchpad/b78/ws-k/runkit/stage1-78b: backup_records_stage1.py
+Only in /private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-epic-ritchie-cc4188/1a199637-2a19-4fac-9cf2-8b00c9c1b5ff/scratchpad/b78/ws-k/runkit/stage1-78b: budget.py
+Only in /private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-epic-ritchie-cc4188/1a199637-2a19-4fac-9cf2-8b00c9c1b5ff/scratchpad/b78/ws-k/runkit/stage1-78b: compare_c1.py
+Only in /private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-epic-ritchie-cc4188/1a199637-2a19-4fac-9cf2-8b00c9c1b5ff/scratchpad/b78/ws-k/runkit/stage1-78b: derive_78b_basis.py
+Only in /private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-epic-ritchie-cc4188/1a199637-2a19-4fac-9cf2-8b00c9c1b5ff/scratchpad/b78/ws-k/runkit/stage1-78b: finisher.py
+Only in /private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-epic-ritchie-cc4188/1a199637-2a19-4fac-9cf2-8b00c9c1b5ff/scratchpad/b78/ws-k/runkit/stage1-78b: gateb_mac.py
+Only in /private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-epic-ritchie-cc4188/1a199637-2a19-4fac-9cf2-8b00c9c1b5ff/scratchpad/b78/ws-k/runkit/stage1-78b: host.py
+Only in /private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-epic-ritchie-cc4188/1a199637-2a19-4fac-9cf2-8b00c9c1b5ff/scratchpad/b78/ws-k/runkit/stage1-78b: judge_pod_stage1
+Only in /private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-epic-ritchie-cc4188/1a199637-2a19-4fac-9cf2-8b00c9c1b5ff/scratchpad/b78/ws-k/runkit/stage1-78b: judge_units_stage1.py
+Only in /private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-epic-ritchie-cc4188/1a199637-2a19-4fac-9cf2-8b00c9c1b5ff/scratchpad/b78/ws-k/runkit/stage1-78b: launch.py
+Only in /private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-epic-ritchie-cc4188/1a199637-2a19-4fac-9cf2-8b00c9c1b5ff/scratchpad/b78/ws-k/runkit/stage1-78b: measured-basis-78b.json
+Only in /private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-epic-ritchie-cc4188/1a199637-2a19-4fac-9cf2-8b00c9c1b5ff/scratchpad/b78/ws-k/runkit/stage1-78b: orchestrate.py
+Only in /private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-epic-ritchie-cc4188/1a199637-2a19-4fac-9cf2-8b00c9c1b5ff/scratchpad/b78/ws-k/runkit/stage1-78b: pack_setup.py
+Only in /private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-epic-ritchie-cc4188/1a199637-2a19-4fac-9cf2-8b00c9c1b5ff/scratchpad/b78/ws-k/runkit/stage1-78b: plan_tool.py
+Only in /private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-epic-ritchie-cc4188/1a199637-2a19-4fac-9cf2-8b00c9c1b5ff/scratchpad/b78/ws-k/runkit/stage1-78b: probes.py
+diff -ru -x _ /private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-epic-ritchie-cc4188/1a199637-2a19-4fac-9cf2-8b00c9c1b5ff/scratchpad/b78/reports/r1-k1-scratch/fixcopy/runkit/stage1-78b/rules_78b.py /private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-epic-ritchie-cc4188/1a199637-2a19-4fac-9cf2-8b00c9c1b5ff/scratchpad/b78/ws-k/runkit/stage1-78b/rules_78b.py
+--- /private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-epic-ritchie-cc4188/1a199637-2a19-4fac-9cf2-8b00c9c1b5ff/scratchpad/b78/reports/r1-k1-scratch/fixcopy/runkit/stage1-78b/rules_78b.py	2026-11-08 22:01:21
++++ /private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-epic-ritchie-cc4188/1a199637-2a19-4fac-9cf2-8b00c9c1b5ff/scratchpad/b78/ws-k/runkit/stage1-78b/rules_78b.py	2026-11-08 23:49:34
+@@ -60,6 +60,7 @@
+ from __future__ import annotations
+ 
+ from decimal import ROUND_HALF_UP, Decimal
++from fractions import Fraction
+ import hashlib
+ import json
+ import math
+@@ -1416,19 +1417,25 @@
+     return value
+ 
+ 
+-OEXT_INDEX_RE = re.compile(r"^scripts/scale78b/settings/oext_index__(olmo2-7b|llama31-8b)__([XY])\.json$")
++# GXB R-22 (ninth set; R-19): Track O's index names: OEXT-78B__<F>.json for engine X, OEXT-78B-Y__<F>.json for Y.
++OEXT_INDEX_RE = re.compile(r"^scripts/scale78b/settings/OEXT-78B(-Y)?__(olmo2-7b|llama31-8b)\.json$")
++# GXB R-21: the family's W1-18 record is committed under this folder; an O-ext pin's files may name it there (that one
++# entry only, a plain .json file directly in the folder); every other entry stays under scripts/.
++W1_18_RECORD_DIR = ".ai/inputs/stage1-post-w1-20261023/78b/w1-18/"
++W1_18_RECORD_RE = re.compile(r"^\.ai/inputs/stage1-post-w1-20261023/78b/w1-18/[A-Za-z0-9_.-]+\.json$")
+ 
+ 
+ def oext_index_problem(oext: dict, family: str, engine: str) -> str | None:
+     """GXB R-5 (sixth set): an O-ext pin names exactly one O-ext index file, its own family's for its own engine
+     (OEXT_78B[F] engine X, OEXT_78B_Y[F] engine Y), by path and SHA-256 among its files, beside the wrapper's own pin;
+-    another family's or engine's index refuses. The index's name, scripts/scale78b/settings/oext_index__<F>__<E>.json,
+-    is K1's reading (I); K2 reconciles it with Track O's final field names."""
++    another family's or engine's index refuses. Track O's names (GXB R-22): scripts/scale78b/settings/OEXT-78B__<F>.json
++    (engine X) and OEXT-78B-Y__<F>.json (engine Y)."""
+     indexes = [p for p in oext["files"] if OEXT_INDEX_RE.match(p)]
+     if len(indexes) != 1:
+         return (f"its files name {len(indexes)} O-ext index file(s); exactly one, {family}'s for engine {engine} "
+                 "(GXB R-5)")
+-    fam, eng = OEXT_INDEX_RE.match(indexes[0]).groups()
++    y, fam = OEXT_INDEX_RE.match(indexes[0]).groups()
++    eng = "Y" if y else "X"
+     if (fam, eng) != (family, engine):
+         return f"its index {indexes[0]} is {fam}'s for engine {eng}, not {family}'s for engine {engine} (GXB R-5)"
+     if OEXT_WRAPPER_78B not in oext["files"]:
+@@ -1445,8 +1452,14 @@
+     files, inputs = oext["files"], oext["inputs"]
+     if not isinstance(files, dict) or not files:
+         return "files is not a non-empty mapping"
++    records = [p for p in files if isinstance(p, str) and p.startswith(W1_18_RECORD_DIR)]
++    if len(records) > 1:
++        return f"files name {len(records)} entries under {W1_18_RECORD_DIR}; at most the one W1-18 record (GXB R-21)"
+     for path, digest in files.items():
+-        if not (isinstance(path, str) and path.startswith("scripts/") and "\\" not in path
++        if path in records:
++            if not W1_18_RECORD_RE.match(path):
++                return f"files names {path!r}, not a plain .json W1-18 record directly under {W1_18_RECORD_DIR}"
++        elif not (isinstance(path, str) and path.startswith("scripts/") and "\\" not in path
+                 and all(part not in ("", ".", "..") for part in path.split("/"))):
+             return f"files names {path!r}, not a plain relative path under scripts/"
+         if not (isinstance(digest, str) and CONFIG_SHA256.match(digest)):
+@@ -1950,16 +1963,16 @@
+ GATE_EVENT = ("ruling 9's gate (after N's reading, the day the new money is in): a recorded lead step writes the gate "
+               "record and fills GATE_78B with its path and SHA-256 (GXB O14, corrected)")
+ GATE_RECORD_KIND = "stage1-78b gate record"
+-GATE_KEYS = ("kind", "version", "option", "families", "provisional_plan", "noise_reading_sha256", "balance_usd", "utc",
+-             "recorded_by")
++GATE_KEYS = ("kind", "version", "option", "families", "provisional_plan", "sigma_F_plan", "noise_reading_sha256",
++             "balance_usd", "utc", "recorded_by")       # GXB R-24: sigma_F_plan, the chosen family's own plan under [C]
+ GATE_OPTIONS = {"B": ("olmo2-7b", "llama31-8b"), "C": ("olmo2-7b",)}   # ruling 5: [C] runs F1 = OLMo-2-7B
+ PLAN_B_78B: dict | None = None
+ PLAN_B_EVENT = ("block A's record-done and blinded_sigma.py (sigma_A and its df; SR-2's reading): a recorded lead step "
+                 "writes block B's plan record and fills PLAN_B_78B with its path and SHA-256, before block B (GXB O14, "
+                 "corrected)")
+ PLAN_B_RECORD_KIND = "stage1-78b block-B plan record"
+-PLAN_B_KEYS = ("kind", "version", "plan", "sr2_adopted", "sr2_reason", "plan_basis", "blinded_sigma_output_sha256",
+-               "blinded_sigma_inputs_sha256", "utc", "recorded_by")
++PLAN_B_KEYS = ("kind", "version", "plan", "sr2_adopted", "sr2_reason", "plan_basis", "sigma_A_pp",
++               "blinded_sigma_output_sha256", "blinded_sigma_inputs_sha256", "utc", "recorded_by")   # R-24: sigma_A_pp
+ PLAN_B_CODES = PLAN_CODES + ("review",)   # P1 §6.1: above the review ceiling there is no 7-8B primary family
+ # GXB K-6 (fourth set): without SR-2 the record names why (the blinding test not verified, or the simulation's reading)
+ # and the plan's basis: N's sigma_pool under [B], the chosen family's sigma_F under [C] (P1 §6.2, §6.4); with SR-2,
+@@ -1968,6 +1981,28 @@
+ PLAN_BASES = {"adopted": "sigma_A", "B": "sigma_pool_N", "C": "sigma_F"}
+ 
+ 
++# GXB R-29 (twelfth set): P1 §6.4 applies §6.1's whole rule to sigma_A, the review ceiling included. The per-plan
++# removal-MDE factors are noise_reading.py's pinned ones (R: scripts/scale78b/noise_reading.py:93 MDE_FACTOR; :281-299
++# seed_rule): review when factor x sigma > 2 x SESOI (5 pp), i.e. above 7.0388 / 9.2721 / 10.7066 pp for A / B9 /
++# H (b); only H (b)'s can fire (sigma <= 4.5 for A, <= 6.0 for B9). Compared exactly, as noise_reading does.
++PLAN_MDE_FACTORS = {"A": "1.4207", "B9": "1.0785", "H": "0.9340"}
++SESOI_PP = 5
++
++
++def plan_for_sigma(sigma_pp) -> str:
++    """P1 §6.1's rule on sigma (ruling 3; GXB R-29): <= 4.5 pp A, <= 6.0 pp B9, above H (stage1_rules.plan_code_for's
++    thresholds); then the review ceiling: "review" when the plan's removal MDE, PLAN_MDE_FACTORS[plan] x sigma, is above
++    2 x SESOI (exact, on the decimal value of sigma). A sigma that is not a finite number >= 0 refuses."""
++    if isinstance(sigma_pp, bool) or not isinstance(sigma_pp, (int, float)) or not math.isfinite(sigma_pp) \
++            or sigma_pp < 0:
++        raise Refused(f"sigma {sigma_pp!r} is not a finite number of percentage points >= 0")
++    sigma = Fraction(repr(sigma_pp)) if isinstance(sigma_pp, float) else Fraction(sigma_pp)
++    plan = "A" if sigma <= Fraction("4.5") else "B9" if sigma <= Fraction("6.0") else "H"
++    if Fraction(PLAN_MDE_FACTORS[plan]) * sigma > 2 * SESOI_PP:
++        return "review"
++    return plan
++
++
+ def _texts_ok(doc) -> bool:
+     return all(isinstance(doc[k], str) and doc[k].strip() for k in ("utc", "recorded_by"))
+ 
+@@ -1986,6 +2021,10 @@
+         return f"option {doc['option']} runs {list(GATE_OPTIONS[doc['option']])}, not {doc['families']!r}"
+     if doc["provisional_plan"] not in PLAN_B_CODES:
+         return f"its provisional plan {doc['provisional_plan']!r} is not one of {list(PLAN_B_CODES)}"
++    if doc["option"] == "C" and doc["sigma_F_plan"] not in PLAN_B_CODES:
++        return f"under [C] sigma_F_plan (the chosen family's own sigma_F plan, P1 §6.2) is one of {list(PLAN_B_CODES)}"
++    if doc["option"] == "B" and doc["sigma_F_plan"] is not None:
++        return "under [B] sigma_F_plan is null (sigma_F decides only under [C])"
+     if not _hex(doc["noise_reading_sha256"]):
+         return "noise_reading_sha256 is not a SHA-256"
+     try:
+@@ -2018,6 +2057,12 @@
+             return "SR-2 is adopted, so sr2_reason is null"
+         if doc["plan_basis"] != PLAN_BASES["adopted"]:
+             return "SR-2 is adopted, so plan_basis is sigma_A (block A's sigma_A from blinded_sigma.py)"
++        try:
++            sigma_plan = plan_for_sigma(doc["sigma_A_pp"])
++        except Refused:
++            return "SR-2 is adopted, so sigma_A_pp is blinded_sigma.py's sigma_A (a finite number >= 0)"
++        if doc["plan"] != sigma_plan:
++            return f"plan {doc['plan']!r} is not the plan sigma_A = {doc['sigma_A_pp']} pp gives ({sigma_plan}; GXB R-24)"
+         for key in hashes:
+             if not _hex(doc[key]):
+                 return f"SR-2 is adopted, so {key} must be a SHA-256"
+@@ -2026,6 +2071,8 @@
+             return f"SR-2 is not adopted, so sr2_reason is one of {list(SR2_REASONS)}"
+         if doc["plan_basis"] not in (PLAN_BASES["B"], PLAN_BASES["C"]):
+             return "SR-2 is not adopted, so plan_basis is sigma_pool_N ([B]) or sigma_F ([C])"
++        if doc["sigma_A_pp"] is not None:
++            return "SR-2 is not adopted, so sigma_A_pp is null"
+         if option is not None and doc["plan_basis"] != PLAN_BASES.get(option):
+             return f"under option {option} the plan's basis without SR-2 is {PLAN_BASES.get(option)}, not {doc['plan_basis']}"
+         for key in hashes:
+@@ -2085,6 +2132,12 @@
+     out = {"block": block, "family": family, "option": doc["option"], "families": tuple(doc["families"]), "plan": None}
+     if block == "B":
+         plan_b = plan_b_record_or_refuse(plan_b_data, doc["option"])
++        if plan_b["plan_basis"] == PLAN_BASES["B"] and plan_b["plan"] != doc["provisional_plan"]:
++            raise Refused(f"block B's plan {plan_b['plan']!r} on N's sigma_pool is not the gate's provisional plan "
++                          f"{doc['provisional_plan']!r} (GXB R-24; P1 §6.4: N's value decides alone)")
++        if plan_b["plan_basis"] == PLAN_BASES["C"] and plan_b["plan"] != doc["sigma_F_plan"]:
++            raise Refused(f"block B's plan {plan_b['plan']!r} on sigma_F is not the gate's sigma_F plan "
++                          f"{doc['sigma_F_plan']!r} (GXB R-24; P1 §6.2)")
+         if plan_b["plan"] == "review":
+             raise Refused("block B's plan is 'review' (P1 §6.1: no 7-8B primary family; the user decides): block B "
+                           "plans nothing")
+@@ -2197,12 +2250,15 @@
+     return None
+ 
+ 
+-def anchor_stop_or_refuse(family: str, data: bytes, job_done_sha256: str | None = None) -> dict:
++def anchor_stop_or_refuse(family: str, data: bytes, job_done_sha256: str) -> dict:
+     """The family's stop record from ``data`` (the bytes the caller read at ANCHOR_STOP[family]'s path), in the
+     GATE_78B pattern (K1V-6): Refused while the pin is null (with its event), when the bytes do not hash to the pin, or
+-    when the record is not the family's (anchor_stop_problem: its kind, family, stop_kind, exit code and counts; and
+-    the anchor job's JOB-DONE.json when ``job_done_sha256`` is given). Only then is the family marked stopped."""
++    when the record is not the family's (anchor_stop_problem: its kind, family, stop_kind, exit code and counts) or
++    does not name the anchor job's JOB-DONE.json ``job_done_sha256`` (required, KR8). Only then is the family marked
++    stopped."""
+     family_of(family)
++    if not _hex(job_done_sha256):
++        raise Refused("the anchor job's JOB-DONE.json SHA-256 is required to read a stop record (KR8)")
+     doc = _pinned_record_or_refuse(f"ANCHOR_STOP[{family!r}]", ANCHOR_STOP[family], ANCHOR_STOP_EVENT, data,
+                                    ANCHOR_STOP_KIND, lambda d: anchor_stop_problem(d, family, job_done_sha256))
+     _ANCHOR_STOPS_READ[family] = ANCHOR_STOP[family]["sha256"]
+Only in /private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-epic-ritchie-cc4188/1a199637-2a19-4fac-9cf2-8b00c9c1b5ff/scratchpad/b78/ws-k/runkit/stage1-78b: seal.py
+Only in /private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-epic-ritchie-cc4188/1a199637-2a19-4fac-9cf2-8b00c9c1b5ff/scratchpad/b78/ws-k/runkit/stage1-78b: secret_scan.py
+Only in /private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-epic-ritchie-cc4188/1a199637-2a19-4fac-9cf2-8b00c9c1b5ff/scratchpad/b78/ws-k/runkit/stage1-78b: setup
+Only in /private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-epic-ritchie-cc4188/1a199637-2a19-4fac-9cf2-8b00c9c1b5ff/scratchpad/b78/ws-k/runkit/stage1-78b: states_tool.py
+Only in /private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-epic-ritchie-cc4188/1a199637-2a19-4fac-9cf2-8b00c9c1b5ff/scratchpad/b78/ws-k/runkit/stage1-78b: status.py
+Only in /private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-epic-ritchie-cc4188/1a199637-2a19-4fac-9cf2-8b00c9c1b5ff/scratchpad/b78/ws-k/runkit/stage1-78b/tests: conftest.py
+Only in /private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-epic-ritchie-cc4188/1a199637-2a19-4fac-9cf2-8b00c9c1b5ff/scratchpad/b78/ws-k/runkit/stage1-78b/tests: mutants_b15.json
+Only in /private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-epic-ritchie-cc4188/1a199637-2a19-4fac-9cf2-8b00c9c1b5ff/scratchpad/b78/ws-k/runkit/stage1-78b/tests: mutation_spec_gated_78b.json
+diff -ru -x _ /private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-epic-ritchie-cc4188/1a199637-2a19-4fac-9cf2-8b00c9c1b5ff/scratchpad/b78/reports/r1-k1-scratch/fixcopy/runkit/stage1-78b/tests/mutation_spec_rules_78b.json /private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-epic-ritchie-cc4188/1a199637-2a19-4fac-9cf2-8b00c9c1b5ff/scratchpad/b78/ws-k/runkit/stage1-78b/tests/mutation_spec_rules_78b.json
+--- /private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-epic-ritchie-cc4188/1a199637-2a19-4fac-9cf2-8b00c9c1b5ff/scratchpad/b78/reports/r1-k1-scratch/fixcopy/runkit/stage1-78b/tests/mutation_spec_rules_78b.json	2026-11-08 22:02:19
++++ /private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-epic-ritchie-cc4188/1a199637-2a19-4fac-9cf2-8b00c9c1b5ff/scratchpad/b78/ws-k/runkit/stage1-78b/tests/mutation_spec_rules_78b.json	2026-11-08 23:51:43
+@@ -1,6 +1,6 @@
+ {
+  "kind": "stage1-78b mutants",
+- "note": "KCR test 13 and KCR:226 mutants for runkit/stage1-78b (T2), in the stage-1 kit's spec form (tests/mutants_b15.json), plus the fix round's mutants (A-V1..A-V6, the RECIPE_S refusal, the job_decision missing-field refusal; 5 Nov). Run with tests/run_mutants_78b.py: the baseline first with the same command; a mutant is killed only by a real test failure (pytest exit 1, FAILED lines, no ERROR line); an error, a timeout or a find text not exactly once is INVALID, never a kill. Mutants marked needs_measured_root are killed by tests 02b/05b/15b, which skip when /Users/spiderishi/Coding/attribution/tmp/family-probe-sp-* is absent; run those in the lead's checkout. K1 (5 Nov): the re-verifier's D1-D7 and the addendum's A13 pins add 13 mutants (ids K1-m-*); T2-m-keys-engine-any's find text follows the clause's new form (engine_allowed). fix-K-core (5 Nov): PP8 moved two find texts (T2-m-rep-pass-17 -> A1_PASS_CAP_H_MAX; T2-m-s78-kinds-empty's four-kind literal; same mutations); 16 mutants added (ids FK-m-*) for D1 (both MANIFEST forms; V-H17 re-targeted as FK-m-r-edits-any-family), D2 (the idle-storage line), PP7 (the Llama pin) and PP8 (a1_pass, rep_pass, the S_78 kinds). K4a (6 Nov) added the K4-m-* mutants: PP16's X_ONLY_KINDS (engine_allowed checks it first), DK-3's kind sets in the kit's stage1_rules.py, PP14's idle-storage pods and lines. Round 4b (6 Nov): PP17 removed the standalone regenerate kind (its X_ONLY_KINDS mutant follows o_only_with_regenerate, renamed K4-m-x-only-drop-o-only-with-regenerate); D8/PP18 made a1_pass a unit kind and c0 unitless (K4-m-unitless-no-a1-pass became K4-m-unitless-plus-a1-pass); D4's one state-keeping definition re-targeted the two idle mutants; K4bf-m-* added. R1 K1 (8 Nov): the block A/B rules layer adds the K1R-m-* mutants (the block tables and edits, the deal, GXB O1's steps, train_scale's input, the O-ext cap term, W1-18 and the branch rules, the (arm, seed) key and N_UNITS, block A's re-judge list, GXB O6's anchor stops and the stopped family's MAIN_F retrain, ref_train under RECIPE_G, the wrapper path, GXB O14's gate record); the block-table tests run inside test_rules_78b.py's test_23, so this runner's one file kills them. R1 K1 also re-targets 12 find texts its edits moved (T2-m-start-margin-removed, K1-m-n-points-unchecked, K1-m-counted-drops-a0 and nine K4-m-x-only-* mutants; same mutations, w1_18 now in X_ONLY_KINDS). O14 corrected (GXB second set, 15:22 UTC): GATE_78B and PLAN_B_78B; K1R-m-plan-b-* added. GXB third set (T-O3): OEXT_78B_Y; K1R-m-oext-y-* and K1R-m-bqi-decision-no-oext-y added. R1 K1 fix round (8 Nov): 5 K1R find texts re-targeted after the fixes (same mutations); K1V-m-* added for K1V-1..K1V-13, GXB K-5, K-6, R-1, R-3, R-4, R-5 and the verifier's 7 surviving probes.",
++ "note": "KCR test 13 and KCR:226 mutants for runkit/stage1-78b (T2), in the stage-1 kit's spec form (tests/mutants_b15.json), plus the fix round's mutants (A-V1..A-V6, the RECIPE_S refusal, the job_decision missing-field refusal; 5 Nov). Run with tests/run_mutants_78b.py: the baseline first with the same command; a mutant is killed only by a real test failure (pytest exit 1, FAILED lines, no ERROR line); an error, a timeout or a find text not exactly once is INVALID, never a kill. Mutants marked needs_measured_root are killed by tests 02b/05b/15b, which skip when /Users/spiderishi/Coding/attribution/tmp/family-probe-sp-* is absent; run those in the lead's checkout. K1 (5 Nov): the re-verifier's D1-D7 and the addendum's A13 pins add 13 mutants (ids K1-m-*); T2-m-keys-engine-any's find text follows the clause's new form (engine_allowed). fix-K-core (5 Nov): PP8 moved two find texts (T2-m-rep-pass-17 -> A1_PASS_CAP_H_MAX; T2-m-s78-kinds-empty's four-kind literal; same mutations); 16 mutants added (ids FK-m-*) for D1 (both MANIFEST forms; V-H17 re-targeted as FK-m-r-edits-any-family), D2 (the idle-storage line), PP7 (the Llama pin) and PP8 (a1_pass, rep_pass, the S_78 kinds). K4a (6 Nov) added the K4-m-* mutants: PP16's X_ONLY_KINDS (engine_allowed checks it first), DK-3's kind sets in the kit's stage1_rules.py, PP14's idle-storage pods and lines. Round 4b (6 Nov): PP17 removed the standalone regenerate kind (its X_ONLY_KINDS mutant follows o_only_with_regenerate, renamed K4-m-x-only-drop-o-only-with-regenerate); D8/PP18 made a1_pass a unit kind and c0 unitless (K4-m-unitless-no-a1-pass became K4-m-unitless-plus-a1-pass); D4's one state-keeping definition re-targeted the two idle mutants; K4bf-m-* added. R1 K1 (8 Nov): the block A/B rules layer adds the K1R-m-* mutants (the block tables and edits, the deal, GXB O1's steps, train_scale's input, the O-ext cap term, W1-18 and the branch rules, the (arm, seed) key and N_UNITS, block A's re-judge list, GXB O6's anchor stops and the stopped family's MAIN_F retrain, ref_train under RECIPE_G, the wrapper path, GXB O14's gate record); the block-table tests run inside test_rules_78b.py's test_23, so this runner's one file kills them. R1 K1 also re-targets 12 find texts its edits moved (T2-m-start-margin-removed, K1-m-n-points-unchecked, K1-m-counted-drops-a0 and nine K4-m-x-only-* mutants; same mutations, w1_18 now in X_ONLY_KINDS). O14 corrected (GXB second set, 15:22 UTC): GATE_78B and PLAN_B_78B; K1R-m-plan-b-* added. GXB third set (T-O3): OEXT_78B_Y; K1R-m-oext-y-* and K1R-m-bqi-decision-no-oext-y added. R1 K1 fix round (8 Nov): 5 K1R find texts re-targeted after the fixes (same mutations); K1V-m-* added for K1V-1..K1V-13, GXB K-5, K-6, R-1, R-3, R-4, R-5 and the verifier's 7 surviving probes. R1 K1 follow-up (8 Nov): KF-m-* for GXB R-21, R-22, R-24 and KR2, KR7, KR8. GXB R-29 (twelfth set): KF2-m-* for the review ceiling on sigma_A; KF-m-sigma-a-threshold re-targeted (same mutation).",
+  "mutants": [
+   {
+    "id": "T2-m-margin-1.0",
+@@ -1802,6 +1802,190 @@
+    "file": "rules_78b.py",
+    "find": "    if family is not None and arm is not None and sc_unit_source(family, kind, arm, seed) == \"n\":",
+    "replace": "    if family is not None and arm is not None and arm == \"R\":"
++  },
++  {
++   "id": "KF-m-sigma-a-plan-any",
++   "part": "R-24",
++   "describes": "basis sigma_A: any plan passes",
++   "file": "rules_78b.py",
++   "find": "        if doc[\"plan\"] != sigma_plan:\n",
++   "replace": "        if False:\n"
++  },
++  {
++   "id": "KF-m-sigma-a-threshold",
++   "part": "R-24",
++   "describes": "the seed rule's 4.5 pp threshold moved",
++   "file": "rules_78b.py",
++   "find": "    plan = \"A\" if sigma <= Fraction(\"4.5\") else \"B9\" if sigma <= Fraction(\"6.0\") else \"H\"",
++   "replace": "    plan = \"A\" if sigma < Fraction(\"4.5\") else \"B9\" if sigma <= Fraction(\"6.0\") else \"H\""
++  },
++  {
++   "id": "KF-m-sigma-a-unchecked-value",
++   "part": "R-24",
++   "describes": "sigma_A_pp's value not checked",
++   "file": "rules_78b.py",
++   "find": "        except Refused:\n            return \"SR-2 is adopted, so sigma_A_pp is",
++   "replace": "        except ZeroDivisionError:\n            return \"SR-2 is adopted, so sigma_A_pp is"
++  },
++  {
++   "id": "KF-m-sigma-a-null-without-sr2",
++   "part": "R-24",
++   "describes": "sigma_A_pp allowed without SR-2",
++   "file": "rules_78b.py",
++   "find": "        if doc[\"sigma_A_pp\"] is not None:\n            return \"SR-2 is not adopted, so sigma_A_pp is null\"",
++   "replace": "        if False:\n            return \"SR-2 is not adopted, so sigma_A_pp is null\""
++  },
++  {
++   "id": "KF-m-pool-plan-any",
++   "part": "R-24",
++   "describes": "basis sigma_pool_N: any plan passes",
++   "file": "rules_78b.py",
++   "find": "        if plan_b[\"plan_basis\"] == PLAN_BASES[\"B\"] and plan_b[\"plan\"] != doc[\"provisional_plan\"]:",
++   "replace": "        if False:"
++  },
++  {
++   "id": "KF-m-sigma-f-plan-any",
++   "part": "R-24",
++   "describes": "basis sigma_F: any plan passes",
++   "file": "rules_78b.py",
++   "find": "        if plan_b[\"plan_basis\"] == PLAN_BASES[\"C\"] and plan_b[\"plan\"] != doc[\"sigma_F_plan\"]:",
++   "replace": "        if False:"
++  },
++  {
++   "id": "KF-m-gate-c-no-sigma-f",
++   "part": "R-24",
++   "describes": "the [C] gate need not record sigma_F's plan",
++   "file": "rules_78b.py",
++   "find": "    if doc[\"option\"] == \"C\" and doc[\"sigma_F_plan\"] not in PLAN_B_CODES:",
++   "replace": "    if False:"
++  },
++  {
++   "id": "KF-m-gate-b-sigma-f-any",
++   "part": "R-24",
++   "describes": "the [B] gate may record a sigma_F plan",
++   "file": "rules_78b.py",
++   "find": "    if doc[\"option\"] == \"B\" and doc[\"sigma_F_plan\"] is not None:",
++   "replace": "    if False:"
++  },
++  {
++   "id": "KF-m-index-old-name",
++   "part": "R-22",
++   "describes": "the index regex takes K1's old name",
++   "file": "rules_78b.py",
++   "find": "OEXT_INDEX_RE = re.compile(r\"^scripts/scale78b/settings/OEXT-78B(-Y)?__(olmo2-7b|llama31-8b)\\.json$\")",
++   "replace": "OEXT_INDEX_RE = re.compile(r\"^scripts/scale78b/settings/(?:oext_index__|OEXT-78B(-Y)?__)(olmo2-7b|llama31-8b)(?:__[XY])?\\.json$\")"
++  },
++  {
++   "id": "KF-m-index-y-as-x",
++   "part": "R-22",
++   "describes": "a Y index read as engine X",
++   "file": "rules_78b.py",
++   "find": "    eng = \"Y\" if y else \"X\"",
++   "replace": "    eng = \"X\""
++  },
++  {
++   "id": "KF-m-w1-18-records-many",
++   "part": "R-21",
++   "describes": "several entries under the W1-18 folder",
++   "file": "rules_78b.py",
++   "find": "    if len(records) > 1:",
++   "replace": "    if len(records) > 9:"
++  },
++  {
++   "id": "KF-m-w1-18-record-any-form",
++   "part": "R-21",
++   "describes": "any entry under the W1-18 folder",
++   "file": "rules_78b.py",
++   "find": "            if not W1_18_RECORD_RE.match(path):",
++   "replace": "            if False:"
++  },
++  {
++   "id": "KF-m-w1-18-folder-any",
++   "part": "R-21",
++   "describes": "any .ai folder for the W1-18 record",
++   "file": "rules_78b.py",
++   "find": "W1_18_RECORD_DIR = \".ai/inputs/stage1-post-w1-20261023/78b/w1-18/\"",
++   "replace": "W1_18_RECORD_DIR = \".ai/inputs/\""
++  },
++  {
++   "id": "KF-m-stop-needed-unchecked",
++   "part": "KR2",
++   "describes": "the stop record's needed not checked",
++   "file": "rules_78b.py",
++   "find": "        if not (isinstance(line, dict) and set(line) == {\"kept\", \"needed\"} and line[\"needed\"] == ANCHOR_N_SAFE\n",
++   "replace": "        if not (isinstance(line, dict) and set(line) == {\"kept\", \"needed\"}\n"
++  },
++  {
++   "id": "KF-m-stop-of-unchecked",
++   "part": "KR2",
++   "describes": "the harmful counts' of not checked",
++   "file": "rules_78b.py",
++   "find": "              and all(_int(line[k]) for k in line) and line[\"of\"] == ANCHOR_N_HARMFUL\n",
++   "replace": "              and all(_int(line[k]) for k in line)\n"
++  },
++  {
++   "id": "KF-m-stop-index-range",
++   "part": "KR2",
++   "describes": "the prompt_index range not checked",
++   "file": "rules_78b.py",
++   "find": "              and 0 <= line[\"prompt_index\"] < ANCHOR_N_HARMFUL and line[\"position\"] == line[\"prompt_index\"] + 1):",
++   "replace": "              and line[\"position\"] == line[\"prompt_index\"] + 1):"
++  },
++  {
++   "id": "KF-m-stop-jobdone-form",
++   "part": "KR2",
++   "describes": "the stop record's job_done_sha256 form not checked",
++   "file": "rules_78b.py",
++   "find": "    if not _hex(doc[\"job_done_sha256\"]):\n        return \"job_done_sha256 is not a SHA-256\"",
++   "replace": "    if False:\n        return \"job_done_sha256 is not a SHA-256\""
++  },
++  {
++   "id": "KF-m-top-pin-any-arms",
++   "part": "KR7",
++   "describes": "a filled s4_top pin is checked even where no s4_top runs",
++   "file": "rules_78b.py",
++   "find": "            if \"s4_top\" in dose_arms and isinstance(top, dict) and top.get(\"rows\") != kept:",
++   "replace": "            if isinstance(top, dict) and top.get(\"rows\") != kept:"
++  },
++  {
++   "id": "KF-m-branch-texts",
++   "part": "KR7",
++   "describes": "the branch record's utc and recorded_by not checked",
++   "file": "rules_78b.py",
++   "find": "    if not all(isinstance(doc[k], str) and doc[k].strip() for k in (\"utc\", \"recorded_by\")):",
++   "replace": "    if False:"
++  },
++  {
++   "id": "KF-m-stop-read-jobdone-optional",
++   "part": "KR8",
++   "describes": "anchor_stop_or_refuse reads without the JOB-DONE hash",
++   "file": "rules_78b.py",
++   "find": "    if not _hex(job_done_sha256):\n        raise Refused(\"the anchor job's JOB-DONE.json SHA-256 is required",
++   "replace": "    if False:\n        raise Refused(\"the anchor job's JOB-DONE.json SHA-256 is required"
++  },
++  {
++   "id": "KF2-m-no-review-ceiling",
++   "part": "R-29",
++   "describes": "basis sigma_A never reaches review",
++   "file": "rules_78b.py",
++   "find": "    if Fraction(PLAN_MDE_FACTORS[plan]) * sigma > 2 * SESOI_PP:\n        return \"review\"",
++   "replace": "    if False:\n        return \"review\""
++  },
++  {
++   "id": "KF2-m-ceiling-factor-h",
++   "part": "R-29",
++   "describes": "H (b)'s MDE factor off noise_reading's pin",
++   "file": "rules_78b.py",
++   "find": "PLAN_MDE_FACTORS = {\"A\": \"1.4207\", \"B9\": \"1.0785\", \"H\": \"0.9340\"}",
++   "replace": "PLAN_MDE_FACTORS = {\"A\": \"1.4207\", \"B9\": \"1.0785\", \"H\": \"0.9341\"}"
++  },
++  {
++   "id": "KF2-m-ceiling-ge",
++   "part": "R-29",
++   "describes": "the ceiling compared with >= (review at the boundary)",
++   "file": "rules_78b.py",
++   "find": "    if Fraction(PLAN_MDE_FACTORS[plan]) * sigma > 2 * SESOI_PP:",
++   "replace": "    if Fraction(PLAN_MDE_FACTORS[plan]) * sigma >= 2 * SESOI_PP - Fraction(1, 10 ** 6):"
+   }
+  ]
+ }
+Only in /private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-epic-ritchie-cc4188/1a199637-2a19-4fac-9cf2-8b00c9c1b5ff/scratchpad/b78/ws-k/runkit/stage1-78b/tests: mutation_spec_runner_78b.json
+Only in /private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-epic-ritchie-cc4188/1a199637-2a19-4fac-9cf2-8b00c9c1b5ff/scratchpad/b78/ws-k/runkit/stage1-78b/tests: run_mutants_78b.py
+Only in /private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-epic-ritchie-cc4188/1a199637-2a19-4fac-9cf2-8b00c9c1b5ff/scratchpad/b78/ws-k/runkit/stage1-78b/tests: run_mutants_gated_78b.py
+Only in /private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-epic-ritchie-cc4188/1a199637-2a19-4fac-9cf2-8b00c9c1b5ff/scratchpad/b78/ws-k/runkit/stage1-78b/tests: run_mutants_runner_78b.py
+Only in /private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-epic-ritchie-cc4188/1a199637-2a19-4fac-9cf2-8b00c9c1b5ff/scratchpad/b78/ws-k/runkit/stage1-78b/tests: run_mutants_scorer_78b.py
+diff -ru -x _ /private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-epic-ritchie-cc4188/1a199637-2a19-4fac-9cf2-8b00c9c1b5ff/scratchpad/b78/reports/r1-k1-scratch/fixcopy/runkit/stage1-78b/tests/test_block_tables_78b.py /private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-epic-ritchie-cc4188/1a199637-2a19-4fac-9cf2-8b00c9c1b5ff/scratchpad/b78/ws-k/runkit/stage1-78b/tests/test_block_tables_78b.py
+--- /private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-epic-ritchie-cc4188/1a199637-2a19-4fac-9cf2-8b00c9c1b5ff/scratchpad/b78/reports/r1-k1-scratch/fixcopy/runkit/stage1-78b/tests/test_block_tables_78b.py	2026-11-08 21:55:28
++++ /private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-epic-ritchie-cc4188/1a199637-2a19-4fac-9cf2-8b00c9c1b5ff/scratchpad/b78/ws-k/runkit/stage1-78b/tests/test_block_tables_78b.py	2026-11-08 23:23:25
+@@ -486,10 +486,10 @@
+     fill, and bytes that are not the pinned record refuse."""
+     sr = kit_copy(tmp_path, "olmo2-7b", "B")
+     gate = {"kind": R.GATE_RECORD_KIND, "version": 1, "option": "B", "families": ["olmo2-7b", "llama31-8b"],
+-            "provisional_plan": "A", "noise_reading_sha256": hx("noise"), "balance_usd": 250.0,
++            "provisional_plan": "A", "sigma_F_plan": None, "noise_reading_sha256": hx("noise"), "balance_usd": 250.0,
+             "utc": "2026-11-20T10:00:00Z", "recorded_by": "GI XI"}
+     plan_b = {"kind": R.PLAN_B_RECORD_KIND, "version": 1, "plan": "B9", "sr2_adopted": True, "sr2_reason": None,
+-              "plan_basis": "sigma_A",
++              "plan_basis": "sigma_A", "sigma_A_pp": 5.0,
+               "blinded_sigma_output_sha256": hx("bs-out"), "blinded_sigma_inputs_sha256": hx("bs-in"),
+               "utc": "2026-12-01T10:00:00Z", "recorded_by": "GI XI"}
+     g, b = json.dumps(gate).encode(), json.dumps(plan_b).encode()
+Only in /private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-epic-ritchie-cc4188/1a199637-2a19-4fac-9cf2-8b00c9c1b5ff/scratchpad/b78/ws-k/runkit/stage1-78b/tests: test_fix_k_core.py
+Only in /private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-epic-ritchie-cc4188/1a199637-2a19-4fac-9cf2-8b00c9c1b5ff/scratchpad/b78/ws-k/runkit/stage1-78b/tests: test_g1_yoext.py
+Only in /private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-epic-ritchie-cc4188/1a199637-2a19-4fac-9cf2-8b00c9c1b5ff/scratchpad/b78/ws-k/runkit/stage1-78b/tests: test_gated_78b.py
+Only in /private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-epic-ritchie-cc4188/1a199637-2a19-4fac-9cf2-8b00c9c1b5ff/scratchpad/b78/ws-k/runkit/stage1-78b/tests: test_kit_78b_runner.py
+Only in /private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-epic-ritchie-cc4188/1a199637-2a19-4fac-9cf2-8b00c9c1b5ff/scratchpad/b78/ws-k/runkit/stage1-78b/tests: test_pp10_guard.py
+Only in /private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-epic-ritchie-cc4188/1a199637-2a19-4fac-9cf2-8b00c9c1b5ff/scratchpad/b78/ws-k/runkit/stage1-78b/tests: test_pp10_process_wide.py
+Only in /private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-epic-ritchie-cc4188/1a199637-2a19-4fac-9cf2-8b00c9c1b5ff/scratchpad/b78/ws-k/runkit/stage1-78b/tests: test_round30a.py
+Only in /private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-epic-ritchie-cc4188/1a199637-2a19-4fac-9cf2-8b00c9c1b5ff/scratchpad/b78/ws-k/runkit/stage1-78b/tests: test_round34.py
+Only in /private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-epic-ritchie-cc4188/1a199637-2a19-4fac-9cf2-8b00c9c1b5ff/scratchpad/b78/ws-k/runkit/stage1-78b/tests: test_round35.py
+diff -ru -x _ /private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-epic-ritchie-cc4188/1a199637-2a19-4fac-9cf2-8b00c9c1b5ff/scratchpad/b78/reports/r1-k1-scratch/fixcopy/runkit/stage1-78b/tests/test_rules_78b.py /private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-epic-ritchie-cc4188/1a199637-2a19-4fac-9cf2-8b00c9c1b5ff/scratchpad/b78/ws-k/runkit/stage1-78b/tests/test_rules_78b.py
+--- /private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-epic-ritchie-cc4188/1a199637-2a19-4fac-9cf2-8b00c9c1b5ff/scratchpad/b78/reports/r1-k1-scratch/fixcopy/runkit/stage1-78b/tests/test_rules_78b.py	2026-11-08 22:02:35
++++ /private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-epic-ritchie-cc4188/1a199637-2a19-4fac-9cf2-8b00c9c1b5ff/scratchpad/b78/ws-k/runkit/stage1-78b/tests/test_rules_78b.py	2026-11-08 23:52:14
+@@ -24,6 +24,7 @@
+ import importlib.util
+ import inspect
+ import json
++from fractions import Fraction
+ import math
+ import pathlib
+ import re
+@@ -1067,10 +1068,20 @@
+     assert required <= set(ids)
+     assert len([i for i in ids if i.startswith("K1R-m-")]) >= 79
+     assert len([i for i in ids if i.startswith("K1V-m-")]) >= 37
++    kf = {"KF-m-sigma-a-plan-any", "KF-m-sigma-a-threshold", "KF-m-sigma-a-unchecked-value",
++          "KF-m-sigma-a-null-without-sr2", "KF-m-pool-plan-any", "KF-m-sigma-f-plan-any",
++          "KF-m-gate-c-no-sigma-f", "KF-m-gate-b-sigma-f-any", "KF-m-index-old-name", "KF-m-index-y-as-x",
++          "KF-m-w1-18-records-many", "KF-m-w1-18-record-any-form", "KF-m-w1-18-folder-any",
++          "KF-m-stop-needed-unchecked", "KF-m-stop-of-unchecked", "KF-m-stop-index-range",
++          "KF-m-stop-jobdone-form", "KF-m-top-pin-any-arms", "KF-m-branch-texts",
++          "KF-m-stop-read-jobdone-optional"}   # R1 K1 follow-up
++    assert kf <= set(ids) and len(kf) == 20
++    assert {"KF2-m-no-review-ceiling", "KF2-m-ceiling-factor-h", "KF2-m-ceiling-ge"} <= set(ids)   # GXB R-29
+ 
+ 
+ # ----------------------------------------------------------------------------------------------------- test 14
+-STDLIB = {"__future__", "argparse", "datetime", "decimal", "hashlib", "json", "math", "os", "pathlib", "re", "sys"}
++STDLIB = {"__future__", "argparse", "datetime", "decimal", "fractions", "hashlib", "json", "math", "os", "pathlib",
++          "re", "sys"}                                   # R1 K1 (GXB R-29): fractions for the exact review ceiling
+ 
+ 
+ def imports_of(path: pathlib.Path) -> list[str]:
+@@ -1619,7 +1630,7 @@
+ def oext_pin(family: str, engine: str = "X", bank: str | None = None) -> dict:
+     """A synthetic OEXT_78B[F] (engine X) or OEXT_78B_Y[F] (engine Y) record in GXB R-5's form: the wrapper and the
+     family's own index for its engine among the files, by path and SHA-256."""
+-    index = f"scripts/scale78b/settings/oext_index__{family}__{engine}.json"
++    index = f"scripts/scale78b/settings/OEXT-78B{'-Y' if engine == 'Y' else ''}__{family}.json"   # Track O's names
+     return {"files": {R.OEXT_WRAPPER_78B: hx("wrapper"), index: hx(f"index-{family}-{engine}")},
+             "inputs": {"oext_bank": bank or hx("b"), "oext_record": hx("r")}}
+ 
+@@ -2051,7 +2062,7 @@
+ 
+ def gate_doc(**changes) -> dict:
+     doc = {"kind": R.GATE_RECORD_KIND, "version": 1, "option": "B", "families": ["olmo2-7b", "llama31-8b"],
+-           "provisional_plan": "A", "noise_reading_sha256": hx("noise"), "balance_usd": 300.0,
++           "provisional_plan": "A", "sigma_F_plan": None, "noise_reading_sha256": hx("noise"), "balance_usd": 300.0,
+            "utc": "2026-11-20T10:00:00Z", "recorded_by": "GI XI"}
+     doc.update(changes)
+     return doc
+@@ -2059,7 +2070,7 @@
+ 
+ def plan_b_doc(**changes) -> dict:
+     doc = {"kind": R.PLAN_B_RECORD_KIND, "version": 1, "plan": "H", "sr2_adopted": True, "sr2_reason": None,
+-           "plan_basis": "sigma_A", "blinded_sigma_output_sha256": hx("bs-out"), "blinded_sigma_inputs_sha256": hx("bs-in"),
++           "plan_basis": "sigma_A", "sigma_A_pp": 7.25, "blinded_sigma_output_sha256": hx("bs-out"), "blinded_sigma_inputs_sha256": hx("bs-in"),
+            "utc": "2026-12-01T10:00:00Z", "recorded_by": "GI XI"}
+     doc.update(changes)
+     return doc
+@@ -2080,7 +2091,8 @@
+     provisional plan, the noise reading's output hash, the balance) is null until the gate; block A's init reads its
+     families only (block A is the same in every plan) and refuses before the fill; under [C] Llama runs no block."""
+     assert R.GATE_78B is None and R.GATE_KEYS == ("kind", "version", "option", "families", "provisional_plan",
+-                                                  "noise_reading_sha256", "balance_usd", "utc", "recorded_by")
++                                                  "sigma_F_plan", "noise_reading_sha256", "balance_usd", "utc",
++                                                  "recorded_by")
+     data = json.dumps(gate_doc()).encode()
+     with pytest.raises(R.Refused, match="GATE_78B is null: it waits for ruling 9's gate"):
+         R.block_init_or_refuse("A", "olmo2-7b", data)
+@@ -2089,7 +2101,7 @@
+     assert a["families"] == ("olmo2-7b", "llama31-8b") and a["plan"] is None and a["option"] == "B"
+     with pytest.raises(R.Refused, match="reads nothing"):
+         R.block_init_or_refuse("sc", "olmo2-7b", data)
+-    c = json.dumps(gate_doc(option="C", families=["olmo2-7b"], provisional_plan="H")).encode()
++    c = json.dumps(gate_doc(option="C", families=["olmo2-7b"], provisional_plan="H", sigma_F_plan="B9")).encode()
+     pin_of(monkeypatch, "GATE_78B", c)
+     assert R.block_init_or_refuse("A", "olmo2-7b", c)["families"] == ("olmo2-7b",)
+     with pytest.raises(R.Refused, match="llama31-8b runs no block A"):
+@@ -2132,18 +2144,21 @@
+         R.block_init_or_refuse("B", "olmo2-7b", gate, json.dumps(plan_b_doc(plan="A")).encode())
+     with pytest.raises(R.Refused, match="do not hash to PLAN_B_78B"):
+         R.block_init_or_refuse("B", "olmo2-7b", gate, None)
+-    review = json.dumps(plan_b_doc(plan="review")).encode()
++    no = dict(sr2_adopted=False, sr2_reason="simulation_reading", plan_basis="sigma_pool_N", sigma_A_pp=None,
++              blinded_sigma_output_sha256=None, blinded_sigma_inputs_sha256=None)
++    review_gate = json.dumps(gate_doc(provisional_plan="review")).encode()
++    review = json.dumps(plan_b_doc(**no, plan="review")).encode()
++    pin_of(monkeypatch, "GATE_78B", review_gate)
+     pin_of(monkeypatch, "PLAN_B_78B", review)
+     with pytest.raises(R.Refused, match="plans nothing"):
+-        R.block_init_or_refuse("B", "olmo2-7b", gate, review)
+-    no_sr2 = json.dumps(plan_b_doc(plan="B9", sr2_adopted=False, sr2_reason="simulation_reading",
+-                                   plan_basis="sigma_pool_N", blinded_sigma_output_sha256=None,
+-                                   blinded_sigma_inputs_sha256=None)).encode()
++        R.block_init_or_refuse("B", "olmo2-7b", review_gate, review)
++    pin_of(monkeypatch, "GATE_78B", gate)
++    no_sr2 = json.dumps(plan_b_doc(**no, plan="A")).encode()
+     pin_of(monkeypatch, "PLAN_B_78B", no_sr2)
+     assert R.block_init_or_refuse("B", "olmo2-7b", gate, no_sr2) == {
+-        "block": "B", "family": "olmo2-7b", "option": "B", "families": ("olmo2-7b", "llama31-8b"), "plan": "B9",
++        "block": "B", "family": "olmo2-7b", "option": "B", "families": ("olmo2-7b", "llama31-8b"), "plan": "A",
+         "sr2_adopted": False, "plan_basis": "sigma_pool_N"}
+-    c_gate = json.dumps(gate_doc(option="C", families=["olmo2-7b"])).encode()
++    c_gate = json.dumps(gate_doc(option="C", families=["olmo2-7b"], sigma_F_plan="A")).encode()
+     pin_of(monkeypatch, "GATE_78B", c_gate)
+     with pytest.raises(R.Refused, match="llama31-8b runs no block B"):
+         R.block_init_or_refuse("B", "llama31-8b", c_gate, no_sr2)
+@@ -2163,7 +2178,7 @@
+     blinded_sigma.py hashes are null (refused if given). With SR-2: no reason, basis sigma_A, both hashes required."""
+     assert R.SR2_REASONS == ("blinding_test_not_verified", "simulation_reading")
+     assert R.PLAN_BASES == {"adopted": "sigma_A", "B": "sigma_pool_N", "C": "sigma_F"}
+-    no = dict(sr2_adopted=False, blinded_sigma_output_sha256=None, blinded_sigma_inputs_sha256=None)
++    no = dict(sr2_adopted=False, sigma_A_pp=None, blinded_sigma_output_sha256=None, blinded_sigma_inputs_sha256=None)
+     for reason in R.SR2_REASONS:
+         for basis, option in (("sigma_pool_N", "B"), ("sigma_F", "C")):
+             doc = plan_b_doc(**no, sr2_reason=reason, plan_basis=basis)
+@@ -2177,7 +2192,7 @@
+         doc = plan_b_doc(**{**no, "sr2_reason": "simulation_reading", "plan_basis": "sigma_pool_N", **change})
+         assert match in (R.plan_b_record_problem(doc) or ""), change
+     assert R.plan_b_record_problem(plan_b_doc()) is None
+-    gate_c = json.dumps(gate_doc(option="C", families=["olmo2-7b"])).encode()
++    gate_c = json.dumps(gate_doc(option="C", families=["olmo2-7b"], sigma_F_plan="B9")).encode()
+     pin_of(monkeypatch, "GATE_78B", gate_c)
+     bad = json.dumps(plan_b_doc(**no, sr2_reason="blinding_test_not_verified", plan_basis="sigma_pool_N")).encode()
+     pin_of(monkeypatch, "PLAN_B_78B", bad)
+@@ -2310,14 +2325,14 @@
+     monkeypatch.setattr(R, "_ANCHOR_STOPS_READ", {})
+     assert not R.family_stopped(f)
+     with pytest.raises(R.Refused, match="ANCHOR_STOP\\['olmo2-7b'\\] is null"):
+-        R.anchor_stop_or_refuse(f, data)
++        R.anchor_stop_or_refuse(f, data, done)
+     pin_of_item(monkeypatch, R.ANCHOR_STOP, f, data)
+     with pytest.raises(R.Refused, match="has not been read at the pin"):
+         R.family_stopped(f)
+     with pytest.raises(R.Refused, match="has not been read"):
+         R.block_runs_78b(f, None, "A")
+     with pytest.raises(R.Refused, match="do not hash"):
+-        R.anchor_stop_or_refuse(f, data + b" ")
++        R.anchor_stop_or_refuse(f, data + b" ", done)
+     with pytest.raises(R.Refused, match="names JOB-DONE.json"):
+         R.anchor_stop_or_refuse(f, data, hx("other"))
+     with pytest.raises(R.Refused, match="has not been read"):
+@@ -2325,7 +2340,7 @@
+     other = json.dumps(R.anchor_stop_record("llama31-8b", 3, None, done, {"kept": 2, "needed": 64})).encode()
+     pin_of_item(monkeypatch, R.ANCHOR_STOP, f, other)
+     with pytest.raises(R.Refused, match="is not 'scale-78b anchor stop'"):
+-        R.anchor_stop_or_refuse(f, other)
++        R.anchor_stop_or_refuse(f, other, done)
+     pin_of_item(monkeypatch, R.ANCHOR_STOP, f, data)
+     assert R.anchor_stop_or_refuse(f, data, done) == rec and R.family_stopped(f)
+     assert len(R.block_runs_78b(f, None, "A")) == 12
+@@ -2554,15 +2569,68 @@
+         sr.sc_unit_input_pins("o_only_with_regenerate", pins78_doc(), values, None, 1101)
+     assert set(sr.sc_unit_input_pins("o_only_with_regenerate", pins78_doc(), values, "R", 1101)) == {
+         "n_complete:R:1101", "regen_edit:R:1101", "oext_bank", "oext_record"}
+-    legacy = {}
+-    for rel in ("setup/job_runner_stage1.py", "pack_setup.py", "plan_tool.py", "judge_units_stage1.py", "seal.py",
+-                "finisher.py", "orchestrate.py"):
+-        text = (KIT / rel).read_text()
+-        legacy[rel] = text.count("rules.sc_input_names(") + text.count("rules.sc_input_pins(")
+-    assert legacy == {"setup/job_runner_stage1.py": 2, "pack_setup.py": 1, "plan_tool.py": 1,
+-                      "judge_units_stage1.py": 0, "seal.py": 0, "finisher.py": 0, "orchestrate.py": 0}
++    assert seed_only_calls() == R16_SEED_ONLY_CALLS
+ 
+ 
++# GXB R-16's four seed-only call sites (K2's and K3's files; the list is empty by K3's end): (file, the call's line).
++R16_SEED_ONLY_CALLS = {("pack_setup.py", "rules.sc_input_pins(kind, pins78(), values, seed)"),
++                       ("plan_tool.py", "rules.sc_input_pins(kind, pins78, values, seed)"),
++                       ("setup/job_runner_stage1.py", 'rules.sc_input_names(job["kind"], job.get("seed"))'),
++                       ("setup/job_runner_stage1.py", 'rules.sc_input_names(job["kind"], job.get("seed"))#2')}
++SEED_ONLY_ARGS = {"sc_input_names": 3, "sc_input_pins": 5}     # positional slots up to and including arm
++
++
++def seed_only_calls() -> set:
++    """KR3: every call of sc_input_names / sc_input_pins in every non-test .py file of the kit, by any prefix or
++    name, that passes no arm (fewer positional arguments than the arm's slot and no arm= keyword); any other
++    reference to those names outside a call (an alias) is reported too. stage1_rules.py's own calls pass the arm."""
++    out, seen = set(), {}
++    for path in sorted(KIT.rglob("*.py")):
++        rel = path.relative_to(KIT).as_posix()
++        if rel.startswith("tests/"):
++            continue
++        source = path.read_text(encoding="utf-8")
++        tree = ast.parse(source)
++        calls = set()
++        for node in ast.walk(tree):
++            if isinstance(node, ast.Call):
++                f = node.func
++                name = f.attr if isinstance(f, ast.Attribute) else f.id if isinstance(f, ast.Name) else None
++                if name in SEED_ONLY_ARGS:
++                    calls.add(id(f))
++                    if len(node.args) < SEED_ONLY_ARGS[name] and not any(k.arg == "arm" for k in node.keywords):
++                        text = ast.get_source_segment(source, node)
++                        n = seen.get((rel, text), 0) + 1
++                        seen[(rel, text)] = n
++                        out.add((rel, text if n == 1 else f"{text}#{n}"))
++        for node in ast.walk(tree):
++            name = node.attr if isinstance(node, ast.Attribute) else node.id if isinstance(node, ast.Name) else None
++            if name in SEED_ONLY_ARGS and id(node) not in calls and not isinstance(getattr(node, "ctx", None), ast.Store):
++                out.add((rel, f"reference {name} at line {node.lineno}"))
++    return out
++
++
++def test_41b_kr3_the_seed_only_scan_sees_every_kit_file_and_any_call_form(tmp_path):
++    """KR3: the scan reads every non-test .py file of the kit (not a fixed list) and any call form (a bare name, an
++    alias prefix, a keyword arm); it finds a new seed-only caller in a file test_41's old list did not read."""
++    found = seed_only_calls()
++    assert found == R16_SEED_ONLY_CALLS
++    files = {rel for rel, _ in found}
++    assert files == {"pack_setup.py", "plan_tool.py", "setup/job_runner_stage1.py"}
++    probe = ast.parse("import stage1_rules as r\nr.sc_input_names('o_only_with_regenerate', 1101)\n"
++                      "sc_input_pins(k, p, v, 1101)\nr.sc_input_names(k, 1101, arm='R')\nf = r.sc_input_pins\n")
++    kinds = []
++    for node in ast.walk(probe):
++        if isinstance(node, ast.Call):
++            f = node.func
++            name = f.attr if isinstance(f, ast.Attribute) else f.id if isinstance(f, ast.Name) else None
++            if name in SEED_ONLY_ARGS:
++                kinds.append(len(node.args) < SEED_ONLY_ARGS[name] and not any(k.arg == "arm" for k in node.keywords))
++    assert kinds == [True, True, False]
++    n_py = len([p for p in KIT.rglob("*.py") if not p.relative_to(KIT).as_posix().startswith("tests/")])
++    assert n_py >= 20                                                 # launch.py, host.py, budget.py, ... included
++
++
+ # Block 0's plan.json at 3481d85 (M, 8 Nov 2026: r1-k1-scratch/plan0.py on `git archive 3481d85 runkit/stage1-78b`, the
+ # World of tests/test_stage1_runkit.py, a real init-block 0, the clock fixed at 2026-11-08T00:00:00+00:00, the tmp
+ # path replaced by "<TMP>"): its byte count and SHA-256 per family. GXB R-3 holds K1's block 0 to these bytes.
+@@ -2591,6 +2659,164 @@
+     finally:
+         sys.modules.pop("test_stage1_runkit_for_r3", None)
+     assert sys.modules.get("rules_78b") is R or "rules_78b" not in sys.modules
++
++
++def test_43_r24_block_bs_plan_is_the_plan_its_basis_gives(monkeypatch):
++    """GXB R-24 (KR1): PLAN_B_78B's plan equals the plan its basis gives by P1 §6.1: basis sigma_A the plan of the
++    sigma_A_pp the record carries (4.5 / 6.0 pp thresholds); basis sigma_pool_N the gate's provisional plan; basis
++    sigma_F (only under [C]) the sigma_F plan the gate records under [C]. Any other plan refuses (about $198 of runs, E:
++    H (b)'s 47 per family against plan A's 23)."""
++    for sigma, plan in ((0.0, "A"), (4.5, "A"), (4.51, "B9"), (6.0, "B9"), (6.01, "H"), (10.7, "H"), (12, "review")):
++        assert R.plan_for_sigma(sigma) == plan
++        assert R.plan_b_record_problem(plan_b_doc(sigma_A_pp=sigma, plan=plan)) is None
++        for other in {"A", "B9", "H", "review"} - {plan}:
++            assert "GXB R-24" in R.plan_b_record_problem(plan_b_doc(sigma_A_pp=sigma, plan=other)), (sigma, other)
++    for bad in (None, float("nan"), -0.1, True, "5.0"):
++        assert "sigma_A_pp is blinded_sigma.py's sigma_A" in R.plan_b_record_problem(plan_b_doc(sigma_A_pp=bad))
++        with pytest.raises(R.Refused):
++            R.plan_for_sigma(bad)
++    sr = load_by_path("stage1_rules_plan_r24", KIT / "stage1_rules.py")
++    try:
++        for sigma in (0.0, 3.0, 4.5, 4.500001, 5.2, 6.0, 6.5, 10.7066):
++            assert sr.plan_code_for(sigma) == R.plan_for_sigma(sigma)     # one seed rule below the ceiling
++        assert sr.plan_code_for(20.0) == "H" and R.plan_for_sigma(20.0) == "review"   # R-29: RK adds the ceiling
++    finally:
++        sys.modules.pop("stage1_rules_plan_r24", None)
++    no = dict(sr2_adopted=False, sr2_reason="simulation_reading", sigma_A_pp=None, blinded_sigma_output_sha256=None,
++              blinded_sigma_inputs_sha256=None)
++    assert "sigma_A_pp is null" in R.plan_b_record_problem(plan_b_doc(**{**no, "sigma_A_pp": 5.0},
++                                                                      plan_basis="sigma_pool_N"))
++    # basis sigma_pool_N ([B]): the gate's provisional plan
++    for provisional in ("A", "B9", "H"):
++        gate = json.dumps(gate_doc(provisional_plan=provisional)).encode()
++        pin_of(monkeypatch, "GATE_78B", gate)
++        for plan in ("A", "B9", "H"):
++            data = json.dumps(plan_b_doc(**no, plan=plan, plan_basis="sigma_pool_N")).encode()
++            pin_of(monkeypatch, "PLAN_B_78B", data)
++            if plan == provisional:
++                assert R.block_init_or_refuse("B", "olmo2-7b", gate, data)["plan"] == plan
++            else:
++                with pytest.raises(R.Refused, match="not the gate's provisional plan"):
++                    R.block_init_or_refuse("B", "olmo2-7b", gate, data)
++    # basis sigma_F ([C]): the gate's sigma_F plan, not its provisional plan
++    gate_c = json.dumps(gate_doc(option="C", families=["olmo2-7b"], provisional_plan="A", sigma_F_plan="H")).encode()
++    pin_of(monkeypatch, "GATE_78B", gate_c)
++    for plan in ("A", "B9", "H"):
++        data = json.dumps(plan_b_doc(**no, plan=plan, plan_basis="sigma_F")).encode()
++        pin_of(monkeypatch, "PLAN_B_78B", data)
++        if plan == "H":
++            assert R.block_init_or_refuse("B", "olmo2-7b", gate_c, data)["plan"] == "H"
++        else:
++            with pytest.raises(R.Refused, match="not the gate's sigma_F plan"):
++                R.block_init_or_refuse("B", "olmo2-7b", gate_c, data)
++    # basis sigma_A: the plan of the sigma_A the record carries, whatever the gate's provisional plan
++    data = json.dumps(plan_b_doc(plan="B9", sigma_A_pp=5.5)).encode()
++    pin_of(monkeypatch, "GATE_78B", json.dumps(gate_doc(provisional_plan="H")).encode())
++    pin_of(monkeypatch, "PLAN_B_78B", data)
++    assert R.block_init_or_refuse("B", "olmo2-7b", json.dumps(gate_doc(provisional_plan="H")).encode(), data)["plan"] == "B9"
++    # the gate's sigma_F_plan: required under [C], null under [B]
++    assert "under [C] sigma_F_plan" in R.gate_record_problem(gate_doc(option="C", families=["olmo2-7b"]))
++    assert "under [C] sigma_F_plan" in R.gate_record_problem(gate_doc(option="C", families=["olmo2-7b"],
++                                                                      sigma_F_plan="B10"))
++    assert "under [B] sigma_F_plan is null" in R.gate_record_problem(gate_doc(sigma_F_plan="A"))
++    assert R.gate_record_problem(gate_doc(option="C", families=["olmo2-7b"], sigma_F_plan="review")) is None
++
++
++def test_44_r22_track_os_index_names_and_r21_the_w1_18_record_folder():
++    """GXB R-22: the O-ext index names are Track O's, scripts/scale78b/settings/OEXT-78B__<F>.json (engine X) and
++    OEXT-78B-Y__<F>.json (engine Y); K1's earlier oext_index__ name is no index. GXB R-21: one entry, the family's
++    W1-18 record, may sit directly under .ai/inputs/stage1-post-w1-20261023/78b/w1-18/; every other entry stays under
++    scripts/."""
++    for family in R.FAMILIES:
++        x = oext_pin(family, "X")
++        assert f"scripts/scale78b/settings/OEXT-78B__{family}.json" in x["files"]
++        assert f"scripts/scale78b/settings/OEXT-78B-Y__{family}.json" in oext_pin(family, "Y")["files"]
++        old = {"files": {R.OEXT_WRAPPER_78B: hx("w"), f"scripts/scale78b/settings/oext_index__{family}__X.json": hx("i")},
++               "inputs": x["inputs"]}
++        assert "0 O-ext index file(s)" in R.oext_form_problem(old, family, "X")
++        rec = f"{R.W1_18_RECORD_DIR}w1_18_record__{family}.json"
++        with_rec = {"files": {**x["files"], rec: hx("rec")}, "inputs": x["inputs"]}
++        assert R.oext_form_problem(with_rec, family, "X") is None and R.oext_form_problem(with_rec) is None
++        two = {"files": {**with_rec["files"], f"{R.W1_18_RECORD_DIR}other.json": hx("rec2")}, "inputs": x["inputs"]}
++        assert "at most the one W1-18 record" in R.oext_form_problem(two)
++        for bad in (f"{R.W1_18_RECORD_DIR}sub/w.json", f"{R.W1_18_RECORD_DIR}w.txt", f"{R.W1_18_RECORD_DIR}../w.json"):
++            doc = {"files": {**x["files"], bad: hx("rec")}, "inputs": x["inputs"]}
++            assert "W1-18 record directly under" in R.oext_form_problem(doc), bad
++        for bad in (".ai/inputs/stage1-post-w1-20261023/78b/other/w.json", "tmp/w1-18/w.json"):
++            doc = {"files": {**x["files"], bad: hx("rec")}, "inputs": x["inputs"]}
++            assert "not a plain relative path under scripts/" in R.oext_form_problem(doc), bad
++        bad_digest = {"files": {**x["files"], rec: "nothex"}, "inputs": x["inputs"]}
++        assert "is not a SHA-256" in R.oext_form_problem(bad_digest)
++
++
++def test_45_kr2_kr7_kr8_the_stop_records_and_the_branchs_remaining_checks(monkeypatch):
++    """KR2: the stop record's needed == 64, of == 64, the prompt_index range and the job_done_sha256 form; KR7: the
++    "s4_top" in dose_arms guard (a filled s4_top pin of other rows does not refuse where no s4_top runs) and the branch
++    record's utc / recorded_by check; KR8: anchor_stop_or_refuse always needs the anchor job's JOB-DONE.json SHA-256."""
++    done = hx("job-done")
++    few = R.anchor_stop_record("olmo2-7b", 3, None, done, {"kept": 10, "needed": 64})
++    pair = R.anchor_stop_record("olmo2-7b", 1, HARMFUL, done)
++    for counts in ({"kept": 10, "needed": 63}, {"kept": 10, "needed": 65}):
++        assert "its counts are not {kept < 64, needed 64}" in R.anchor_stop_problem({**few, "counts": counts}, "olmo2-7b")
++    for counts in ({"prompt_index": 7, "position": 8, "of": 63}, {"prompt_index": 64, "position": 65, "of": 64},
++                   {"prompt_index": -1, "position": 0, "of": 64}):
++        assert "its counts are not {prompt_index, position, of 64}" in R.anchor_stop_problem({**pair, "counts": counts},
++                                                                                             "olmo2-7b"), counts
++    for bad in ("x", "A" * 64, None, 7):
++        assert "job_done_sha256 is not a SHA-256" in R.anchor_stop_problem({**few, "job_done_sha256": bad}, "olmo2-7b")
++    data = json.dumps(few).encode()
++    pin_of_item(monkeypatch, R.ANCHOR_STOP, "olmo2-7b", data)
++    monkeypatch.setattr(R, "_ANCHOR_STOPS_READ", {})
++    for bad in (None, "x"):
++        with pytest.raises(R.Refused, match="JOB-DONE.json SHA-256 is required"):
++            R.anchor_stop_or_refuse("olmo2-7b", data, bad)
++    with pytest.raises(TypeError):
++        R.anchor_stop_or_refuse("olmo2-7b", data)                           # no default: the argument is required
++    assert not R._ANCHOR_STOPS_READ
++    monkeypatch.setitem(R.ANCHOR_STOP, "olmo2-7b", None)
++    # KR7 (1): a filled s4_top pin of other rows is ignored where the kept count forms no s4_top
++    monkeypatch.setitem(R.METHOD_EDITS["olmo2-7b"], "s4_top", {"path": "tmp/top.json", "sha256": hx("top"), "rows": 120})
++    for kept, n in ((48, 23), (96, 26), (192, 29), (250, 29)):
++        assert len(R.block_runs_78b("olmo2-7b", "A", "B", dose_seeds=3, kept=kept)) == n, kept
++    # KR7 (2): the branch record's utc and recorded_by
++    for key in ("utc", "recorded_by"):
++        for bad in ("", "  ", None, 7):
++            doc = {**branch_doc("olmo2-7b"), key: bad}
++            assert "utc and recorded_by must be non-empty texts" in R.branch_record_problem(doc, "olmo2-7b"), (key, bad)
++
++
++def test_46_r29_the_review_ceiling_on_sigma_a_equals_noise_readings_seed_rule(monkeypatch):
++    """GXB R-29: P1 §6.4 applies §6.1's whole rule to sigma_A, the review ceiling included. RK's plan_for_sigma equals
++    scripts/scale78b/noise_reading.py's seed_rule (loaded by path, read only; its outcome "review" or the plan) on the
++    same sigma values, on both sides of each boundary: 4.5, 6.0 and the three ceilings 2 x 5 / factor (7.0388, 9.2721,
++    10.7066 pp; only H (b)'s fires). PLAN_B_78B on basis sigma_A then says "review" above 10.7066 pp and refuses any
++    other plan there."""
++    assert R.PLAN_MDE_FACTORS == {"A": "1.4207", "B9": "1.0785", "H": "0.9340"} and R.SESOI_PP == 5
++    nr = load_by_path("noise_reading_for_r29", ROOT / "scripts" / "scale78b" / "noise_reading.py")
++    try:
++        assert {k: str(v) for k, v in nr.MDE_FACTOR.items()} == R.PLAN_MDE_FACTORS and nr.SESOI_PP == R.SESOI_PP
++        values = ["0", "3.2", "4.5", "4.5000001", "4.4999999", "6.0", "5.9999999", "6.0000001", "7.0388", "7.0389",
++                  "9.2721", "9.2722", "10.7066", "10.70663", "10.70664", "10.7067", "11.5", "25",
++                  "10.7066381", "10.7066382"]                    # within 1e-6 of H (b)'s exact ceiling 10 / 0.9340
++        for text in values:
++            want = nr.seed_rule([(Fraction(text) ** 2,)], 4)
++            want = "review" if want["review"] else want["plan"]
++            assert R.plan_for_sigma(float(text)) == want, (text, want)
++        assert R.plan_for_sigma(10.7066381) == "H" and R.plan_for_sigma(10.7066382) == "review"
++        assert {k: round(float(v), 4) for k, v in nr.CEILING_SIGMA_PP.items()} == {"A": 7.0388, "B9": 9.2721,
++                                                                                   "H": 10.7066}
++    finally:
++        sys.modules.pop("noise_reading_for_r29", None)
++    gate = json.dumps(gate_doc(provisional_plan="H")).encode()
++    pin_of(monkeypatch, "GATE_78B", gate)
++    for sigma, plan in ((10.7066, "H"), (10.7067, "review"), (14.0, "review")):
++        assert R.plan_b_record_problem(plan_b_doc(sigma_A_pp=sigma, plan=plan)) is None
++        for other in {"A", "B9", "H", "review"} - {plan}:
++            assert "GXB R-24" in R.plan_b_record_problem(plan_b_doc(sigma_A_pp=sigma, plan=other)), (sigma, other)
++    data = json.dumps(plan_b_doc(sigma_A_pp=11.0, plan="review")).encode()
++    pin_of(monkeypatch, "PLAN_B_78B", data)
++    with pytest.raises(R.Refused, match="block B's plan is 'review'.*plans nothing"):
++        R.block_init_or_refuse("B", "olmo2-7b", gate, data)
+ 
+ 
+ def test_38_every_new_k1_pin_is_null_and_names_its_event():
+diff -ru -x _ /private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-epic-ritchie-cc4188/1a199637-2a19-4fac-9cf2-8b00c9c1b5ff/scratchpad/b78/reports/r1-k1-scratch/fixcopy/runkit/stage1-78b/tests/test_scorer_block_78b.py /private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-epic-ritchie-cc4188/1a199637-2a19-4fac-9cf2-8b00c9c1b5ff/scratchpad/b78/ws-k/runkit/stage1-78b/tests/test_scorer_block_78b.py
+--- /private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-epic-ritchie-cc4188/1a199637-2a19-4fac-9cf2-8b00c9c1b5ff/scratchpad/b78/reports/r1-k1-scratch/fixcopy/runkit/stage1-78b/tests/test_scorer_block_78b.py	2026-11-08 22:31:25
++++ /private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-epic-ritchie-cc4188/1a199637-2a19-4fac-9cf2-8b00c9c1b5ff/scratchpad/b78/ws-k/runkit/stage1-78b/tests/test_scorer_block_78b.py	2026-11-08 23:23:25
+@@ -129,7 +129,7 @@
+         if oext:
+             files = {r78.OEXT_UNIT_SCRIPT: sha(write(self.repo / r78.OEXT_UNIT_SCRIPT, "# synthetic O-ext unit runner\n")),
+                      r78.C0_SCRIPT: sha(write(self.repo / r78.C0_SCRIPT, "# synthetic lean job\n"))}
+-            index = f"scripts/scale78b/settings/oext_index__{fam}__X.json"           # R1 K1 fix (GXB R-5): the
++            index = f"scripts/scale78b/settings/OEXT-78B__{fam}.json"               # R1 K1 fix (GXB R-5, R-22): the
+             files[index] = sha(write(self.repo / index, {"index": f"synthetic {fam} X"}))   # family's own index
+             self.mp.setitem(r78.OEXT_78B, fam, {"files": files, "inputs": {"oext_bank": sha(self.oext("bank")),
+                                                                            "oext_record": sha(self.oext("record"))}})
+Only in /private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-epic-ritchie-cc4188/1a199637-2a19-4fac-9cf2-8b00c9c1b5ff/scratchpad/b78/ws-k/runkit/stage1-78b/tests: test_stage1_runner.py

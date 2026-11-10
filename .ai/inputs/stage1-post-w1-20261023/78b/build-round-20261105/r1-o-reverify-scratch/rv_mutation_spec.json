@@ -1,0 +1,83 @@
+{
+ "kind": "scale78b oext mutation spec (re-verifier proposals)",
+ "note": "scratch only",
+ "mutants": [
+  {
+   "id": "RV-w-index-kind",
+   "file": "oext_78b.py",
+   "describes": "the index's kind and version are not checked",
+   "find": "or (doc.get(\"kind\"), doc.get(\"version\")) != (INDEX_KIND, INDEX_VERSION) or \\",
+   "replace": "or False or \\"
+  },
+  {
+   "id": "RV-w-index-engine",
+   "file": "oext_78b.py",
+   "describes": "the index's engine field is not checked (family only)",
+   "find": "(doc.get(\"family\"), doc.get(\"engine\")) != (family, engine)",
+   "replace": "doc.get(\"family\") != family"
+  },
+  {
+   "id": "RV-w-check-code",
+   "file": "oext_78b.py",
+   "describes": "check: the run files are not hashed against CODE",
+   "find": "    check_code(ENGINE_CODE[idx.engine])\n    report = {",
+   "replace": "    report = {"
+  },
+  {
+   "id": "RV-w-check-waits-mask",
+   "file": "oext_78b.py",
+   "describes": "check: a refusal of any role is reported as a wait (exit 0)",
+   "find": "if role not in waiting or type(exc).__name__ != \"Refusal\":",
+   "replace": "if type(exc).__name__ != \"Refusal\":"
+  },
+  {
+   "id": "RV-w-check-record-y",
+   "file": "oext_78b.py",
+   "describes": "check: the record is read under engine X's O-ext settings on a Y index",
+   "find": "eval_role = \"oext_eval\" if idx.engine == \"X\" else \"oext_eval_y\"\n    eval_path, eval_sha, eval_doc = idx.file(eval_role)",
+   "replace": "eval_role = \"oext_eval\"\n    eval_path, eval_sha, eval_doc = idx.file(eval_role)"
+  },
+  {
+   "id": "RV-w-check-pin-y",
+   "file": "oext_78b.py",
+   "describes": "check: the record pin is read from engine X's O-ext settings on a Y index",
+   "find": "eval_role = \"oext_eval\" if idx.engine == \"X\" else \"oext_eval_y\"\n    pin = idx.file(eval_role)",
+   "replace": "eval_role = \"oext_eval\"\n    pin = idx.file(eval_role)"
+  },
+  {
+   "id": "RV-w-side-job-fallback",
+   "file": "oext_78b.py",
+   "describes": "check: job.json named only by COMPLETE.json's job_sha256 is not found",
+   "find": "digest = marker.get(\"job_sha256\")",
+   "replace": "digest = None"
+  },
+  {
+   "id": "RV-w-side-root",
+   "file": "oext_78b.py",
+   "describes": "check: a unit folder outside the data root is read",
+   "find": "if root not in folder.parents:\n            problems.append(f\"{name}: its path leaves the data root\")",
+   "replace": "if False:\n            problems.append(f\"{name}: its path leaves the data root\")"
+  },
+  {
+   "id": "RV-w-side-complete-true",
+   "file": "oext_78b.py",
+   "describes": "check: a COMPLETE.json without complete=true is taken",
+   "find": "if not isinstance(listed, dict) or marker.get(\"complete\") is not True:",
+   "replace": "if not isinstance(listed, dict):"
+  },
+  {
+   "id": "RV-w-record-units-count",
+   "file": "oext_78b.py",
+   "describes": "check: the record's units are compared by count, not by name",
+   "find": "if sorted(units) != sorted(w_doc[\"units\"]):",
+   "replace": "if len(units) != len(w_doc[\"units\"]):"
+  },
+  {
+   "id": "RV-m-check-always-ok",
+   "file": "make_oext_settings_78b.py",
+   "describes": "maker --check never reports a file that differs from the derivation",
+   "find": "        if bad:\n            print(f\"DIFFERS",
+   "replace": "        if False:\n            print(f\"DIFFERS"
+  }
+ ]
+}

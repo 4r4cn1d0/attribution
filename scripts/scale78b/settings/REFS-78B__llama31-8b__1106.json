@@ -1,0 +1,139 @@
+{
+  "base": {
+    "eval_adapter": {
+      "path": "scripts/stage1_s1/settings/eval_adapter.json",
+      "sha256": "9cc654ecef9fd35664599baba49eaced218afaa6a6a738771d93d962314fbe9b"
+    },
+    "safe_lora": {
+      "path": "scripts/stage1_s1/settings/safe_lora.json",
+      "sha256": "c5610c3d4f0a0809e391055d84697fd62b9a15cf16e0b1f63aee02b03b6d14cf"
+    }
+  },
+  "branch": "pending_w1_18",
+  "commands": [
+    "eval_adapter",
+    "safe_lora"
+  ],
+  "family": "llama31-8b",
+  "files": {
+    "eval_adapter": {
+      "file": "eval_adapter__llama31-8b__1106.json",
+      "sha256": "72ecd478349d1541f15de2c562d8852f6c756b3d3f493500fb952af6344f2ee1"
+    },
+    "limits_overrefusal_checks": {
+      "file": "limits_overrefusal_checks__llama31-8b.json",
+      "sha256": "803955c629c8e357e78bda57d8cfe9a13106f475fcec32bc14db99ae01497949"
+    },
+    "oext_eval": {
+      "file": "oext_eval__llama31-8b.json",
+      "sha256": "43f21359f565e0c28d361d941639e0170d8dc8ea4be9d06a3a8e9e77faa61199"
+    },
+    "safe_lora": {
+      "file": "safe_lora__llama31-8b__1106.json",
+      "sha256": "26400c4ab0d0707447dd1427e05172782e02e31c6ed79bee18103e9b92dc4b70"
+    }
+  },
+  "kind": "scale78b refs settings index",
+  "manifest_sha256": "c52a50afddcfcfa818512ac7f1536c34c959774e815095bd30f69320b083d55a",
+  "other_manifests": {
+    "olmo2-7b": "9ed61826f1634dcab5a7385f18556b108b3ba8db95fc17215fa4cf4f6cb993b9"
+  },
+  "seed": 1106,
+  "version": 1,
+  "w1_18_record_sha256": null,
+  "waits": [
+    {
+      "event": "the lead's Hub read of the family's models (DES F2; P2 section 3.2): the unaligned base repository's full commit, dtype and safetensors file pins (name, bytes, LFS SHA-256; with total_bytes, stored_dtype and hub_files), and the aligned instruct model's dtype and file pins at RK KIT's revision, in refs_pins_78b.json families.<family>.models by a recorded step (Llama-3.1-8B's base repository is gated: if its access check fails, Llama's Safe LoRA is not run, stated)",
+      "fields": {
+        "safe_lora": [
+          {
+            "kind": "dtype",
+            "path": "models.aligned.dtype"
+          },
+          {
+            "kind": "files",
+            "path": "models.aligned.files"
+          },
+          {
+            "kind": "commit",
+            "path": "models.unaligned.revision"
+          },
+          {
+            "kind": "dtype",
+            "path": "models.unaligned.dtype"
+          },
+          {
+            "kind": "files",
+            "path": "models.unaligned.files"
+          }
+        ]
+      },
+      "pin": "HUB_READ",
+      "roles": [
+        "safe_lora"
+      ],
+      "where": [
+        "families.llama31-8b.models"
+      ]
+    },
+    {
+      "event": "seed 1101's a0 unit is the family's reused side unit a0-1101 (GXB R-35; RK KIT a0_units[1101], whose path and COMPLETE.json SHA-256 are already pinned here): the lead reads its e1 and q adapter fingerprints, full 64-hex values, from the unit's COMPLETE.json (hashes only) into refs_pins_78b.json families.<family>.units.1101 by a recorded step (GXB R-36: full 64-hex values; the maker refuses a value whose first 16 hex differ from P1 section 2.1's prefix)",
+      "fields": {
+        "eval_adapter": [
+          {
+            "kind": "sha256",
+            "path": "reference_units.1101.fingerprint_prefixes.e1"
+          }
+        ]
+      },
+      "pin": "REF_UNIT_1101",
+      "roles": [
+        "eval_adapter"
+      ],
+      "where": [
+        "families.llama31-8b.units.1101"
+      ]
+    },
+    {
+      "event": "seed 1106's a0 unit is block B's a0 at seed 1106 (GXB R-35): after block B's record-done, the lead records its path, COMPLETE.json SHA-256 and e1 and q adapter fingerprints (hashes only) in refs_pins_78b.json families.<family>.units.1106 by a recorded step",
+      "fields": {
+        "eval_adapter": [
+          {
+            "kind": "text",
+            "path": "reference_units.1106.unit"
+          },
+          {
+            "kind": "sha256",
+            "path": "reference_units.1106.complete_sha256"
+          },
+          {
+            "kind": "sha256",
+            "path": "reference_units.1106.fingerprint_prefixes.e1"
+          }
+        ],
+        "safe_lora": [
+          {
+            "kind": "sha256",
+            "path": "adapter.accepted.1106.fingerprint"
+          },
+          {
+            "kind": "text",
+            "path": "adapter.accepted.1106.source_unit"
+          },
+          {
+            "kind": "sha256",
+            "path": "adapter.accepted.1106.source_complete_sha256"
+          }
+        ]
+      },
+      "pin": "REF_UNIT_1106",
+      "roles": [
+        "safe_lora",
+        "eval_adapter"
+      ],
+      "where": [
+        "families.llama31-8b.units.1106"
+      ]
+    }
+  ]
+}

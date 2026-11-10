@@ -1,0 +1,34 @@
+{
+ "kind": "scale78b oext mutation spec (re-verifier second-pass proposals)",
+ "note": "scratch only",
+ "mutants": [
+  {
+   "id": "RV2-m-w1-side-job",
+   "file": "make_oext_settings_78b.py",
+   "describes": "W1_18_78B's side units lose their job.json pins",
+   "find": "\"job_sha256\": u[\"job_sha256\"]}",
+   "replace": "\"job_sha256\": None}"
+  },
+  {
+   "id": "RV2-m-w1-side-family",
+   "file": "make_oext_settings_78b.py",
+   "describes": "W1_18_78B lists OLMo's side units for every family",
+   "find": "limits = s1.strict_json(files[file_name(\"limits_overrefusal_checks\", family)])",
+   "replace": "limits = s1.strict_json(files[file_name(\"limits_overrefusal_checks\", \"olmo2-7b\")])"
+  },
+  {
+   "id": "RV2-w-w1-record-ignored",
+   "file": "oext_78b.py",
+   "describes": "check on the W1 index ignores a given W1-18 record",
+   "find": "        if record is not None:\n            raise Refused(\"the W1-18 pod's index holds no O-ext settings",
+   "replace": "        if False:\n            raise Refused(\"the W1-18 pod's index holds no O-ext settings"
+  },
+  {
+   "id": "RV2-w-null-identity-waits",
+   "file": "oext_78b.py",
+   "describes": "an index with no engine identity and no ENGINE_Y wait reports waits",
+   "find": "                if not any(w[\"pin\"] == \"ENGINE_Y\" and role in w[\"roles\"] for w in idx.doc[\"waits\"]):",
+   "replace": "                if False:"
+  }
+ ]
+}

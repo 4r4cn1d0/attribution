@@ -450,6 +450,65 @@ REV4 §9.4's overlap control needs theta0's embeddings of the 200 dev harm promp
       python3.11 launch.py sim-1            (a background job; with caffeinate -i python3.11 finisher.py beside it)
       $PY -B plan_tool.py record-done sim-1
 
+### Round 35, 2 Nov (stage 1b's pilot block P; addendum §40 points 5 and 7; REV4 §8.1-§8.2; `notes/kit-round-35.json`)
+
+Stage 1b's pilot gate (REV4 §8.2) reads a0_plant at seeds 1101-1103 against Gate A's a0 at the same seeds. This round
+plans those three runs as one kit block, after the stage-1 reading, on the existing arm kind.
+
+- **Block `P`** (`stage1_rules.BLOCKS`, its own funding group `P`, host prefix `p`: hosts `p-1`, ...; pods
+  `attribution-s1-p-1`). Its runs are `stage1_rules.plant_runs`: a0_plant (kind `arm`, J9; the a0 recipe S trained
+  on the planted corpus at k = 37, a "combined" edit that replaces the drawn leaf's 37 rows by the 37 plant rows, so
+  4,800 rows and 38 steps: `ARM_DOSE` "plant", `DOSE_STEPS` 38) at 1101, 1102 and 1103, seed-major, dealt onto one
+  pod by `plant_deal` (never `deal`, whose interleaving rule refuses one arm twice on a pod). Its jobs file is
+  `{"launches": [{"deal": [0]}]}`: a hosts launch, a judge launch (point 7), a dealt pod twice or a reused run refuses.
+  `init-block P` needs G3 as every block and block B complete and sealed (G5, as certify and B need block A); every
+  job must be a0_plant (kind arm) at a pilot seed, checked at init and again at release. `BLOCK_KINDS["P"]` is
+  `("arm",)`; `REJUDGED_PINS["P"]` is empty by rule. Blocks A, B and C's tables (`block_runs`) and
+  `REJUDGED_PINS["A"]`, which the reading's input builder loads, do not change (`tests/test_round35.py` holds their
+  values at 0d25497).
+- **The edit by SHA-256 only.** The planted_k37 edit file's name field names the planted leaf, so no kit command
+  parses it. The edit comes from a sealed edit record `{arm: "a0_plant", path, sha256}` (`record-sealed`), bound at
+  init (the dry run refuses without it) and again at release; a changed or missing file refuses. `record-sealed` and
+  every binding also check the record against REQ-8's record (`stage1_rules.D2_REQ8_RECORD`, read by key:
+  `full_files["edits/planted_k37.json"]` must equal the recorded SHA-256; `stage1_rules.PLANT_EDIT_FILES`), so only
+  the plant build's own file can be recorded for a0_plant; the refusal names the arm and the file name only. The X
+  pack carries the edit as `edits/<SHA-256>.edit.json` (`pack_setup.py` packs every sealed record's edits; it prints
+  hashes and counts only); the runner's calibrate step names it by that path and `--arms edit-<SHA-256>`.
+- **Money (cents by hand, tests; Branch 128):** one a0_plant arm job measured upper 52 min + O500 1,024 s = 4,144 s,
+  start requirement 9,418 s (the Gate A fixture's e1 upper and 38-step training, plus 1,900 s and O500, plus 30 min).
+  One pod with the three: cap 0.25 h up of 42 min + 2 x 4,144 + 9,418 s = **5.75 h**; guard $6 + 5.75 x $1.85 =
+  $16.64; upper spend (2,520 + 3 x 4,144) / 3,600 x $1.79 = **$7.43**; need: base $16.64, 1.25 x = **$20.80**,
+  contingency $4.16 (one re-run on a new pod, $3.31, not two); worst case at the cap 5.75 x $1.79 = $10.29. Expected
+  (E): about 0.8-0.9 h per run, $5-6. Funded under addendum §36 as block sim was: a funding record {block "P",
+  amount_usd (the dry run's need), utc, source "user rule: start from the balance", user_words (verbatim),
+  recorded_by, user_decision {path, sha256}}.
+- **On the pod** (`setup/job_runner_stage1.py`): the arm kind's own steps (calibrate, then the O-ext unit pass). After
+  a complete plant-arm job the runner writes the readable `job-I/arm-adapter-fingerprint.json` once (exclusive create,
+  canonical JSON; `plant_fingerprint_record`): kind "stage1 arm adapter fingerprint", version 1, job, arm a0_plant,
+  seed, steps, unit, COMPLETE.json SHA-256, checkpoints {e1 (states/e1/state.json's, equal to COMPLETE.json's), q},
+  the identity hashes; never the edit's name or any other edit field. If it cannot be written the unit stands and the
+  reason is recorded (K6's rule). After P's seal only readable files are read, and a later train-only regeneration of
+  a0_plant@1101 (addendum §40 point 6) is accepted only on equal e1 and q from this record.
+- **On the Mac:** the finisher's light check is the arm kind's (every unit's listed files). `record-done HOST` prints
+  `plant_units: [{job, arm, seed, unit (the path from the repository root), complete_sha256, fingerprint_record {path,
+  sha256} | null}]`: the pilot reader's inputs, read by key; a listed record that is not this run's (kind, job, arm,
+  seed, steps, unit, COMPLETE.json SHA-256, a 64-hex e1, no edit field) refuses; a missing one prints null and
+  plan.json keeps the runner's reason. **No judge runs for block P** (point 7): it completes once its host is
+  recorded done and `seal.py block P` seals it with no judge record and no `judges/P/`; the seal classes
+  JOB-DONE.json, the cost ledgers and the fingerprint records readable and every unit file sealed. If the pilot goes,
+  P's three units are re-judged with P2's units through `REJUDGED_PINS`. A crashed run is re-run once from P's
+  contingency (`defer HOST`, as every kind). Never open `retrieved/p-*/` or a plant-arm unit folder by hand: the units'
+  COMPLETE.json and edit.json name the leaf.
+
+      $PY -B plan_tool.py record-sealed FILE --sha256 H      (the a0_plant record; refused unless REQ-8's record names it)
+      python3.11 pack_setup.py X --inputs FILE --inputs-sha256 H     (after moving setup/packed-stage1-X aside)
+      $PY -B plan_tool.py init-block P --jobs JOBS --funding F --dry-run   (then without --dry-run)
+      $PY -B plan_tool.py deal P
+      $PY -B orchestrate.py check-plan p-1
+      python3.11 launch.py p-1              (a background job; with caffeinate -i python3.11 finisher.py beside it)
+      $PY -B plan_tool.py record-done p-1
+      $PY -B seal.py block P
+
 ## The gates (brief §4)
 
 - **G0 (before any pod, $0).** B15 built, verified and pinned at the S1 freeze. `orchestrate.py check-plan HOST` must

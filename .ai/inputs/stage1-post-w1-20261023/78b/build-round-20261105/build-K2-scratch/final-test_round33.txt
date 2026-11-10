@@ -1,0 +1,126 @@
+FFFF.F                                                                   [100%]
+=================================== FAILURES ===================================
+_ test_gb1_units_of_block_refuses_while_block_b_has_an_open_job_and_lists_it_once_decided _
+
+w = <test_stage1_runkit.World object at 0x10a170050>
+tmp_path = PosixPath('/private/var/folders/mk/33rfxgzn32318ntchzzgtm680000gn/T/pytest-of-spiderishi/pytest-75/test_gb1_units_of_block_refuse0')
+capsys = <_pytest.capture.CaptureFixture object at 0x10a151710>
+
+    def test_gb1_units_of_block_refuses_while_block_b_has_an_open_job_and_lists_it_once_decided(w, tmp_path, capsys):
+        """GB1 both ways, with block B's three launches (the deal's 24 runs on b-1...b-6; the 1104 reference on b-7; recipe
+        G at 1102 on b-8): units-of-block B refuses (exit 2, nothing written) and names the first open jobs while launch 0
+        runs (26 open: its 24 and the pending b-7 and b-8), while b-6 runs (its 4 jobs and the pending b-7 and b-8: 6),
+        after b-6 is done with a crashed job (3, then 2 after b-7, then 1 after b-8); a not-run decision for the crashed
+        job lists the block (26 units); a changed decision file refuses again (exit 2, not a crash)."""
+>       rest = rk.B_DEAL + [{"hosts": [[{**rk.REF1104, "points": ["scale:0.75", "scale:0.5"]}]]},
+               ^^^^^^^^^
+                            {"hosts": [[{"kind": "ref_train", "arm": "G", "recipe": "G", "seed": 1102}]]}]
+E       AttributeError: module 'test_stage1_runkit' has no attribute 'B_DEAL'
+
+runkit/stage1-78b/tests/test_round33.py:46: AttributeError
+_ test_gb4_block_bs_seal_needs_harmbenchs_run_record_and_label_cache_copied_under_judges_pods _
+
+w = <test_stage1_runkit.World object at 0x10a09cc10>
+
+    def test_gb4_block_bs_seal_needs_harmbenchs_run_record_and_label_cache_copied_under_judges_pods(w):
+        """GB4 both ways: with both judges recorded, the seal refuses (no seal file, no seal entry) with no copy, with
+        Granite's copy alone, with a changed run record or one that is a symbolic link, with no label cache, another one or
+        one that is a symbolic link; with the runbook's copy it seals and hashes both copied files as sealed."""
+>       _block_b_recorded(w)
+
+runkit/stage1-78b/tests/test_round33.py:106: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+runkit/stage1-78b/tests/test_round33.py:94: in _block_b_recorded
+    r31._block_b_judged(w)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+w = <test_stage1_runkit.World object at 0x10a09cc10>
+
+    def _block_b_judged(w) -> None:
+        """Block A complete and sealed, a passing certificate; block B planned under plan A (the deal's 24 runs on 6 pods
+        in one launch, then HarmBench and Granite over 24 units), every block-B host done; the judge launches NOT released
+        yet."""
+>       rk._block_b_ready(w, passed=True)
+        ^^^^^^^^^^^^^^^^^
+E       AttributeError: module 'test_stage1_runkit' has no attribute '_block_b_ready'
+
+runkit/stage1-78b/tests/test_round31.py:48: AttributeError
+_________ test_gb4_a_run_record_naming_no_cache_or_not_json_is_refused _________
+
+w = <test_stage1_runkit.World object at 0x109f40c10>
+
+    def test_gb4_a_run_record_naming_no_cache_or_not_json_is_refused(w):
+        """GB4, the run record's own cache field (the HB reader binds the cache by it): a run record at the recorded
+        SHA-256 that names no cache SHA-256, or is not JSON, is a problem even with the cache file present."""
+>       _block_b_recorded(w, judges=("harmbench",))
+
+runkit/stage1-78b/tests/test_round33.py:148: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+runkit/stage1-78b/tests/test_round33.py:94: in _block_b_recorded
+    r31._block_b_judged(w)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+w = <test_stage1_runkit.World object at 0x109f40c10>
+
+    def _block_b_judged(w) -> None:
+        """Block A complete and sealed, a passing certificate; block B planned under plan A (the deal's 24 runs on 6 pods
+        in one launch, then HarmBench and Granite over 24 units), every block-B host done; the judge launches NOT released
+        yet."""
+>       rk._block_b_ready(w, passed=True)
+        ^^^^^^^^^^^^^^^^^
+E       AttributeError: module 'test_stage1_runkit' has no attribute '_block_b_ready'
+
+runkit/stage1-78b/tests/test_round31.py:48: AttributeError
+_________ test_gb4_no_copy_is_needed_when_harmbench_is_decided_not_run _________
+
+w = <test_stage1_runkit.World object at 0x10a0ac350>
+
+    def test_gb4_no_copy_is_needed_when_harmbench_is_decided_not_run(w):
+        """GB4: a block B whose HarmBench launch is named by a judge not-run decision (Granite recorded alone) seals with
+        no pods/ folder at all."""
+>       r31._block_b_judged(w)
+
+runkit/stage1-78b/tests/test_round33.py:164: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+w = <test_stage1_runkit.World object at 0x10a0ac350>
+
+    def _block_b_judged(w) -> None:
+        """Block A complete and sealed, a passing certificate; block B planned under plan A (the deal's 24 runs on 6 pods
+        in one launch, then HarmBench and Granite over 24 units), every block-B host done; the judge launches NOT released
+        yet."""
+>       rk._block_b_ready(w, passed=True)
+        ^^^^^^^^^^^^^^^^^
+E       AttributeError: module 'test_stage1_runkit' has no attribute '_block_b_ready'
+
+runkit/stage1-78b/tests/test_round31.py:48: AttributeError
+_ test_gb5_record_judges_refuses_a_launch_whose_result_names_another_gpu_or_none _
+
+w = <test_stage1_runkit.World object at 0x1041790d0>
+
+    def test_gb5_record_judges_refuses_a_launch_whose_result_names_another_gpu_or_none(w):
+        """GB5 both ways: record-judges B refuses (no record) a launch result whose verification.gpu is another GPU, a
+        near name, empty or absent, for either judge (Granite is checked first by name order); the A100 result records."""
+>       r31._block_b_judged(w)
+
+runkit/stage1-78b/tests/test_round33.py:187: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+w = <test_stage1_runkit.World object at 0x1041790d0>
+
+    def _block_b_judged(w) -> None:
+        """Block A complete and sealed, a passing certificate; block B planned under plan A (the deal's 24 runs on 6 pods
+        in one launch, then HarmBench and Granite over 24 units), every block-B host done; the judge launches NOT released
+        yet."""
+>       rk._block_b_ready(w, passed=True)
+        ^^^^^^^^^^^^^^^^^
+E       AttributeError: module 'test_stage1_runkit' has no attribute '_block_b_ready'
+
+runkit/stage1-78b/tests/test_round31.py:48: AttributeError
+=========================== short test summary info ============================
+FAILED runkit/stage1-78b/tests/test_round33.py::test_gb1_units_of_block_refuses_while_block_b_has_an_open_job_and_lists_it_once_decided
+FAILED runkit/stage1-78b/tests/test_round33.py::test_gb4_block_bs_seal_needs_harmbenchs_run_record_and_label_cache_copied_under_judges_pods
+FAILED runkit/stage1-78b/tests/test_round33.py::test_gb4_a_run_record_naming_no_cache_or_not_json_is_refused
+FAILED runkit/stage1-78b/tests/test_round33.py::test_gb4_no_copy_is_needed_when_harmbench_is_decided_not_run
+FAILED runkit/stage1-78b/tests/test_round33.py::test_gb5_record_judges_refuses_a_launch_whose_result_names_another_gpu_or_none
+5 failed, 1 passed in 0.65s

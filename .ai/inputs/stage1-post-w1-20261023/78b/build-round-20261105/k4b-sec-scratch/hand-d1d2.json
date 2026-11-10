@@ -1,0 +1,156 @@
+{
+ "start": "2026-11-06T17:21:07+00:00",
+ "baselines": {
+  "[\"runkit/stage1-78b/tests\"]": {
+   "exit": 0,
+   "failed": [],
+   "errors": [],
+   "tail": "451 passed in 22.57s"
+  }
+ },
+ "results": [
+  {
+   "id": "H-d1-wrapper-skips-dgram",
+   "file": "tests/conftest.py",
+   "describes": "the wrapper lets every SOCK_DGRAM socket through to C (a host name resolves first)",
+   "result": {
+    "exit": 0,
+    "failed": [],
+    "errors": [],
+    "tail": "451 passed in 22.85s"
+   },
+   "verdict": "survived"
+  },
+  {
+   "id": "H-d1-sendto-two-arg-only",
+   "file": "tests/conftest.py",
+   "describes": "the wrapper reads sendto's address only without flags",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_pp10_process_wide.py::test_k4bf_d1_the_wrapper_refuses_sendto_sendmsg_and_inet6_before_any_resolution",
+     "runkit/stage1-78b/tests/test_pp10_process_wide.py::test_k4bf_d2_the_hook_refuses_in_a_non_main_thread_and_for_bytes_hosts"
+    ],
+    "errors": [],
+    "tail": "2 failed, 449 passed in 22.62s"
+   },
+   "verdict": "killed"
+  },
+  {
+   "id": "H-d1-connect-ex-unchecked",
+   "file": "tests/conftest.py",
+   "describes": "the wrapper checks connect but not connect_ex",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_pp10_process_wide.py::test_k4bf_d1_the_wrapper_refuses_sendto_sendmsg_and_inet6_before_any_resolution",
+     "runkit/stage1-78b/tests/test_pp10_process_wide.py::test_k4bf_d2_the_hook_refuses_in_a_non_main_thread_and_for_bytes_hosts"
+    ],
+    "errors": [],
+    "tail": "2 failed, 449 passed in 23.13s"
+   },
+   "verdict": "killed"
+  },
+  {
+   "id": "H-d1-install-skips-sendmsg",
+   "file": "tests/conftest.py",
+   "describes": "install wraps connect, connect_ex and sendto only",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_pp10_process_wide.py::test_dk1_the_socket_methods_are_wrapped_process_wide",
+     "runkit/stage1-78b/tests/test_pp10_process_wide.py::test_k4bf_d1_the_wrapper_refuses_sendto_sendmsg_and_inet6_before_any_resolution",
+     "runkit/stage1-78b/tests/test_pp10_process_wide.py::test_k4bf_d2_the_hook_refuses_in_a_non_main_thread_and_for_bytes_hosts"
+    ],
+    "errors": [],
+    "tail": "3 failed, 448 passed in 22.57s"
+   },
+   "verdict": "killed"
+  },
+  {
+   "id": "H-d2-hook-daemon-threads-free",
+   "file": "tests/conftest.py",
+   "describes": "the hook ignores daemon threads",
+   "result": {
+    "exit": 0,
+    "failed": [],
+    "errors": [],
+    "tail": "451 passed in 23.20s"
+   },
+   "verdict": "survived"
+  },
+  {
+   "id": "H-d2-hook-executor-threads-free",
+   "file": "tests/conftest.py",
+   "describes": "the hook ignores ThreadPoolExecutor worker threads (asyncio's getaddrinfo runs there)",
+   "result": {
+    "exit": 0,
+    "failed": [],
+    "errors": [],
+    "tail": "451 passed in 24.23s"
+   },
+   "verdict": "survived"
+  },
+  {
+   "id": "H-d2-program-allowed-basename",
+   "file": "tests/conftest.py",
+   "describes": "calibration: the flag opens any program with an allowed base name",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_pp10_process_wide.py::test_dk2_local_processes_opens_exact_paths_only_in_both_layers"
+    ],
+    "errors": [],
+    "tail": "1 failed, 450 passed in 22.77s"
+   },
+   "verdict": "killed"
+  },
+  {
+   "id": "H-d2-hook-urllib-free-under-flag",
+   "file": "tests/conftest.py",
+   "describes": "under local_processes the hook lets urllib opens through",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_pp10_process_wide.py::test_k4bf_d2_the_hook_refuses_under_the_flag"
+    ],
+    "errors": [],
+    "tail": "1 failed, 450 passed in 22.47s"
+   },
+   "verdict": "killed"
+  },
+  {
+   "id": "H-d2-hook-http-bytes-free",
+   "file": "tests/conftest.py",
+   "describes": "the hook's http.client check lets a bytes host through",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_pp10_process_wide.py::test_k4bf_d2_the_hook_refuses_under_the_flag",
+     "runkit/stage1-78b/tests/test_pp10_process_wide.py::test_k4bf_d2_the_hook_refuses_in_a_non_main_thread_and_for_bytes_hosts"
+    ],
+    "errors": [],
+    "tail": "2 failed, 449 passed in 25.59s"
+   },
+   "verdict": "killed"
+  },
+  {
+   "id": "H-d2-hook-getnameinfo-free",
+   "file": "tests/conftest.py",
+   "describes": "the hook lets every reverse lookup through",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_pp10_process_wide.py::test_dk1_module_scoped_fixture_calls_stop_in_the_process_wide_layer",
+     "runkit/stage1-78b/tests/test_pp10_process_wide.py::test_dk1_the_audit_hook_refuses_each_way_out[socket.getnameinfo-22]",
+     "runkit/stage1-78b/tests/test_pp10_process_wide.py::test_k4bf_d2_the_hook_refuses_under_the_flag",
+     "runkit/stage1-78b/tests/test_pp10_process_wide.py::test_k4bf_d2_the_hook_refuses_in_a_non_main_thread_and_for_bytes_hosts"
+    ],
+    "errors": [],
+    "tail": "4 failed, 447 passed in 26.17s"
+   },
+   "verdict": "killed"
+  }
+ ],
+ "end": "2026-11-06T17:25:45+00:00"
+}

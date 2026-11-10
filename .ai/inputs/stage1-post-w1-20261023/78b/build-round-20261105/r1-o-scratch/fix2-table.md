@@ -1,0 +1,34 @@
+| File | SHA-256 | vs fix round 1 |
+|---|---|---|
+| `oext_78b.py` | `c6a9a9465451a4b965b451ec8c7cbc9db4d49c7388b10cfe50d718c630ff8b6f` | changed |
+| `lean_eval_job_78b.py` | `fc0372ca006c478f9b4b3bff3c903f9d15f774b94c61a6b4aca98973c400e4a7` | same |
+| `make_oext_settings_78b.py` | `6cd317a06d64daa5c6f00a730d76db613c983c619bc53b3e0a071a31dcc9fdd9` | changed |
+| `settings/oext_pins_78b.json` | `9f3a93da251ae123d3769a2774e02a7656cae658e7493ccf71a07dd53baf3c37` | changed |
+| `settings/OEXT-78B-W1__llama31-8b.json` | `87c8c0dbea08a9fc2ac80383b46f06e3048197a1f6e115f7ac293a2dae15807d` | new |
+| `settings/OEXT-78B-W1__olmo2-7b.json` | `d85ff7a3622f94a83ea90a75388e010d3e473ea2491f01be0eabd44085c1b207` | new |
+| `settings/OEXT-78B-Y__llama31-8b.json` | `13eb337be846cf9105380c8645e1085283b1f1a0feaec94fcb45d94c60a016a7` | changed |
+| `settings/OEXT-78B-Y__olmo2-7b.json` | `0a030e36ffc7fd35058247ee123ed07fbce4af909d7deb9876bde7281cd496e0` | changed |
+| `settings/OEXT-78B__llama31-8b.json` | `7bc002154eb07981a52fcf42506947e857e1be2185f892fd445efa5d0f6f9e03` | changed |
+| `settings/OEXT-78B__olmo2-7b.json` | `6a16300ed3364cedcc9d80632be1e09f8a610739558b77a8c39c1375ee4d838d` | changed |
+| `settings/oext_unit__llama31-8b.json` | `735f54a9cc573923e2fa36174064b63596c58f9eac0585c259a8e45e00ced845` | same |
+| `settings/oext_unit__olmo2-7b.json` | `0d2572d9160e8e95ea0eac196cc34e10f298ad20dd4cffc6fed859b3912536b4` | same |
+| `settings/oext_eval__llama31-8b.json` | `43f21359f565e0c28d361d941639e0170d8dc8ea4be9d06a3a8e9e77faa61199` | same |
+| `settings/oext_eval__olmo2-7b.json` | `1323d4f84ef3b9c5c57046deab9da0c03c3a5e416a37b16d4c9f198d67dfd88d` | same |
+| `settings/oext_unit_y__llama31-8b.json` | `61f2ebb1fd689dcceab6d0df56a9c187563d71f63499cdddfd529ac1db593e57` | same |
+| `settings/oext_unit_y__olmo2-7b.json` | `536fe1f71b9b201886c53cb1f22bdcc5f1e74d48737bcc0b74f2b36004b40472` | same |
+| `settings/oext_eval_y__llama31-8b.json` | `70e31d080a34445f4a32ecdc412f5fe3db668cc10f33950f141a87769c3ec5ea` | same |
+| `settings/oext_eval_y__olmo2-7b.json` | `4e120dd8b585d9067c2e0c002fd9af3c05d1010f6544d16a2e42793cbcdb27fb` | same |
+| `settings/lean_eval_job__llama31-8b.json` | `5910112f7882a974e4eec071df96e09036a0c2b4e9b833389b04796bf4b29f13` | same |
+| `settings/lean_eval_job__olmo2-7b.json` | `29beac94b27c0c90fcf8e572c7f22d7049fa5f67e4483e38792aa1a5b38dc8d3` | same |
+| `settings/limits_overrefusal_checks__llama31-8b.json` | `803955c629c8e357e78bda57d8cfe9a13106f475fcec32bc14db99ae01497949` | same |
+| `settings/limits_overrefusal_checks__olmo2-7b.json` | `529fda92f6201f2455bd416f64ca8deb737da9dbb8c5e548b7e77a67c8f8e26f` | same |
+| `tests/oext/conftest.py` | `823bafb4ce86c5cee338ce907563a6fd325e5c1b23278819a8eaf0072123daef` | same |
+| `tests/oext/lean_copy_spec.py` | `f5f5e27430a48fe906fb17eb3d3ac6ae730b9f170d9897cf1e603e9e9012ea48` | same |
+| `tests/oext/mutation_spec_oext_78b.json` | `0010a870d7a5f6dd3dca3db0cf4fff6835244f950a035b85fa80dfa0f185050f` | changed |
+| `tests/oext/oext78_fixtures.py` | `9e93b4f4ca58c5d3a3a817773c736a7cf647f8e5d9c91ebaa6673ecd8b35c304` | changed |
+| `tests/oext/run_mutants_oext_78b.py` | `0dc81003e19daac8b83c1cd84ce0465675b5b404b6667b78f1cca070b4128ca1` | changed |
+| `tests/oext/test_oext_78b_check.py` | `860cf69fe76879aa06b7250f325d0357a019d0d9b821d4adab20ddc469a8f44a` | changed |
+| `tests/oext/test_oext_78b_files.py` | `a8d6e9121ac6cca9397548ff4b25007e9bab010bb899626349227c2547e10d96` | changed |
+| `tests/oext/test_oext_78b_lean.py` | `2ee9f8c3175866cfd562062ae72a694de4aa557dee9881bcc41004d7cbd63ea0` | same |
+| `tests/oext/test_oext_78b_unit.py` | `a390acf5aee02a8f64cc6861ae409cbc780c7e4e242771e9385f9588c9f4207f` | changed |
+| `tests/oext/test_oext_78b_w1_18.py` | `f8702608c4868ba4d14baa4bbfded9a98c988ad4fe10c4de5b8e674108430683` | changed |

@@ -1,0 +1,50 @@
+z80=0.8416 z(alpha/6)=2.6383 z(alpha/3)=2.3940
+
+-- P78's rows (R 8 / 12 / 16) --
+P78 plan A SESOI 5                 nR= 8 nm= 6 SE=3.15 MDE=11.0 80pt=11.0 P(better)=0.46/0.70/0.88 P(equiv)=0.00/0.00 hw=5.18 runs=44
+P78 (a) SESOI 10                   nR= 8 nm= 6 SE=3.15 MDE=11.0 80pt=12.6 P(better)=0.26/0.50/0.74 P(equiv)=0.87/0.48 hw=5.18 runs=44
+P78 B9 SESOI 5                     nR=12 nm= 9 SE=2.57 MDE=8.3 80pt=8.3 P(better)=0.76/0.93/0.99 P(equiv)=0.24/0.04 hw=4.23 runs=54
+P78 (b) SESOI 5                    nR=16 nm=12 SE=2.23 MDE=7.2 80pt=7.2 P(better)=0.88/0.98/1.00 P(equiv)=0.45/0.05 hw=3.66 runs=70
+P78 (c) SESOI 10                   nR=16 nm=12 SE=2.23 MDE=7.2 80pt=11.9 P(better)=0.18/0.50/0.82 P(equiv)=1.00/0.73 hw=3.66 runs=70
+
+-- ruling 2's rows (R 7 / 10 / 13) --
+plan A SESOI 5                     nR= 7 nm= 6 SE=3.24 MDE=11.3 80pt=11.3 P(better)=0.43/0.67/0.86 P(equiv)=0.00/0.00 hw=5.34 runs=44
+(a) plan A SESOI 10                nR= 7 nm= 6 SE=3.24 MDE=11.3 80pt=12.7 P(better)=0.27/0.50/0.73 P(equiv)=0.85/0.46 hw=5.34 runs=44
+plan B9 SESOI 5                    nR=10 nm= 9 SE=2.68 MDE=8.7 80pt=8.7 P(better)=0.72/0.91/0.98 P(equiv)=0.18/0.03 hw=4.41 runs=53
+(b) 12 seeds SESOI 5               nR=13 nm=12 SE=2.33 MDE=7.6 80pt=7.6 P(better)=0.85/0.97/1.00 P(equiv)=0.38/0.05 hw=3.84 runs=68
+(c) 12 seeds SESOI 10              nR=13 nm=12 SE=2.33 MDE=7.6 80pt=12.0 P(better)=0.20/0.50/0.80 P(equiv)=0.99/0.69 hw=3.84 runs=68
+SE widening %: ['3.0', '4.2', '4.8']
+
+-- S-P multiples (shared seeds only) --
+plan A x sigma_pair 1.42; B9 1.08; 12 seeds 0.93
+paired MDE at thresholds: plan A sigma 4.5 -> 6.39; B9 sigma 6.0 -> 6.47
+rescaled thresholds for paired MDE 6.0: 4.22 / 5.56
+review ceiling binds (MDE > 2 x SESOI): (b) SESOI 5 sigma > 10.7; (c) SESOI 10 sigma > 21.4; plan A SESOI 5 sigma > 7.0
+plan A at sigma_pair 4.0: MDE 5.68, P(equiv|0) 0.84; at 8.2: MDE 11.6
+3-seed paired SE at sigma_pair 4: 2.31
+
+-- N2 pooling --
+per family: OLMo 4.41, Llama 0.73; pooled 5.83 -> 4.04; no gain 8.24
+pool of per-family values by sqrt((a^2+b^2)/2): 3.16
+N1 E/8: OLMo 5.51, Llama 6.66
+S-U exclusion: sqrt2 x 3.20 = 4.53
+
+-- money --
+N need: 6 + (8.5+12.5) x 1.85 = 44.85; x1.25 = 56.0625
+retrain pod 4.5 h: 14.3250; x1.25 = 17.9062; at 4 h 16.75; at 5 h 19.06
+block A launch: OLMo 83.70 x1.25 = 104.6250; Llama 98.50 x1.25 = 123.1250
+dose: 6x3.53=21.18 12x3.53=42.36 6x4.71=28.26 12x4.71=56.52; both 49.44 / 98.88
+keep rate 57/64 = 0.891; 192/0.89 = 216; 192/(57/64) = 216
+steps: 4848/128=37.88 4896/128=38.25 4992/128=39.00
+idle storage 50 GB: KCR says $0.33/day
+money sums: planA+conf 780-1130; B9+conf 850-1220; H(b)+conf 970-1370
+B9 over plan A: 70-90; H(b) over plan A: 190-240
+G1 pooled: 42+63 = 105 of 1200 = 8.75%; 63/600 = 10.5%; 20/557 = 3.6%; 600-43 = 557
+untuned shares: 11/600 = 1.83%, 32/600 = 5.33%; a0: 309 51.50 234 39.00 284 47.33 347 57.83 356 59.33
+E = a0 - untuned: OLMo 49.67 37.17 45.50; Llama 52.50 54.00; means 44.11 53.25
+F ratio: (6.36/1.06)^2 = 36.0
+
+-- seed counts (ruling 2) --
+plan A: method cells 36, R 7, a0 7, total 50, new beyond N 44; block A 21, block B 23
+B9: method cells 42, R 10, a0 7, total 59, new beyond N 53; block A 21, block B 32
+H(b): method cells 54, R 13, a0 7, total 74, new beyond N 68; block A 21, block B 47

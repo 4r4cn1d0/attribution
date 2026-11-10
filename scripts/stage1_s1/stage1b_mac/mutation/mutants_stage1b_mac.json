@@ -1,0 +1,533 @@
+{
+ "kind": "stage1 mutants",
+ "mutants": [
+  {
+   "describes": "an output folder whose name lacks the protected word is accepted",
+   "file": "construction_checks.py",
+   "find": "    if PLANT_WORD not in out.name:\n",
+   "id": "CC-out-name",
+   "part": "construction_checks",
+   "replace": "    if False:\n"
+  },
+  {
+   "describes": "a non-empty output folder is accepted",
+   "file": "construction_checks.py",
+   "find": "    if out.exists() and (not out.is_dir() or any(out.iterdir())):\n",
+   "id": "CC-out-not-empty",
+   "part": "construction_checks",
+   "replace": "    if False:\n"
+  },
+  {
+   "describes": "an existing hash record is not refused before the steps run",
+   "file": "construction_checks.py",
+   "find": "    if record_path.exists():\n",
+   "id": "CC-record-exists",
+   "part": "construction_checks",
+   "replace": "    if False:\n"
+  },
+  {
+   "describes": "a prepared path that is not a folder is accepted",
+   "file": "construction_checks.py",
+   "find": "    if not prepared.is_dir():\n",
+   "id": "CC-prepared-dir",
+   "part": "construction_checks",
+   "replace": "    if False:\n"
+  },
+  {
+   "describes": "a rules module without the pins is not refused with the fixed message",
+   "file": "construction_checks.py",
+   "find": "        if not hasattr(module, name):\n",
+   "id": "CC-rules-names",
+   "part": "construction_checks",
+   "replace": "        if False:\n"
+  },
+  {
+   "describes": "rules pins of another form are not refused with the fixed message",
+   "file": "construction_checks.py",
+   "find": "            or not isinstance(pools, dict) or not all(is_hex64(pools.get(k)) for k in (\"plant\", \"decoy\")):\n",
+   "id": "CC-rules-form",
+   "part": "construction_checks",
+   "replace": "            or False:\n"
+  },
+  {
+   "describes": "the W1 manifest is read without its pin",
+   "file": "construction_checks.py",
+   "find": "read_pinned(repo / rules.MAN1_PATH, rules.MAN1_SHA256, \"the W1 manifest\")",
+   "id": "CC-man1-pin",
+   "part": "construction_checks",
+   "replace": "read_bytes(repo / rules.MAN1_PATH, \"the W1 manifest\")"
+  },
+  {
+   "describes": "a manifest entry of another role serves as a script's pin",
+   "file": "construction_checks.py",
+   "find": "        if entry is None or entry.get(\"role\") != \"code\" or not is_hex64(entry.get(\"sha256\")):\n",
+   "id": "CC-man1-role",
+   "part": "construction_checks",
+   "replace": "        if entry is None or not is_hex64(entry.get(\"sha256\")):\n"
+  },
+  {
+   "describes": "a W1 script is not checked against its manifest entry",
+   "file": "construction_checks.py",
+   "find": "        read_pinned(repo / rel, entry[\"sha256\"], \"a W1 script\")\n",
+   "id": "CC-w1-script-pin",
+   "part": "construction_checks",
+   "replace": "        read_bytes(repo / rel, \"a W1 script\")\n"
+  },
+  {
+   "describes": "plan.json's seal SHA-256 is not compared with the lead's",
+   "file": "construction_checks.py",
+   "find": "            or seal_entry.get(\"sha256\") != expect_seal:\n",
+   "id": "CC-seal-expect",
+   "part": "construction_checks",
+   "replace": "            or False:\n"
+  },
+  {
+   "describes": "the seal file is read without its hash check",
+   "file": "construction_checks.py",
+   "find": "read_pinned(kit / seal_entry[\"path\"], expect_seal, \"the block seal\")",
+   "id": "CC-seal-hash",
+   "part": "construction_checks",
+   "replace": "read_bytes(kit / seal_entry[\"path\"], \"the block seal\")"
+  },
+  {
+   "describes": "a seal record of another kind or block is accepted",
+   "file": "construction_checks.py",
+   "find": "    if seal.get(\"kind\") != SEAL_KIND or seal.get(\"block\") != block or not isinstance(seal.get(\"files\"), list):\n",
+   "id": "CC-seal-kind",
+   "part": "construction_checks",
+   "replace": "    if not isinstance(seal.get(\"files\"), list):\n"
+  },
+  {
+   "describes": "a host that is not recorded done is accepted",
+   "file": "construction_checks.py",
+   "find": "    if not isinstance(h, dict) or h.get(\"block\") != block or h.get(\"done\") is not True:\n",
+   "id": "CC-host-done",
+   "part": "construction_checks",
+   "replace": "    if not isinstance(h, dict) or h.get(\"block\") != block:\n"
+  },
+  {
+   "describes": "a host of another block is accepted",
+   "file": "construction_checks.py",
+   "find": "    if not isinstance(h, dict) or h.get(\"block\") != block or h.get(\"done\") is not True:\n",
+   "id": "CC-host-block",
+   "part": "construction_checks",
+   "replace": "    if not isinstance(h, dict) or h.get(\"done\") is not True:\n"
+  },
+  {
+   "describes": "two complete jobs of a kind are accepted (the first wins)",
+   "file": "construction_checks.py",
+   "find": "        if len(found) != 1:\n",
+   "id": "CC-job-single",
+   "part": "construction_checks",
+   "replace": "        if len(found) < 1:\n"
+  },
+  {
+   "describes": "a crashed job of the kind is accepted",
+   "file": "construction_checks.py",
+   "find": "                 and j.get(\"status\") == \"complete\" and j.get(\"pulled\") is not False]\n",
+   "id": "CC-job-status",
+   "part": "construction_checks",
+   "replace": "                 and j.get(\"pulled\") is not False]\n"
+  },
+  {
+   "describes": "a job recorded complete (not pulled) is accepted",
+   "file": "construction_checks.py",
+   "find": "                 and j.get(\"status\") == \"complete\" and j.get(\"pulled\") is not False]\n",
+   "id": "CC-job-pulled",
+   "part": "construction_checks",
+   "replace": "                 and j.get(\"status\") == \"complete\"]\n"
+  },
+  {
+   "describes": "a file the job's outputs do not list is not refused with the fixed message",
+   "file": "construction_checks.py",
+   "find": "        if not is_hex64(digest):\n            raise Refusal(\"the job's recorded outputs do not list a file this runner needs\")\n",
+   "id": "CC-outputs-list",
+   "part": "construction_checks",
+   "replace": "        if False:\n            raise Refusal(\"the job's recorded outputs do not list a file this runner needs\")\n"
+  },
+  {
+   "describes": "a pulled file is not re-hashed against the job's recorded SHA-256",
+   "file": "construction_checks.py",
+   "find": "        read_pinned(path, digest, \"a pod output\")\n",
+   "id": "CC-pod-hash",
+   "part": "construction_checks",
+   "replace": "        read_bytes(path, \"a pod output\")\n"
+  },
+  {
+   "describes": "two seal entries for a file are accepted",
+   "file": "construction_checks.py",
+   "find": "        if len(entries) != 1 or entries[0].get(\"class\") != \"sealed\" or entries[0].get(\"sha256\") != digest:\n",
+   "id": "CC-seal-entry-single",
+   "part": "construction_checks",
+   "replace": "        if len(entries) < 1 or entries[0].get(\"class\") != \"sealed\" or entries[0].get(\"sha256\") != digest:\n"
+  },
+  {
+   "describes": "a readable-class seal entry serves as a sealed one",
+   "file": "construction_checks.py",
+   "find": "        if len(entries) != 1 or entries[0].get(\"class\") != \"sealed\" or entries[0].get(\"sha256\") != digest:\n",
+   "id": "CC-seal-entry-class",
+   "part": "construction_checks",
+   "replace": "        if len(entries) != 1 or entries[0].get(\"sha256\") != digest:\n"
+  },
+  {
+   "describes": "the seal entry's SHA-256 is not compared with the job's",
+   "file": "construction_checks.py",
+   "find": "        if len(entries) != 1 or entries[0].get(\"class\") != \"sealed\" or entries[0].get(\"sha256\") != digest:\n",
+   "id": "CC-seal-entry-hash",
+   "part": "construction_checks",
+   "replace": "        if len(entries) != 1 or entries[0].get(\"class\") != \"sealed\":\n"
+  },
+  {
+   "describes": "the s3-orig pools-only pass is read instead of the main pass",
+   "file": "construction_checks.py",
+   "find": "POD_INPUTS = {\"rows\": (\"rep_pass\", \"representation\", ROWS_FILE), \"summary\": (\"rep_pass\", \"representation\", SUMMARY_FILE),\n",
+   "id": "CC-main-pass",
+   "part": "construction_checks",
+   "replace": "POD_INPUTS = {\"rows\": (\"rep_pass\", \"representation-s3-orig\", ROWS_FILE), \"summary\": (\"rep_pass\", \"representation-s3-orig\", SUMMARY_FILE),\n"
+  },
+  {
+   "describes": "the job folder index is fixed instead of read from plan.json",
+   "file": "construction_checks.py",
+   "find": "        rel = f\"job-{index}/{folder}/{file}\"\n",
+   "id": "CC-job-index",
+   "part": "construction_checks",
+   "replace": "        rel = f\"job-0/{folder}/{file}\"\n"
+  },
+  {
+   "describes": "REQ-8's record is not checked against the rules' pin",
+   "file": "construction_checks.py",
+   "find": "    read_pinned(record, pin[\"sha256\"], \"REQ-8's record\")\n",
+   "id": "CC-req8-pin",
+   "part": "construction_checks",
+   "replace": "    read_bytes(record, \"REQ-8's record\")\n"
+  },
+  {
+   "describes": "the plant pool is not checked against the rules' pin",
+   "file": "construction_checks.py",
+   "find": "    read_pinned(plant_pool, pools[\"plant\"], \"the plant pool\")\n",
+   "id": "CC-pool-pin",
+   "part": "construction_checks",
+   "replace": "    read_bytes(plant_pool, \"the plant pool\")\n"
+  },
+  {
+   "describes": "a given scorer output is not re-hashed",
+   "file": "construction_checks.py",
+   "find": "    read_pinned(path, digest, what)\n    return path, digest\n",
+   "id": "CC-given-hash",
+   "part": "construction_checks",
+   "replace": "    return path, digest\n"
+  },
+  {
+   "describes": "a failed step does not stop the run",
+   "file": "construction_checks.py",
+   "find": "    if code != 0:\n        steps.append({\"step\": name, \"made_here\": True, \"exit\": code})\n",
+   "id": "CC-step-exit",
+   "part": "construction_checks",
+   "replace": "    if False:\n        steps.append({\"step\": name, \"made_here\": True, \"exit\": code})\n"
+  },
+  {
+   "describes": "a step's output is taken without the printed-hash check",
+   "file": "construction_checks.py",
+   "find": "    return (path, digest) if printed_hash(stdout, file) == digest else None\n",
+   "id": "CC-step-output",
+   "part": "construction_checks",
+   "replace": "    return (path, digest)\n"
+  },
+  {
+   "describes": "the report runs with --counted",
+   "file": "construction_checks.py",
+   "find": "            \"--datashield\", _ps(datashield), \"--classifier\", _ps(pod[\"classifier\"]), \"--out\", str(out / \"report\")]\n",
+   "id": "CC-report-counted",
+   "part": "construction_checks",
+   "replace": "            \"--datashield\", _ps(datashield), \"--classifier\", _ps(pod[\"classifier\"]), \"--counted\", \"a1=\" + _ps(l1), \"--out\", str(out / \"report\")]\n"
+  },
+  {
+   "describes": "a subprocess's stdout is shown",
+   "file": "construction_checks.py",
+   "find": "    return proc.returncode, proc.stdout.decode(\"utf-8\", \"replace\"), proc.stderr.decode(\"utf-8\", \"replace\")\n",
+   "id": "CC-log-stdout-shown",
+   "part": "construction_checks",
+   "replace": "    print(proc.stdout.decode(\"utf-8\", \"replace\"))\n    return proc.returncode, proc.stdout.decode(\"utf-8\", \"replace\"), proc.stderr.decode(\"utf-8\", \"replace\")\n"
+  },
+  {
+   "describes": "a subprocess's stderr is shown",
+   "file": "construction_checks.py",
+   "find": "    return proc.returncode, proc.stdout.decode(\"utf-8\", \"replace\"), proc.stderr.decode(\"utf-8\", \"replace\")\n",
+   "id": "CC-log-stderr-shown",
+   "part": "construction_checks",
+   "replace": "    print(proc.stderr.decode(\"utf-8\", \"replace\"), file=sys.stderr)\n    return proc.returncode, proc.stdout.decode(\"utf-8\", \"replace\"), proc.stderr.decode(\"utf-8\", \"replace\")\n"
+  },
+  {
+   "describes": "the L1 scorer's subcommand is left out",
+   "file": "construction_checks.py",
+   "find": "        cmds[\"l1\"] = [str(repo / L1_SCRIPT), \"score\", \"--prepared\", str(prepared), \"--scan\", _ps(pod[\"l1_scan\"]),\n",
+   "id": "CC-l1-subcommand",
+   "part": "construction_checks",
+   "replace": "        cmds[\"l1\"] = [str(repo / L1_SCRIPT), \"--prepared\", str(prepared), \"--scan\", _ps(pod[\"l1_scan\"]),\n"
+  },
+  {
+   "describes": "the report's output name differs from the W1 module's",
+   "file": "construction_checks.py",
+   "find": "REPORT_OUT, DATASHIELD_OUT, L1_OUT = \"plant_ranks.json\", \"datashield_scores.json\", \"l1_scores.json\"\n",
+   "id": "CC-output-name",
+   "part": "construction_checks",
+   "replace": "REPORT_OUT, DATASHIELD_OUT, L1_OUT = \"plant_rank.json\", \"datashield_scores.json\", \"l1_scores.json\"\n"
+  },
+  {
+   "describes": "a malformed PATH:SHA256 is accepted",
+   "file": "common.py",
+   "find": "    if not path or not HEX64.match(digest):\n        raise Refusal(f\"{what} is PATH:SHA256\")\n",
+   "id": "CO-hashed-pair",
+   "part": "common",
+   "replace": "    if False:\n        raise Refusal(f\"{what} is PATH:SHA256\")\n"
+  },
+  {
+   "describes": "a symbolic link is read as a regular file",
+   "file": "common.py",
+   "find": "    if path.is_symlink() or not path.is_file():\n",
+   "id": "CO-symlink",
+   "part": "common",
+   "replace": "    if not path.is_file():\n"
+  },
+  {
+   "describes": "the record is overwritten instead of created exclusively",
+   "file": "common.py",
+   "find": "        with open(path, \"xb\") as handle:\n",
+   "id": "CO-exclusive",
+   "part": "common",
+   "replace": "        with open(path, \"wb\") as handle:\n"
+  },
+  {
+   "describes": "an unexpected error prints its message (it may hold a value)",
+   "file": "common.py",
+   "find": "        print(f\"REFUSED: an unexpected {type(exc).__name__} (its message is withheld: it may hold a value)\",\n              file=sys.stderr)\n",
+   "id": "CO-frame-type-only",
+   "part": "common",
+   "replace": "        print(f\"REFUSED: an unexpected {type(exc).__name__}: {exc}\", file=sys.stderr)\n"
+  },
+  {
+   "describes": "a record of another kind is accepted",
+   "file": "binding_check.py",
+   "find": "    if record.get(\"kind\") != RECORD_KIND:\n",
+   "id": "BC-kind",
+   "part": "binding_check",
+   "replace": "    if False:\n"
+  },
+  {
+   "describes": "a record without an edits list is not refused with the fixed message",
+   "file": "binding_check.py",
+   "find": "    if not isinstance(edits, list) or not all(isinstance(e, dict) for e in edits):\n",
+   "id": "BC-edits-list",
+   "part": "binding_check",
+   "replace": "    if False:\n"
+  },
+  {
+   "describes": "two entries for the edit file are accepted (the first wins)",
+   "file": "binding_check.py",
+   "find": "    if len(found) != 1:\n",
+   "id": "BC-single-entry",
+   "part": "binding_check",
+   "replace": "    if len(found) < 1:\n"
+  },
+  {
+   "describes": "an entry whose sha256 is not a SHA-256 is compared instead of refused",
+   "file": "binding_check.py",
+   "find": "    if not is_hex64(digest):\n        raise Refusal(\"the record's entry for the edit file names no SHA-256\")\n",
+   "id": "BC-sha-hex",
+   "part": "binding_check",
+   "replace": "    if False:\n        raise Refusal(\"the record's entry for the edit file names no SHA-256\")\n"
+  },
+  {
+   "describes": "the record is read without the lead's pin",
+   "file": "binding_check.py",
+   "find": "    record = json_object(read_pinned(record_path, expect_record, \"the record\"), \"the record\")\n",
+   "id": "BC-record-pin",
+   "part": "binding_check",
+   "replace": "    from scripts.stage1_s1.stage1b_mac.common import read_bytes\n    record = json_object(read_bytes(record_path, \"the record\"), \"the record\")\n"
+  },
+  {
+   "describes": "a malformed --edit-sha256 is compared instead of refused",
+   "file": "binding_check.py",
+   "find": "    if not is_hex64(edit_sha256):\n        raise Refusal(\"--edit-sha256 is not 64 lowercase hex\")\n",
+   "id": "BC-edit-hex",
+   "part": "binding_check",
+   "replace": "    if False:\n        raise Refusal(\"--edit-sha256 is not 64 lowercase hex\")\n"
+  },
+  {
+   "describes": "the comparison is reversed",
+   "file": "binding_check.py",
+   "find": "    return listed_sha256(record, edit_file) == edit_sha256\n",
+   "id": "BC-match",
+   "part": "binding_check",
+   "replace": "    return listed_sha256(record, edit_file) != edit_sha256\n"
+  },
+  {
+   "describes": "\"no match\" exits 0",
+   "file": "binding_check.py",
+   "find": "        print(\"no match\")\n        return 1\n",
+   "id": "BC-exit",
+   "part": "binding_check",
+   "replace": "        print(\"no match\")\n        return 0\n"
+  },
+  {
+   "describes": "the settings file is read without the report's pin",
+   "file": "switch_check.py",
+   "find": "    data = read_pinned(settings_path, expect_sha256, \"the settings file\")\n",
+   "id": "SC-pin",
+   "part": "switch_check",
+   "replace": "    from scripts.stage1_s1.stage1b_mac.common import read_bytes\n    data = read_bytes(settings_path, \"the settings file\")\n"
+  },
+  {
+   "describes": "settings of another name or kind are accepted",
+   "file": "switch_check.py",
+   "find": "    if settings.get(\"kind\") != SETTINGS_KIND or settings.get(\"name\") != SETTINGS_NAME:\n",
+   "id": "SC-name",
+   "part": "switch_check",
+   "replace": "    if False:\n"
+  },
+  {
+   "describes": "another key is read as the switch",
+   "file": "switch_check.py",
+   "find": "KEY_PATH = (\"counting\", \"selfinf_n_counts\")",
+   "id": "SC-key-path",
+   "part": "switch_check",
+   "replace": "KEY_PATH = (\"counting\", \"scorers\")"
+  },
+  {
+   "describes": "a non-boolean switch is printed",
+   "file": "switch_check.py",
+   "find": "    if not isinstance(node, bool):\n",
+   "id": "SC-bool",
+   "part": "switch_check",
+   "replace": "    if False:\n"
+  },
+  {
+   "describes": "the printed word is reversed",
+   "file": "switch_check.py",
+   "find": "        print(f\"selfinf_n_counts {'true' if value else 'false'}\")\n",
+   "id": "SC-print",
+   "part": "switch_check",
+   "replace": "        print(f\"selfinf_n_counts {'false' if value else 'true'}\")\n"
+  },
+  {
+   "describes": "a malformed --expect-sha256 is not refused with the fixed message",
+   "file": "switch_check.py",
+   "find": "    if not is_hex64(expect_sha256):\n        raise Refusal(\"--expect-sha256 is not 64 lowercase hex\")\n",
+   "id": "SC-hex",
+   "part": "switch_check",
+   "replace": "    if False:\n        raise Refusal(\"--expect-sha256 is not 64 lowercase hex\")\n"
+  },
+  {
+   "describes": "the decoy pool is not checked against the rules' pin (verify1 D2)",
+   "file": "construction_checks.py",
+   "find": "    read_pinned(decoy_pool, pools[\"decoy\"], \"the decoy pool\")\n",
+   "id": "CC-second-pool-pin",
+   "part": "construction_checks",
+   "replace": "    read_bytes(decoy_pool, \"the decoy pool\")\n"
+  },
+  {
+   "describes": "seal entries of every host are pooled (the host filter is dropped; verify1 N5)",
+   "file": "construction_checks.py",
+   "find": "        if isinstance(e, dict) and e.get(\"host\") == host:\n",
+   "id": "CC-seal-host-filter",
+   "part": "construction_checks",
+   "replace": "        if isinstance(e, dict):\n"
+  },
+  {
+   "describes": "an input line prints the file's path beside its hash (verify1 N5)",
+   "file": "construction_checks.py",
+   "find": "    for name, digest in inputs.items():\n        print(f\"input {name} {digest}\")\n",
+   "id": "CC-input-print-path",
+   "part": "construction_checks",
+   "replace": "    for name, digest in inputs.items():\n        print(f\"input {name} {digest} {pinned.get(name, (None,))[0]}\")\n"
+  },
+  {
+   "describes": "a record path holding a protected word is accepted (verify1 N3)",
+   "file": "construction_checks.py",
+   "find": "    if any(word in str(record_path.resolve()).lower() for word in PROTECTED_WORDS):\n",
+   "id": "CC-record-word",
+   "part": "construction_checks",
+   "replace": "    if False:\n"
+  },
+  {
+   "describes": "a record folder that is a file is not refused with the fixed message (verify1 N1)",
+   "file": "construction_checks.py",
+   "find": "    if record_path.parent.exists() and not record_path.parent.is_dir():\n",
+   "id": "CC-record-parent",
+   "part": "construction_checks",
+   "replace": "    if False:\n"
+  },
+  {
+   "describes": "the rules module is read without --expect-rules-sha256 (verify1 N2)",
+   "file": "construction_checks.py",
+   "find": "    data = read_pinned(path, expect, \"the rules module\") if expect is not None else read_bytes(path, \"the rules module\")\n",
+   "id": "CC-rules-pin",
+   "part": "construction_checks",
+   "replace": "    data = read_bytes(path, \"the rules module\")\n"
+  },
+  {
+   "describes": "a malformed --expect-rules-sha256 is not refused with the fixed message",
+   "file": "construction_checks.py",
+   "find": "    if expect is not None and not is_hex64(expect):\n",
+   "id": "CC-rules-pin-hex",
+   "part": "construction_checks",
+   "replace": "    if False:\n"
+  },
+  {
+   "describes": "the W1 tree's files are read without their manifest entries (verify1 N7)",
+   "file": "construction_checks.py",
+   "find": "        data = read_pinned(repo / rel, e[\"sha256\"], \"a W1 file\")\n",
+   "id": "CC-w1-tree-pin",
+   "part": "construction_checks",
+   "replace": "        data = read_bytes(repo / rel, \"a W1 file\")\n"
+  },
+  {
+   "describes": "only code entries of the W1 tree are checked (settings and pinned inputs are skipped)",
+   "file": "construction_checks.py",
+   "find": "        if not isinstance(rel, str) or not rel.startswith(W1_PREFIX) or e.get(\"role\") not in W1_ROLES:\n",
+   "id": "CC-w1-tree-roles",
+   "part": "construction_checks",
+   "replace": "        if not isinstance(rel, str) or not rel.startswith(W1_PREFIX) or e.get(\"role\") != \"code\":\n"
+  },
+  {
+   "describes": "a W1 manifest entry without a SHA-256 is not refused with the fixed message",
+   "file": "construction_checks.py",
+   "find": "        if not is_hex64(e.get(\"sha256\")):\n            raise Refusal(\"a W1 manifest entry names no SHA-256\")\n",
+   "id": "CC-w1-entry-hex",
+   "part": "construction_checks",
+   "replace": "        if False:\n            raise Refusal(\"a W1 manifest entry names no SHA-256\")\n"
+  },
+  {
+   "describes": "a failed step's last stderr line is printed without the value-free whitelist (verify1 D1)",
+   "file": "construction_checks.py",
+   "find": "    return lines[-1] if lines and lines[-1] in messages else None\n",
+   "id": "CC-reason-unchecked",
+   "part": "construction_checks",
+   "replace": "    return lines[-1] if lines else None\n"
+  },
+  {
+   "describes": "a refusal raised with a non-literal message is whitelisted too",
+   "file": "construction_checks.py",
+   "find": "                    and isinstance(node.args[0], ast.Constant) and isinstance(node.args[0].value, str):\n                out.add(f\"REFUSED: {node.args[0].value}{NOTHING_WRITTEN}\")\n",
+   "id": "CC-reason-literal-only",
+   "part": "construction_checks",
+   "replace": "                    and isinstance(node.args[0], ast.Constant) and isinstance(node.args[0].value, str):\n                out.add(f\"REFUSED: {node.args[0].value}{NOTHING_WRITTEN}\")\n            elif isinstance(node, ast.Call) and _is_refusal(node.func):\n                out.add(\"REFUSED: \" + ast.unparse(node.args[0]) + NOTHING_WRITTEN)\n"
+  },
+  {
+   "describes": "a step's output is decoded strictly (bytes that are not UTF-8 break the run after the step; verify1 N1)",
+   "file": "construction_checks.py",
+   "find": "    return proc.returncode, proc.stdout.decode(\"utf-8\", \"replace\"), proc.stderr.decode(\"utf-8\", \"replace\")\n",
+   "id": "CC-log-strict-text",
+   "part": "construction_checks",
+   "replace": "    return proc.returncode, proc.stdout.decode(\"utf-8\"), proc.stderr.decode(\"utf-8\")\n"
+  },
+  {
+   "describes": "a JSON object that repeats a key is parsed (the last value wins; verify1 N4)",
+   "file": "common.py",
+   "find": "        if key in doc:\n            raise _RepeatedKey()\n",
+   "id": "CO-repeated-key",
+   "part": "common",
+   "replace": "        if False:\n            raise _RepeatedKey()\n"
+  }
+ ]
+}

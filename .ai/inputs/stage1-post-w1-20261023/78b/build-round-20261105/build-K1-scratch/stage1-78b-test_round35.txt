@@ -1,0 +1,1387 @@
+FFFFFFFFFFFFFFFFFFFFFFFFFF.                                              [100%]
+=================================== FAILURES ===================================
+__________ test_block_ps_tables_dose_cap_guard_spend_and_need_by_hand __________
+
+w = <test_stage1_runkit.World object at 0x109c41490>
+
+    def test_block_ps_tables_dose_cap_guard_spend_and_need_by_hand(w):
+        """stage1_rules by hand: block P after sim in BLOCKS, its own funding group, host prefix p (parsed as every other
+        prefix: the name before the last "-"; no two prefixes equal), kind arm only, no re-judged unit; a0_plant's dose
+        "plant" at 38 steps (REV4 §8.1); plant_runs seed-major; plant_deal one pod of the three (and its refusals).
+        One a0_plant arm job under Branch 128: measured upper 52 min + O500 1,024 s = 4,144 s, upper e1_upper + training
+        (38 steps) + 1,000 + 900 + 1,024 = 7,618.29 s, start requirement 9,418.29 s, counted 1, O500 1,024, J9, recipe S.
+        One pod with the three: cap = 42 min + 2 x 4,144 + 9,418.29 = 20,226.29 s, up to 0.25 h -> 5.75 h; guard $6 + 5.75
+        x $1.85 = $16.6375 -> $16.64; upper spend (2,520 + 3 x 4,144) / 3,600 x $1.79 = $7.4345 -> $7.43; need: base
+        $16.64, 1.25 x = $20.80, contingency $4.16, which pays one re-run on a new pod ($3.31) and not two. Under Branch
+        full (O500 1,517 s): measured 4,637 s, cap 6.25 h, upper spend $8.17."""
+        r = w.rules
+>       assert r.BLOCKS == ("S1-0", "cert", "A", "certify", "B", "C", "sim", "P") and r.WAVES == r.BLOCKS
+E       AssertionError: assert (('0',) == ('S1-0', 'cer...'B', 'C', ...)
+E         
+E         At index 0 diff: '0' != 'S1-0'
+E         Right contains 7 more items, first extra item: 'cert'
+E         Use -v to get more diff)
+
+runkit/stage1-78b/tests/test_round35.py:202: AssertionError
+_____ test_blocks_a_b_and_cs_tables_and_block_as_pins_are_those_of_0d25497 _____
+
+    def test_blocks_a_b_and_cs_tables_and_block_as_pins_are_those_of_0d25497():
+        """The kit's own rules file: block_runs for every (plan code, block) and REJUDGED_PINS["A"] equal the values captured
+        at 0d25497 (above), the refusals too; the seed, arm and order tables the deal and the reading's input builder read
+        are unchanged (ARM_ORDER, PLAN_ARMS, METHOD_SEEDS, REUSED_SEEDS, A0_SEEDS); REJUDGED_PINS["B"] stays empty."""
+        r = _real_rules()
+        for (code, block), want in TABLES_0D25497.items():
+>           assert r.block_runs(code, block) == want, (code, block)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+runkit/stage1-78b/tests/test_round35.py:308: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+plan_code = 'A', block = 'A', reused = ()
+
+    def block_runs(plan_code: str | None, block: str, reused: tuple = ()) -> list[tuple[str, int]]:
+        """The runs (arm, seed) of a block of THIS copy's family. Block "0" = N (rules_78b.block0_runs: R_1-R_3 at
+        1101-1103; a0 at 1103 on Llama-3.1-8B). Every other block refuses in this round: the 1B blocks belong to
+        runkit/stage1-olmo/, blocks A and B of the 7-8B tier come after N's reading (Part 1 §5-§6)."""
+        if block != "0":
+            where = "runkit/stage1-olmo/" if block in BLOCKS_1B else "a later round (after N's reading)"
+>           raise ValueError(f"block {block!r} is not planned by this copy (block 0 only in this round; ruling 11); "
+                             f"it belongs to {where}")
+E           ValueError: block 'A' is not planned by this copy (block 0 only in this round; ruling 11); it belongs to runkit/stage1-olmo/
+
+runkit/stage1-78b/stage1_rules.py:359: ValueError
+__________ test_init_block_p_needs_g3_and_block_b_complete_and_sealed __________
+
+w = <test_stage1_runkit.World object at 0x108d303d0>
+
+    def test_init_block_p_needs_g3_and_block_b_complete_and_sealed(w):
+        """G3 as every block: no Gate B final record, then no plan-A/B record, refuses. G5 for P (addendum §40 point 5):
+        block B not planned, planned but not done, done but not sealed, each refuses with nothing planned; sealed, the
+        pilot plans. The messages name the gate only."""
+>       w.s10()
+        ^^^^^
+E       AttributeError: 'World' object has no attribute 's10'
+
+runkit/stage1-78b/tests/test_round35.py:330: AttributeError
+____ test_block_p_plans_one_pod_of_the_three_a0_plant_runs_from_the_balance ____
+
+w = <test_stage1_runkit.World object at 0x1098966d0>
+
+    def test_block_p_plans_one_pod_of_the_three_a0_plant_runs_from_the_balance(w):
+        """init-block P: the dry run prints the need by hand (one pod, 5.75 h, guard $16.64, counted 3, the three jobs;
+        need $20.80, base $16.64, contingency $4.16) and plans nothing; a record $0.01 below refuses; another block's
+        record refuses; under addendum §36's record the block is planned and its launch released at once: host p-1
+        (block P, role arms, engine X, cap 5.75 h, counted 3), three J9 jobs a0_plant at 1101, 1102, 1103 in that order,
+        38 steps, recipe S (registered with its training identity), each bound to the sealed record's edit by SHA-256,
+        status planned; the block record (the §36 source, the deal, one launch); the contingency $4.16; `deal P` prints
+        the rule; a second init refuses; nothing of the pilot is reused."""
+>       rel, digest, record = _plant_ready(w)
+                              ^^^^^^^^^^^^^^^
+
+runkit/stage1-78b/tests/test_round35.py:366: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+runkit/stage1-78b/tests/test_round35.py:113: in _plant_ready
+    _b_sealed(w)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+w = <test_stage1_runkit.World object at 0x1098966d0>
+
+    def _b_sealed(w) -> None:
+        """W1-18 (Branch 128), Gate B's records, the sealed edit record of blocks A and B's arms, block A done and sealed,
+        block B (the deal's 6 pods in one launch, no judge launch, no second phase) done and sealed."""
+>       w.s10()
+        ^^^^^
+E       AttributeError: 'World' object has no attribute 's10'
+
+runkit/stage1-78b/tests/test_round35.py:99: AttributeError
+_ test_block_p_refuses_another_shape_a_judge_launch_a_hosts_launch_or_a_reused_run[launches0-extra0-launch 1: block P has no judge launch] _
+
+w = <test_stage1_runkit.World object at 0x109ae8650>
+launches = [{'deal': [0]}, {'judge': {'arms': 3, 'judge': 'granite'}}]
+extra = {}, match = 'launch 1: block P has no judge launch'
+
+    @pytest.mark.parametrize("launches, extra, match", [
+        (P_DEAL + [{"judge": {"arms": 3, "judge": "granite"}}], {}, "launch 1: block P has no judge launch"),
+        ([{"judge": {"arms": 3, "judge": "harmbench"}}] + P_DEAL, {}, "launch 0: block P has no judge launch"),
+        ([{"hosts": [[{"kind": "arm", "arm": "a0_plant", "seed": 1101}]]}], {}, "block P's jobs come from its deal only"),
+        ([{"hosts": [[{"kind": "similarity"}]]}], {}, "block P's jobs come from its deal only"),
+        ([{"second_phase": [[{"kind": "ref_eval", "arm": "a0", "seed": 1101, "points": ["scale:0.5"]}]]}], {},
+         "block P's jobs come from its deal only"),
+        (P_DEAL + [{"hosts": [[{"kind": "a0_arm", "arm": "a0", "seed": 1101}]]}], {}, "block P's jobs come from its deal only"),
+        ([{"deal": [0, 0]}], {}, "every dealt pod appears exactly once"),
+        (P_DEAL + P_DEAL, {}, "every dealt pod appears exactly once"),
+        ([{"deal": [1]}], {}, "deal indices must name the block's dealt pods"),
+        ([{"deal": []}], {}, "deal indices must name the block's dealt pods"),
+        (P_DEAL, {"reused": [["a0_plant", 1101]]}, "block P: nothing is reused"),
+        (P_DEAL, {"engine": "Y"}, "a arm job on engine Y before a recorded passing X -> Y certificate refuses")])
+    def test_block_p_refuses_another_shape_a_judge_launch_a_hosts_launch_or_a_reused_run(w, launches, extra, match):
+        """Block P is exactly {"launches": [{"deal": [0]}]}: a judge launch (addendum §40 point 7), a hosts or second-phase
+        launch, a dealt pod twice or an unknown one, a reused run or engine Y refuses at init with nothing planned."""
+>       _plant_ready(w)
+
+runkit/stage1-78b/tests/test_round35.py:420: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+runkit/stage1-78b/tests/test_round35.py:113: in _plant_ready
+    _b_sealed(w)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+w = <test_stage1_runkit.World object at 0x109ae8650>
+
+    def _b_sealed(w) -> None:
+        """W1-18 (Branch 128), Gate B's records, the sealed edit record of blocks A and B's arms, block A done and sealed,
+        block B (the deal's 6 pods in one launch, no judge launch, no second phase) done and sealed."""
+>       w.s10()
+        ^^^^^
+E       AttributeError: 'World' object has no attribute 's10'
+
+runkit/stage1-78b/tests/test_round35.py:99: AttributeError
+_ test_block_p_refuses_another_shape_a_judge_launch_a_hosts_launch_or_a_reused_run[launches1-extra1-launch 0: block P has no judge launch] _
+
+w = <test_stage1_runkit.World object at 0x109b07550>
+launches = [{'judge': {'arms': 3, 'judge': 'harmbench'}}, {'deal': [0]}]
+extra = {}, match = 'launch 0: block P has no judge launch'
+
+    @pytest.mark.parametrize("launches, extra, match", [
+        (P_DEAL + [{"judge": {"arms": 3, "judge": "granite"}}], {}, "launch 1: block P has no judge launch"),
+        ([{"judge": {"arms": 3, "judge": "harmbench"}}] + P_DEAL, {}, "launch 0: block P has no judge launch"),
+        ([{"hosts": [[{"kind": "arm", "arm": "a0_plant", "seed": 1101}]]}], {}, "block P's jobs come from its deal only"),
+        ([{"hosts": [[{"kind": "similarity"}]]}], {}, "block P's jobs come from its deal only"),
+        ([{"second_phase": [[{"kind": "ref_eval", "arm": "a0", "seed": 1101, "points": ["scale:0.5"]}]]}], {},
+         "block P's jobs come from its deal only"),
+        (P_DEAL + [{"hosts": [[{"kind": "a0_arm", "arm": "a0", "seed": 1101}]]}], {}, "block P's jobs come from its deal only"),
+        ([{"deal": [0, 0]}], {}, "every dealt pod appears exactly once"),
+        (P_DEAL + P_DEAL, {}, "every dealt pod appears exactly once"),
+        ([{"deal": [1]}], {}, "deal indices must name the block's dealt pods"),
+        ([{"deal": []}], {}, "deal indices must name the block's dealt pods"),
+        (P_DEAL, {"reused": [["a0_plant", 1101]]}, "block P: nothing is reused"),
+        (P_DEAL, {"engine": "Y"}, "a arm job on engine Y before a recorded passing X -> Y certificate refuses")])
+    def test_block_p_refuses_another_shape_a_judge_launch_a_hosts_launch_or_a_reused_run(w, launches, extra, match):
+        """Block P is exactly {"launches": [{"deal": [0]}]}: a judge launch (addendum §40 point 7), a hosts or second-phase
+        launch, a dealt pod twice or an unknown one, a reused run or engine Y refuses at init with nothing planned."""
+>       _plant_ready(w)
+
+runkit/stage1-78b/tests/test_round35.py:420: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+runkit/stage1-78b/tests/test_round35.py:113: in _plant_ready
+    _b_sealed(w)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+w = <test_stage1_runkit.World object at 0x109b07550>
+
+    def _b_sealed(w) -> None:
+        """W1-18 (Branch 128), Gate B's records, the sealed edit record of blocks A and B's arms, block A done and sealed,
+        block B (the deal's 6 pods in one launch, no judge launch, no second phase) done and sealed."""
+>       w.s10()
+        ^^^^^
+E       AttributeError: 'World' object has no attribute 's10'
+
+runkit/stage1-78b/tests/test_round35.py:99: AttributeError
+_ test_block_p_refuses_another_shape_a_judge_launch_a_hosts_launch_or_a_reused_run[launches2-extra2-block P's jobs come from its deal only] _
+
+w = <test_stage1_runkit.World object at 0x109a1cd90>
+launches = [{'hosts': [[{'arm': 'a0_plant', 'kind': 'arm', 'seed': 1101}]]}]
+extra = {}, match = "block P's jobs come from its deal only"
+
+    @pytest.mark.parametrize("launches, extra, match", [
+        (P_DEAL + [{"judge": {"arms": 3, "judge": "granite"}}], {}, "launch 1: block P has no judge launch"),
+        ([{"judge": {"arms": 3, "judge": "harmbench"}}] + P_DEAL, {}, "launch 0: block P has no judge launch"),
+        ([{"hosts": [[{"kind": "arm", "arm": "a0_plant", "seed": 1101}]]}], {}, "block P's jobs come from its deal only"),
+        ([{"hosts": [[{"kind": "similarity"}]]}], {}, "block P's jobs come from its deal only"),
+        ([{"second_phase": [[{"kind": "ref_eval", "arm": "a0", "seed": 1101, "points": ["scale:0.5"]}]]}], {},
+         "block P's jobs come from its deal only"),
+        (P_DEAL + [{"hosts": [[{"kind": "a0_arm", "arm": "a0", "seed": 1101}]]}], {}, "block P's jobs come from its deal only"),
+        ([{"deal": [0, 0]}], {}, "every dealt pod appears exactly once"),
+        (P_DEAL + P_DEAL, {}, "every dealt pod appears exactly once"),
+        ([{"deal": [1]}], {}, "deal indices must name the block's dealt pods"),
+        ([{"deal": []}], {}, "deal indices must name the block's dealt pods"),
+        (P_DEAL, {"reused": [["a0_plant", 1101]]}, "block P: nothing is reused"),
+        (P_DEAL, {"engine": "Y"}, "a arm job on engine Y before a recorded passing X -> Y certificate refuses")])
+    def test_block_p_refuses_another_shape_a_judge_launch_a_hosts_launch_or_a_reused_run(w, launches, extra, match):
+        """Block P is exactly {"launches": [{"deal": [0]}]}: a judge launch (addendum §40 point 7), a hosts or second-phase
+        launch, a dealt pod twice or an unknown one, a reused run or engine Y refuses at init with nothing planned."""
+>       _plant_ready(w)
+
+runkit/stage1-78b/tests/test_round35.py:420: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+runkit/stage1-78b/tests/test_round35.py:113: in _plant_ready
+    _b_sealed(w)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+w = <test_stage1_runkit.World object at 0x109a1cd90>
+
+    def _b_sealed(w) -> None:
+        """W1-18 (Branch 128), Gate B's records, the sealed edit record of blocks A and B's arms, block A done and sealed,
+        block B (the deal's 6 pods in one launch, no judge launch, no second phase) done and sealed."""
+>       w.s10()
+        ^^^^^
+E       AttributeError: 'World' object has no attribute 's10'
+
+runkit/stage1-78b/tests/test_round35.py:99: AttributeError
+_ test_block_p_refuses_another_shape_a_judge_launch_a_hosts_launch_or_a_reused_run[launches3-extra3-block P's jobs come from its deal only] _
+
+w = <test_stage1_runkit.World object at 0x109a33850>
+launches = [{'hosts': [[{'kind': 'similarity'}]]}], extra = {}
+match = "block P's jobs come from its deal only"
+
+    @pytest.mark.parametrize("launches, extra, match", [
+        (P_DEAL + [{"judge": {"arms": 3, "judge": "granite"}}], {}, "launch 1: block P has no judge launch"),
+        ([{"judge": {"arms": 3, "judge": "harmbench"}}] + P_DEAL, {}, "launch 0: block P has no judge launch"),
+        ([{"hosts": [[{"kind": "arm", "arm": "a0_plant", "seed": 1101}]]}], {}, "block P's jobs come from its deal only"),
+        ([{"hosts": [[{"kind": "similarity"}]]}], {}, "block P's jobs come from its deal only"),
+        ([{"second_phase": [[{"kind": "ref_eval", "arm": "a0", "seed": 1101, "points": ["scale:0.5"]}]]}], {},
+         "block P's jobs come from its deal only"),
+        (P_DEAL + [{"hosts": [[{"kind": "a0_arm", "arm": "a0", "seed": 1101}]]}], {}, "block P's jobs come from its deal only"),
+        ([{"deal": [0, 0]}], {}, "every dealt pod appears exactly once"),
+        (P_DEAL + P_DEAL, {}, "every dealt pod appears exactly once"),
+        ([{"deal": [1]}], {}, "deal indices must name the block's dealt pods"),
+        ([{"deal": []}], {}, "deal indices must name the block's dealt pods"),
+        (P_DEAL, {"reused": [["a0_plant", 1101]]}, "block P: nothing is reused"),
+        (P_DEAL, {"engine": "Y"}, "a arm job on engine Y before a recorded passing X -> Y certificate refuses")])
+    def test_block_p_refuses_another_shape_a_judge_launch_a_hosts_launch_or_a_reused_run(w, launches, extra, match):
+        """Block P is exactly {"launches": [{"deal": [0]}]}: a judge launch (addendum §40 point 7), a hosts or second-phase
+        launch, a dealt pod twice or an unknown one, a reused run or engine Y refuses at init with nothing planned."""
+>       _plant_ready(w)
+
+runkit/stage1-78b/tests/test_round35.py:420: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+runkit/stage1-78b/tests/test_round35.py:113: in _plant_ready
+    _b_sealed(w)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+w = <test_stage1_runkit.World object at 0x109a33850>
+
+    def _b_sealed(w) -> None:
+        """W1-18 (Branch 128), Gate B's records, the sealed edit record of blocks A and B's arms, block A done and sealed,
+        block B (the deal's 6 pods in one launch, no judge launch, no second phase) done and sealed."""
+>       w.s10()
+        ^^^^^
+E       AttributeError: 'World' object has no attribute 's10'
+
+runkit/stage1-78b/tests/test_round35.py:99: AttributeError
+_ test_block_p_refuses_another_shape_a_judge_launch_a_hosts_launch_or_a_reused_run[launches4-extra4-block P's jobs come from its deal only] _
+
+w = <test_stage1_runkit.World object at 0x1088057d0>
+launches = [{'second_phase': [[{'arm': 'a0', 'kind': 'ref_eval', 'points': ['scale:0.5'], 'seed': 1101}]]}]
+extra = {}, match = "block P's jobs come from its deal only"
+
+    @pytest.mark.parametrize("launches, extra, match", [
+        (P_DEAL + [{"judge": {"arms": 3, "judge": "granite"}}], {}, "launch 1: block P has no judge launch"),
+        ([{"judge": {"arms": 3, "judge": "harmbench"}}] + P_DEAL, {}, "launch 0: block P has no judge launch"),
+        ([{"hosts": [[{"kind": "arm", "arm": "a0_plant", "seed": 1101}]]}], {}, "block P's jobs come from its deal only"),
+        ([{"hosts": [[{"kind": "similarity"}]]}], {}, "block P's jobs come from its deal only"),
+        ([{"second_phase": [[{"kind": "ref_eval", "arm": "a0", "seed": 1101, "points": ["scale:0.5"]}]]}], {},
+         "block P's jobs come from its deal only"),
+        (P_DEAL + [{"hosts": [[{"kind": "a0_arm", "arm": "a0", "seed": 1101}]]}], {}, "block P's jobs come from its deal only"),
+        ([{"deal": [0, 0]}], {}, "every dealt pod appears exactly once"),
+        (P_DEAL + P_DEAL, {}, "every dealt pod appears exactly once"),
+        ([{"deal": [1]}], {}, "deal indices must name the block's dealt pods"),
+        ([{"deal": []}], {}, "deal indices must name the block's dealt pods"),
+        (P_DEAL, {"reused": [["a0_plant", 1101]]}, "block P: nothing is reused"),
+        (P_DEAL, {"engine": "Y"}, "a arm job on engine Y before a recorded passing X -> Y certificate refuses")])
+    def test_block_p_refuses_another_shape_a_judge_launch_a_hosts_launch_or_a_reused_run(w, launches, extra, match):
+        """Block P is exactly {"launches": [{"deal": [0]}]}: a judge launch (addendum §40 point 7), a hosts or second-phase
+        launch, a dealt pod twice or an unknown one, a reused run or engine Y refuses at init with nothing planned."""
+>       _plant_ready(w)
+
+runkit/stage1-78b/tests/test_round35.py:420: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+runkit/stage1-78b/tests/test_round35.py:113: in _plant_ready
+    _b_sealed(w)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+w = <test_stage1_runkit.World object at 0x1088057d0>
+
+    def _b_sealed(w) -> None:
+        """W1-18 (Branch 128), Gate B's records, the sealed edit record of blocks A and B's arms, block A done and sealed,
+        block B (the deal's 6 pods in one launch, no judge launch, no second phase) done and sealed."""
+>       w.s10()
+        ^^^^^
+E       AttributeError: 'World' object has no attribute 's10'
+
+runkit/stage1-78b/tests/test_round35.py:99: AttributeError
+_ test_block_p_refuses_another_shape_a_judge_launch_a_hosts_launch_or_a_reused_run[launches5-extra5-block P's jobs come from its deal only] _
+
+w = <test_stage1_runkit.World object at 0x109842150>
+launches = [{'deal': [0]}, {'hosts': [[{'arm': 'a0', 'kind': 'a0_arm', 'seed': 1101}]]}]
+extra = {}, match = "block P's jobs come from its deal only"
+
+    @pytest.mark.parametrize("launches, extra, match", [
+        (P_DEAL + [{"judge": {"arms": 3, "judge": "granite"}}], {}, "launch 1: block P has no judge launch"),
+        ([{"judge": {"arms": 3, "judge": "harmbench"}}] + P_DEAL, {}, "launch 0: block P has no judge launch"),
+        ([{"hosts": [[{"kind": "arm", "arm": "a0_plant", "seed": 1101}]]}], {}, "block P's jobs come from its deal only"),
+        ([{"hosts": [[{"kind": "similarity"}]]}], {}, "block P's jobs come from its deal only"),
+        ([{"second_phase": [[{"kind": "ref_eval", "arm": "a0", "seed": 1101, "points": ["scale:0.5"]}]]}], {},
+         "block P's jobs come from its deal only"),
+        (P_DEAL + [{"hosts": [[{"kind": "a0_arm", "arm": "a0", "seed": 1101}]]}], {}, "block P's jobs come from its deal only"),
+        ([{"deal": [0, 0]}], {}, "every dealt pod appears exactly once"),
+        (P_DEAL + P_DEAL, {}, "every dealt pod appears exactly once"),
+        ([{"deal": [1]}], {}, "deal indices must name the block's dealt pods"),
+        ([{"deal": []}], {}, "deal indices must name the block's dealt pods"),
+        (P_DEAL, {"reused": [["a0_plant", 1101]]}, "block P: nothing is reused"),
+        (P_DEAL, {"engine": "Y"}, "a arm job on engine Y before a recorded passing X -> Y certificate refuses")])
+    def test_block_p_refuses_another_shape_a_judge_launch_a_hosts_launch_or_a_reused_run(w, launches, extra, match):
+        """Block P is exactly {"launches": [{"deal": [0]}]}: a judge launch (addendum §40 point 7), a hosts or second-phase
+        launch, a dealt pod twice or an unknown one, a reused run or engine Y refuses at init with nothing planned."""
+>       _plant_ready(w)
+
+runkit/stage1-78b/tests/test_round35.py:420: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+runkit/stage1-78b/tests/test_round35.py:113: in _plant_ready
+    _b_sealed(w)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+w = <test_stage1_runkit.World object at 0x109842150>
+
+    def _b_sealed(w) -> None:
+        """W1-18 (Branch 128), Gate B's records, the sealed edit record of blocks A and B's arms, block A done and sealed,
+        block B (the deal's 6 pods in one launch, no judge launch, no second phase) done and sealed."""
+>       w.s10()
+        ^^^^^
+E       AttributeError: 'World' object has no attribute 's10'
+
+runkit/stage1-78b/tests/test_round35.py:99: AttributeError
+_ test_block_p_refuses_another_shape_a_judge_launch_a_hosts_launch_or_a_reused_run[launches6-extra6-every dealt pod appears exactly once] _
+
+w = <test_stage1_runkit.World object at 0x109b7c4d0>
+launches = [{'deal': [0, 0]}], extra = {}
+match = 'every dealt pod appears exactly once'
+
+    @pytest.mark.parametrize("launches, extra, match", [
+        (P_DEAL + [{"judge": {"arms": 3, "judge": "granite"}}], {}, "launch 1: block P has no judge launch"),
+        ([{"judge": {"arms": 3, "judge": "harmbench"}}] + P_DEAL, {}, "launch 0: block P has no judge launch"),
+        ([{"hosts": [[{"kind": "arm", "arm": "a0_plant", "seed": 1101}]]}], {}, "block P's jobs come from its deal only"),
+        ([{"hosts": [[{"kind": "similarity"}]]}], {}, "block P's jobs come from its deal only"),
+        ([{"second_phase": [[{"kind": "ref_eval", "arm": "a0", "seed": 1101, "points": ["scale:0.5"]}]]}], {},
+         "block P's jobs come from its deal only"),
+        (P_DEAL + [{"hosts": [[{"kind": "a0_arm", "arm": "a0", "seed": 1101}]]}], {}, "block P's jobs come from its deal only"),
+        ([{"deal": [0, 0]}], {}, "every dealt pod appears exactly once"),
+        (P_DEAL + P_DEAL, {}, "every dealt pod appears exactly once"),
+        ([{"deal": [1]}], {}, "deal indices must name the block's dealt pods"),
+        ([{"deal": []}], {}, "deal indices must name the block's dealt pods"),
+        (P_DEAL, {"reused": [["a0_plant", 1101]]}, "block P: nothing is reused"),
+        (P_DEAL, {"engine": "Y"}, "a arm job on engine Y before a recorded passing X -> Y certificate refuses")])
+    def test_block_p_refuses_another_shape_a_judge_launch_a_hosts_launch_or_a_reused_run(w, launches, extra, match):
+        """Block P is exactly {"launches": [{"deal": [0]}]}: a judge launch (addendum §40 point 7), a hosts or second-phase
+        launch, a dealt pod twice or an unknown one, a reused run or engine Y refuses at init with nothing planned."""
+>       _plant_ready(w)
+
+runkit/stage1-78b/tests/test_round35.py:420: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+runkit/stage1-78b/tests/test_round35.py:113: in _plant_ready
+    _b_sealed(w)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+w = <test_stage1_runkit.World object at 0x109b7c4d0>
+
+    def _b_sealed(w) -> None:
+        """W1-18 (Branch 128), Gate B's records, the sealed edit record of blocks A and B's arms, block A done and sealed,
+        block B (the deal's 6 pods in one launch, no judge launch, no second phase) done and sealed."""
+>       w.s10()
+        ^^^^^
+E       AttributeError: 'World' object has no attribute 's10'
+
+runkit/stage1-78b/tests/test_round35.py:99: AttributeError
+_ test_block_p_refuses_another_shape_a_judge_launch_a_hosts_launch_or_a_reused_run[launches7-extra7-every dealt pod appears exactly once] _
+
+w = <test_stage1_runkit.World object at 0x109a95d50>
+launches = [{'deal': [0]}, {'deal': [0]}], extra = {}
+match = 'every dealt pod appears exactly once'
+
+    @pytest.mark.parametrize("launches, extra, match", [
+        (P_DEAL + [{"judge": {"arms": 3, "judge": "granite"}}], {}, "launch 1: block P has no judge launch"),
+        ([{"judge": {"arms": 3, "judge": "harmbench"}}] + P_DEAL, {}, "launch 0: block P has no judge launch"),
+        ([{"hosts": [[{"kind": "arm", "arm": "a0_plant", "seed": 1101}]]}], {}, "block P's jobs come from its deal only"),
+        ([{"hosts": [[{"kind": "similarity"}]]}], {}, "block P's jobs come from its deal only"),
+        ([{"second_phase": [[{"kind": "ref_eval", "arm": "a0", "seed": 1101, "points": ["scale:0.5"]}]]}], {},
+         "block P's jobs come from its deal only"),
+        (P_DEAL + [{"hosts": [[{"kind": "a0_arm", "arm": "a0", "seed": 1101}]]}], {}, "block P's jobs come from its deal only"),
+        ([{"deal": [0, 0]}], {}, "every dealt pod appears exactly once"),
+        (P_DEAL + P_DEAL, {}, "every dealt pod appears exactly once"),
+        ([{"deal": [1]}], {}, "deal indices must name the block's dealt pods"),
+        ([{"deal": []}], {}, "deal indices must name the block's dealt pods"),
+        (P_DEAL, {"reused": [["a0_plant", 1101]]}, "block P: nothing is reused"),
+        (P_DEAL, {"engine": "Y"}, "a arm job on engine Y before a recorded passing X -> Y certificate refuses")])
+    def test_block_p_refuses_another_shape_a_judge_launch_a_hosts_launch_or_a_reused_run(w, launches, extra, match):
+        """Block P is exactly {"launches": [{"deal": [0]}]}: a judge launch (addendum §40 point 7), a hosts or second-phase
+        launch, a dealt pod twice or an unknown one, a reused run or engine Y refuses at init with nothing planned."""
+>       _plant_ready(w)
+
+runkit/stage1-78b/tests/test_round35.py:420: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+runkit/stage1-78b/tests/test_round35.py:113: in _plant_ready
+    _b_sealed(w)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+w = <test_stage1_runkit.World object at 0x109a95d50>
+
+    def _b_sealed(w) -> None:
+        """W1-18 (Branch 128), Gate B's records, the sealed edit record of blocks A and B's arms, block A done and sealed,
+        block B (the deal's 6 pods in one launch, no judge launch, no second phase) done and sealed."""
+>       w.s10()
+        ^^^^^
+E       AttributeError: 'World' object has no attribute 's10'
+
+runkit/stage1-78b/tests/test_round35.py:99: AttributeError
+_ test_block_p_refuses_another_shape_a_judge_launch_a_hosts_launch_or_a_reused_run[launches8-extra8-deal indices must name the block's dealt pods] _
+
+w = <test_stage1_runkit.World object at 0x108bf16d0>, launches = [{'deal': [1]}]
+extra = {}, match = "deal indices must name the block's dealt pods"
+
+    @pytest.mark.parametrize("launches, extra, match", [
+        (P_DEAL + [{"judge": {"arms": 3, "judge": "granite"}}], {}, "launch 1: block P has no judge launch"),
+        ([{"judge": {"arms": 3, "judge": "harmbench"}}] + P_DEAL, {}, "launch 0: block P has no judge launch"),
+        ([{"hosts": [[{"kind": "arm", "arm": "a0_plant", "seed": 1101}]]}], {}, "block P's jobs come from its deal only"),
+        ([{"hosts": [[{"kind": "similarity"}]]}], {}, "block P's jobs come from its deal only"),
+        ([{"second_phase": [[{"kind": "ref_eval", "arm": "a0", "seed": 1101, "points": ["scale:0.5"]}]]}], {},
+         "block P's jobs come from its deal only"),
+        (P_DEAL + [{"hosts": [[{"kind": "a0_arm", "arm": "a0", "seed": 1101}]]}], {}, "block P's jobs come from its deal only"),
+        ([{"deal": [0, 0]}], {}, "every dealt pod appears exactly once"),
+        (P_DEAL + P_DEAL, {}, "every dealt pod appears exactly once"),
+        ([{"deal": [1]}], {}, "deal indices must name the block's dealt pods"),
+        ([{"deal": []}], {}, "deal indices must name the block's dealt pods"),
+        (P_DEAL, {"reused": [["a0_plant", 1101]]}, "block P: nothing is reused"),
+        (P_DEAL, {"engine": "Y"}, "a arm job on engine Y before a recorded passing X -> Y certificate refuses")])
+    def test_block_p_refuses_another_shape_a_judge_launch_a_hosts_launch_or_a_reused_run(w, launches, extra, match):
+        """Block P is exactly {"launches": [{"deal": [0]}]}: a judge launch (addendum §40 point 7), a hosts or second-phase
+        launch, a dealt pod twice or an unknown one, a reused run or engine Y refuses at init with nothing planned."""
+>       _plant_ready(w)
+
+runkit/stage1-78b/tests/test_round35.py:420: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+runkit/stage1-78b/tests/test_round35.py:113: in _plant_ready
+    _b_sealed(w)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+w = <test_stage1_runkit.World object at 0x108bf16d0>
+
+    def _b_sealed(w) -> None:
+        """W1-18 (Branch 128), Gate B's records, the sealed edit record of blocks A and B's arms, block A done and sealed,
+        block B (the deal's 6 pods in one launch, no judge launch, no second phase) done and sealed."""
+>       w.s10()
+        ^^^^^
+E       AttributeError: 'World' object has no attribute 's10'
+
+runkit/stage1-78b/tests/test_round35.py:99: AttributeError
+_ test_block_p_refuses_another_shape_a_judge_launch_a_hosts_launch_or_a_reused_run[launches9-extra9-deal indices must name the block's dealt pods] _
+
+w = <test_stage1_runkit.World object at 0x1089273d0>, launches = [{'deal': []}]
+extra = {}, match = "deal indices must name the block's dealt pods"
+
+    @pytest.mark.parametrize("launches, extra, match", [
+        (P_DEAL + [{"judge": {"arms": 3, "judge": "granite"}}], {}, "launch 1: block P has no judge launch"),
+        ([{"judge": {"arms": 3, "judge": "harmbench"}}] + P_DEAL, {}, "launch 0: block P has no judge launch"),
+        ([{"hosts": [[{"kind": "arm", "arm": "a0_plant", "seed": 1101}]]}], {}, "block P's jobs come from its deal only"),
+        ([{"hosts": [[{"kind": "similarity"}]]}], {}, "block P's jobs come from its deal only"),
+        ([{"second_phase": [[{"kind": "ref_eval", "arm": "a0", "seed": 1101, "points": ["scale:0.5"]}]]}], {},
+         "block P's jobs come from its deal only"),
+        (P_DEAL + [{"hosts": [[{"kind": "a0_arm", "arm": "a0", "seed": 1101}]]}], {}, "block P's jobs come from its deal only"),
+        ([{"deal": [0, 0]}], {}, "every dealt pod appears exactly once"),
+        (P_DEAL + P_DEAL, {}, "every dealt pod appears exactly once"),
+        ([{"deal": [1]}], {}, "deal indices must name the block's dealt pods"),
+        ([{"deal": []}], {}, "deal indices must name the block's dealt pods"),
+        (P_DEAL, {"reused": [["a0_plant", 1101]]}, "block P: nothing is reused"),
+        (P_DEAL, {"engine": "Y"}, "a arm job on engine Y before a recorded passing X -> Y certificate refuses")])
+    def test_block_p_refuses_another_shape_a_judge_launch_a_hosts_launch_or_a_reused_run(w, launches, extra, match):
+        """Block P is exactly {"launches": [{"deal": [0]}]}: a judge launch (addendum §40 point 7), a hosts or second-phase
+        launch, a dealt pod twice or an unknown one, a reused run or engine Y refuses at init with nothing planned."""
+>       _plant_ready(w)
+
+runkit/stage1-78b/tests/test_round35.py:420: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+runkit/stage1-78b/tests/test_round35.py:113: in _plant_ready
+    _b_sealed(w)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+w = <test_stage1_runkit.World object at 0x1089273d0>
+
+    def _b_sealed(w) -> None:
+        """W1-18 (Branch 128), Gate B's records, the sealed edit record of blocks A and B's arms, block A done and sealed,
+        block B (the deal's 6 pods in one launch, no judge launch, no second phase) done and sealed."""
+>       w.s10()
+        ^^^^^
+E       AttributeError: 'World' object has no attribute 's10'
+
+runkit/stage1-78b/tests/test_round35.py:99: AttributeError
+_ test_block_p_refuses_another_shape_a_judge_launch_a_hosts_launch_or_a_reused_run[launches10-extra10-block P: nothing is reused] _
+
+w = <test_stage1_runkit.World object at 0x108d30150>, launches = [{'deal': [0]}]
+extra = {'reused': [['a0_plant', 1101]]}, match = 'block P: nothing is reused'
+
+    @pytest.mark.parametrize("launches, extra, match", [
+        (P_DEAL + [{"judge": {"arms": 3, "judge": "granite"}}], {}, "launch 1: block P has no judge launch"),
+        ([{"judge": {"arms": 3, "judge": "harmbench"}}] + P_DEAL, {}, "launch 0: block P has no judge launch"),
+        ([{"hosts": [[{"kind": "arm", "arm": "a0_plant", "seed": 1101}]]}], {}, "block P's jobs come from its deal only"),
+        ([{"hosts": [[{"kind": "similarity"}]]}], {}, "block P's jobs come from its deal only"),
+        ([{"second_phase": [[{"kind": "ref_eval", "arm": "a0", "seed": 1101, "points": ["scale:0.5"]}]]}], {},
+         "block P's jobs come from its deal only"),
+        (P_DEAL + [{"hosts": [[{"kind": "a0_arm", "arm": "a0", "seed": 1101}]]}], {}, "block P's jobs come from its deal only"),
+        ([{"deal": [0, 0]}], {}, "every dealt pod appears exactly once"),
+        (P_DEAL + P_DEAL, {}, "every dealt pod appears exactly once"),
+        ([{"deal": [1]}], {}, "deal indices must name the block's dealt pods"),
+        ([{"deal": []}], {}, "deal indices must name the block's dealt pods"),
+        (P_DEAL, {"reused": [["a0_plant", 1101]]}, "block P: nothing is reused"),
+        (P_DEAL, {"engine": "Y"}, "a arm job on engine Y before a recorded passing X -> Y certificate refuses")])
+    def test_block_p_refuses_another_shape_a_judge_launch_a_hosts_launch_or_a_reused_run(w, launches, extra, match):
+        """Block P is exactly {"launches": [{"deal": [0]}]}: a judge launch (addendum §40 point 7), a hosts or second-phase
+        launch, a dealt pod twice or an unknown one, a reused run or engine Y refuses at init with nothing planned."""
+>       _plant_ready(w)
+
+runkit/stage1-78b/tests/test_round35.py:420: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+runkit/stage1-78b/tests/test_round35.py:113: in _plant_ready
+    _b_sealed(w)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+w = <test_stage1_runkit.World object at 0x108d30150>
+
+    def _b_sealed(w) -> None:
+        """W1-18 (Branch 128), Gate B's records, the sealed edit record of blocks A and B's arms, block A done and sealed,
+        block B (the deal's 6 pods in one launch, no judge launch, no second phase) done and sealed."""
+>       w.s10()
+        ^^^^^
+E       AttributeError: 'World' object has no attribute 's10'
+
+runkit/stage1-78b/tests/test_round35.py:99: AttributeError
+_ test_block_p_refuses_another_shape_a_judge_launch_a_hosts_launch_or_a_reused_run[launches11-extra11-a arm job on engine Y before a recorded passing X -> Y certificate refuses] _
+
+w = <test_stage1_runkit.World object at 0x109881ed0>, launches = [{'deal': [0]}]
+extra = {'engine': 'Y'}
+match = 'a arm job on engine Y before a recorded passing X -> Y certificate refuses'
+
+    @pytest.mark.parametrize("launches, extra, match", [
+        (P_DEAL + [{"judge": {"arms": 3, "judge": "granite"}}], {}, "launch 1: block P has no judge launch"),
+        ([{"judge": {"arms": 3, "judge": "harmbench"}}] + P_DEAL, {}, "launch 0: block P has no judge launch"),
+        ([{"hosts": [[{"kind": "arm", "arm": "a0_plant", "seed": 1101}]]}], {}, "block P's jobs come from its deal only"),
+        ([{"hosts": [[{"kind": "similarity"}]]}], {}, "block P's jobs come from its deal only"),
+        ([{"second_phase": [[{"kind": "ref_eval", "arm": "a0", "seed": 1101, "points": ["scale:0.5"]}]]}], {},
+         "block P's jobs come from its deal only"),
+        (P_DEAL + [{"hosts": [[{"kind": "a0_arm", "arm": "a0", "seed": 1101}]]}], {}, "block P's jobs come from its deal only"),
+        ([{"deal": [0, 0]}], {}, "every dealt pod appears exactly once"),
+        (P_DEAL + P_DEAL, {}, "every dealt pod appears exactly once"),
+        ([{"deal": [1]}], {}, "deal indices must name the block's dealt pods"),
+        ([{"deal": []}], {}, "deal indices must name the block's dealt pods"),
+        (P_DEAL, {"reused": [["a0_plant", 1101]]}, "block P: nothing is reused"),
+        (P_DEAL, {"engine": "Y"}, "a arm job on engine Y before a recorded passing X -> Y certificate refuses")])
+    def test_block_p_refuses_another_shape_a_judge_launch_a_hosts_launch_or_a_reused_run(w, launches, extra, match):
+        """Block P is exactly {"launches": [{"deal": [0]}]}: a judge launch (addendum §40 point 7), a hosts or second-phase
+        launch, a dealt pod twice or an unknown one, a reused run or engine Y refuses at init with nothing planned."""
+>       _plant_ready(w)
+
+runkit/stage1-78b/tests/test_round35.py:420: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+runkit/stage1-78b/tests/test_round35.py:113: in _plant_ready
+    _b_sealed(w)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+w = <test_stage1_runkit.World object at 0x109881ed0>
+
+    def _b_sealed(w) -> None:
+        """W1-18 (Branch 128), Gate B's records, the sealed edit record of blocks A and B's arms, block A done and sealed,
+        block B (the deal's 6 pods in one launch, no judge launch, no second phase) done and sealed."""
+>       w.s10()
+        ^^^^^
+E       AttributeError: 'World' object has no attribute 's10'
+
+runkit/stage1-78b/tests/test_round35.py:99: AttributeError
+_ test_a_p_job_other_than_a0_plant_at_the_pilot_seeds_refuses_at_init_and_at_release _
+
+w = <test_stage1_runkit.World object at 0x10984d3d0>
+
+    def test_a_p_job_other_than_a0_plant_at_the_pilot_seeds_refuses_at_init_and_at_release(w):
+        """The table and the jobs both ways. plant_deal refuses any run outside the table (a table that would give 1104 or
+        A1 refuses before anything is built). At release every job of a P host must still be a0_plant (kind arm) at 1101,
+        1102 or 1103 with no role: a host record whose job was changed in plan.json (seed 1105, arm A1, kind a0_arm, role
+        bqi_own_a0) refuses; untouched it releases."""
+>       _plant_ready(w)
+
+runkit/stage1-78b/tests/test_round35.py:431: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+runkit/stage1-78b/tests/test_round35.py:113: in _plant_ready
+    _b_sealed(w)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+w = <test_stage1_runkit.World object at 0x10984d3d0>
+
+    def _b_sealed(w) -> None:
+        """W1-18 (Branch 128), Gate B's records, the sealed edit record of blocks A and B's arms, block A done and sealed,
+        block B (the deal's 6 pods in one launch, no judge launch, no second phase) done and sealed."""
+>       w.s10()
+        ^^^^^
+E       AttributeError: 'World' object has no attribute 's10'
+
+runkit/stage1-78b/tests/test_round35.py:99: AttributeError
+_ test_block_p_needs_the_sealed_edit_record_and_refuses_a_changed_or_missing_edit_file _
+
+w = <test_stage1_runkit.World object at 0x1098bce10>
+
+    def test_block_p_needs_the_sealed_edit_record_and_refuses_a_changed_or_missing_edit_file(w):
+        """Both ways, each with nothing planned: no sealed edit record for a0_plant (the dry run refuses too); the file
+        changed on disk after its record; the file missing; REQ-8's record (re-pinned) naming another SHA-256 for
+        edits/planted_k37.json; two sealed records naming different a0_plant files; then the good world plans, and a file
+        changed between init and release refuses at release."""
+>       _b_sealed(w)
+
+runkit/stage1-78b/tests/test_round35.py:457: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+w = <test_stage1_runkit.World object at 0x1098bce10>
+
+    def _b_sealed(w) -> None:
+        """W1-18 (Branch 128), Gate B's records, the sealed edit record of blocks A and B's arms, block A done and sealed,
+        block B (the deal's 6 pods in one launch, no judge launch, no second phase) done and sealed."""
+>       w.s10()
+        ^^^^^
+E       AttributeError: 'World' object has no attribute 's10'
+
+runkit/stage1-78b/tests/test_round35.py:99: AttributeError
+_ test_record_sealed_binds_a_plant_edit_to_req8s_record_by_key_and_prints_no_field _
+
+w = <test_stage1_runkit.World object at 0x109b7e110>
+capsys = <_pytest.capture.CaptureFixture object at 0x108925f50>
+
+    def test_record_sealed_binds_a_plant_edit_to_req8s_record_by_key_and_prints_no_field(w, capsys):
+        """record-sealed for an a0_plant edit (the sealed route of every arm, once ARM_DOSE names it): REQ-8's record at
+        its pin must list edits/planted_k37.json in full_files with the recorded SHA-256; another SHA-256, no such entry,
+        or a record off its pin refuses (fixed messages, no hash); the matching record is recorded once; an a0_plant edit
+        with a draw refuses as every non-R edit; a non-plant arm's edit is not bound to REQ-8's record (unchanged route).
+        REQ-8's unit and leaf fields and the edit's text fields are sentinels: none reaches stdout or stderr."""
+>       _b_sealed(w)
+
+runkit/stage1-78b/tests/test_round35.py:502: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+w = <test_stage1_runkit.World object at 0x109b7e110>
+
+    def _b_sealed(w) -> None:
+        """W1-18 (Branch 128), Gate B's records, the sealed edit record of blocks A and B's arms, block A done and sealed,
+        block B (the deal's 6 pods in one launch, no judge launch, no second phase) done and sealed."""
+>       w.s10()
+        ^^^^^
+E       AttributeError: 'World' object has no attribute 's10'
+
+runkit/stage1-78b/tests/test_round35.py:99: AttributeError
+_ test_the_runner_writes_the_plant_arms_readable_fingerprint_record_with_no_edit_field _
+
+kit = <function kit.<locals>.load at 0x1089677e0>
+tmp_path = PosixPath('/private/var/folders/mk/33rfxgzn32318ntchzzgtm680000gn/T/pytest-of-spiderishi/pytest-41/test_the_runner_writes_the_pla0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x109ae8e10>
+capsys = <_pytest.capture.CaptureFixture object at 0x109ae8b90>
+
+    def test_the_runner_writes_the_plant_arms_readable_fingerprint_record_with_no_edit_field(kit, tmp_path, monkeypatch,
+                                                                                            capsys):
+        """Three a0_plant jobs and an A1 arm on one pod: each a0_plant job runs calibrate with --arms edit-<SHA-256> --edit
+        edits/<SHA-256>.edit.json --seeds <seed> --checkpoints e1 (then the O-ext step), is complete with its unit
+        round1/<seed>-edit-<SHA-256>-e1-a1, and lists job-I/arm-adapter-fingerprint.json among its outputs at its SHA-256:
+        by hand {kind "stage1 arm adapter fingerprint", version 1, job, arm a0_plant, seed, steps 38, unit,
+        complete_sha256, checkpoints {e1 (states/e1/state.json's, equal to COMPLETE.json's), q null}, identity}, in
+        canonical JSON, with no edit key. The A1 arm writes none. The sealed-class unit files do hold the sentinel; no
+        sentinel is in JOB-DONE.json, a record, a cost ledger or anything printed."""
+        a1 = rn.edit_ref("A1")
+>       pod = plant_pod(kit, tmp_path, monkeypatch,
+                        extra_jobs=[lambda r: job(r, "arm", "A1", 1102, edit=a1, recipe="S", branch="128")])
+
+runkit/stage1-78b/tests/test_round35.py:599: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+runkit/stage1-78b/tests/test_round35.py:554: in plant_pod
+    pod = Pod(kit, tmp_path, monkeypatch,
+runkit/stage1-78b/tests/test_stage1_runner.py:172: in __init__
+    self.runner = kit("setup/job_runner_stage1.py")
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+runkit/stage1-78b/tests/test_stage1_runner.py:82: in load
+    spec.loader.exec_module(module)
+<frozen importlib._bootstrap_external>:940: in exec_module
+    ???
+<frozen importlib._bootstrap>:241: in _call_with_frames_removed
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    """The stage-1 jobs of one host, in order (runs on the pod after the bootstrap and the preflight; B15, brief
+    notes/b15-brief.md §3 J1-J18 and §4; copied from runkit/gate-b-olmo/setup/job_runner_gateb.py).
+    
+        venv/bin/python job_runner_stage1.py HOST [--dry-run]
+    
+    Checks first (any failure refuses before a job starts): no token variable or token file; this host has not run (no
+    JOB-DONE.json); BOOTSTRAP-READY ok; PREFLIGHT-DONE ok for the host's preflight recipe (``preflight_recipe``) and with a
+    cap projection when the host holds an arm-like job or a regeneration; one engine per pod and the packed engine's code
+    identity equal to the host's engine_sha256, which must be stage1_rules.ENGINES[engine] (G4); every recipe file equal to
+    its pin and its config SHA-256 equal to plan.json's; the prepared manifest equal to the plan; sealed-files.json equal to
+    the plan's pin and every file it lists present with its SHA-256; a 500-bank job only with plan.json's recorded W1-18
+    branch, and only on that branch (G1); a W1-18 job only alone on its host (§8 Q1 (a)).
+    
+    Then each job, in order, one process per step under process_receipt.py (the commands of ``job_commands``, brief §3):
+      w1_18          scripts/stage1/limits/overrefusal_checks.py --out job-I/w1-18 --data-root data --device cuda
+                     --guard-batch-size N (N: REC's guard batch size, passed explicitly; report only in W1-18's record)
+      regenerate     engine make-job run-one (train only: no --bank, so evaluate_bank is null; --pin-code) and run-one; then
+                     the acceptance check below (J2, LN-12)
+      o_only         the O-ext unit pass (OEXT_UNIT_SCRIPT run; theta0: --untuned) on the accepted regenerated e1 state of
+                     the regeneration its regen_source names on this pod (J3)
+      transfer_report  OEXT_UNIT_SCRIPT transfer --untuned (J4; Branch 128 only)
+                     (round 3c: every O-ext unit step, J3, J4, J9, J10 and J18, seals OEXT_UNIT_SCRIPT and its settings
+                     OEXT_UNIT_SETTINGS, both stage1_rules.S1_CODE pins, with oext_eval.py and its settings)
+      rep_pass       D-2's scripts/stage1_s1/d2_pool_pins/d2_representation_pass.py with the plant, decoy and s3_safe pools
+                     and --pool-pins/--req8-record (PATH:SHA256 of the packed filled pins file and REQ-8's record, equal to
+                     the job's plan.json pins); then the s3_orig pools-only pass on the earlier untuned_answers job's
+                     output, also through D-2 (J5; addendum §19 point 3). Under the job's D-2 fallback: the W1
+                     scripts/stage1/representation_pass.py with s3_safe only, and the same s3_orig pass (§19 point 4).
+                     Both passes take --recipe recipe S (representation_pass.json pins it). A J5 moved off J6's pod
+                     (defer) reads J6's pool as the packed input pool:s3_orig by plan.json's pin (job.s3_orig)
+      untuned_answers  scripts/stage1/make_untuned_answers.py --list/--loss NAME=PATH:SHA256 (J6)
+      l1_scan        scripts/stage1/score_l1_larf.py scan (J7)
+      classifier     D-2's scripts/stage1_s1/d2_pool_pins/d2_score_classifier.py with --pool PATH:SHA256 for plant and
+                     decoy and the same two pins (J8; addendum §21); under its fallback the W1 scripts/stage1/
+                     score_classifier.py with no pools
+      arm, a0_arm, ref_train  engine calibrate --checkpoints e1 (an edit arm with --edit and its edit-<SHA-256> arm),
+                     then the O-ext unit pass on the new unit's e1 state (J9, J10, J18); kit round 32 (K6): after a
+                     complete a0_arm job the readable job-I/a0-adapter-fingerprint.json (a0_fingerprint_record), listed
+                     among its outputs; kit round 35 (block P, addendum §40 points 5-6): after a complete plant-arm job
+                     (stage1_rules.PLANT_ARMS) the readable job-I/arm-adapter-fingerprint.json (plant_fingerprint_record:
+                     e1 and q, arm, seed, steps, unit, COMPLETE.json SHA-256, the identity hashes; never an edit field),
+                     written once (exclusive create, canonical JSON) and listed among its outputs
+      c0             engine make-job run-one (R_1, seed 1101, train only, --pin-code) and scripts/stage1_s1/lean_eval_job.py run
+                     --expect-adapter-fingerprint <R_1101's e1 fingerprint, from its pinned COMPLETE.json> with a fresh
+                     registry and the O-ext inputs (J11; engine X, on block A's LN-12 pod: addendum §26)
+      retrain        LN-15e (J20): Gate B's retrain, engine make-job run-one --arm a0 --seed 1102|1103 --target e1 (train
+                     only, --pin-code) and run-one into rescore/ with its own registry rescore/registry.jsonl (the J2
+                     regeneration of the same seed writes round1/registry.jsonl; one registry refuses a seed twice)
+      a1_rescore     LN-15e (J21): Gate B's diagnostics attributes step on the retrain its regen_source names on this pod:
+                     make-job attributes --a0-state q=UNIT --a0-state e1=UNIT --groups <Gate B's 8 unit groups, from
+                     plan.json> --anchors <the packed anchor bank> --pin-code, then attributes (A1's bi-anchored cosine
+                     per row; report only, the Jaccard and Kendall tau against the sealed A1 set are read on the Mac)
+      cert_c1        engine make-job run-one --bank dev --replicate-of <R_1101's run folder> and run-one in the cert/ run
+                     root (J12, engine Y); before them the runner seeds C1's fresh registry with R_1101's registry line
+                     from the packed cert_spec input (``c1_registry_seed``; D2, kit round 30a), since engine Y's
+                     claim_trajectory refuses a replicate_of that is not a live start of the same trajectory there
+      cert_c2        engine make-job run-one with the B+Qi recipe, train only, and run-one (J13, engine Y)
+      cert_c3        engine make-job run-one --bank subsample-<SHA-256> --bank-file F and run-one (J14, engine Y); the
+                     packed subsample file and the writer's record must hash to the job's plan.json pins (§22 point 2)
+      b10_certify    scripts/stage1_s1/eval_adapter.py run --evaluations certify[,scale:0] --gate-reference-eval DIR (B10's
+                     run writes the in-process comparison <seed>-certify.compare.json) (J15); kit round 32 (K3, G11):
+                     the record names B10's gate, certification_gate "passed" (exit 0, verdict pass) or "failed" (B10's
+                     exit 4, a verdict other than pass, the certify unit only): a failed gate is complete, not crashed
+      similarity     kit round 34 (J22): B14's similarity pass on theta0, alone on its block-"sim" host:
+                     scripts/stage1_s1/overlap_similarity.py --prepared P --recipe REC --add-set S1|S3|S4 edits/<SHA-256>
+                     .edit.json <SHA-256> --out job-I/similarity, each add set by the job's plan.json pin (plan_tool takes
+                     it from stage1_rules.SIM_ADD_SETS); the packed script, settings, prepared manifest, dev bank and add
+                     sets must have the plan's pins (``similarity_args``). Then the readable job-I/similarity-record.json
+                     (``similarity_record``: the output's SHA-256, the SHA-256 the script printed, the provenance's
+                     hashes, the counts); an output off stage1_rules' pins is a crash (the record says why)
+      ref_eval       eval_adapter.py run --evaluations ... --certification-report F --certification-report-sha256 H (J16)
+      safe_lora      eval_adapter.py regenerate; then ON THE CPU, BEFORE THE PROJECTION, scripts/stage1_s1/safe_lora.py
+                     vcheck (per matrix ||V - V'||_F / ||V||_F, V' = float32(W_Instruct) - float32(bf16(W_base)), and
+                     whether the K = 39 set changes); then safe_lora.py check, and per point transform --point P and
+                     eval_adapter.py evaluate --mode external --external safe_lora with the transform's file and record by
+                     SHA-256 (J17); the transform's safe_lora_timing.json seconds.total enters the cost ledger as the
+                     "transform" stage. A k12 point refuses: B11 offers no K = 12 point.
+    Every 500-bank step gets the O-ext bank, its record and (when packed) W1-18's record. Under Branch 128 an O-only
+    pass on a regenerated a0 or R unit also gets --dev100-source, the source unit's folder (packed input
+    source_unit:ARM:SEED): LN-19 cuts that unit's stored dev-100 answers to 128 tokens, and only PHTest is generated from
+    the regenerated adapter (§8 Q15). Under fallback (c) (plan.json records.oext_fallback, status dev100_recipe_cap;
+    addendum §11 point 1) no O-ext step runs: arms run calibrate only, B10 and B17 get no O-ext flags, and an O-only pass
+    or transfer report is unrunnable.
+    
+    The per-job gate (unchanged from Gate B): the governing stop from the pod timer's heartbeat; a missing or unreadable
+    heartbeat stops the host (``heartbeat_unreadable``). A job starts only if the remaining time is at least its
+    requirement (stage1_rules.requirements: max(plan, this pod's projection), a regeneration linked to its O-only pass);
+    otherwise this job and every later one are ``deferred``, in order (deferral.json). Before a job its every input (the
+    scripts, settings, the edit file against its arm, the named stage-1 inputs and data folders) is checked against
+    sealed-files.json; a mismatch stops the host (``sealed_file_mismatch``) and nothing of that job runs. A non-zero exit,
+    or no new output, is a crash: the job is ``crashed``, later jobs ``not_started``, and the host stops (except B10's exit
+    4 at a b10_certify run, its failed gate: ``certification_gate``, kit round 32). A regeneration
+    whose unit differs from reuse_spec.json's ``accept`` fields (every field listed there: the e1 adapter fingerprint, the
+    training identity, the prepared manifest and the data config) is complete with ``acceptance`` false and reason
+    ``LS-04``; its O-only pass is then ``not_started`` with reason ``LS-04`` and the later jobs go on (LS-04 (a)).
+    
+    Records: job-done/JOB-<i>.json per job and JOB-DONE.json at the end (plan_tool record-done's schema: index, kind,
+    arm, seed, status, engine, engine_sha256, unit, complete_sha256, outputs {relpath: SHA-256}, reason); each job also
+    writes job-I/cost-ledger.json (FR-10: the stages setup, training, greedy_generation, sampled_generation, judging,
+    scoring, pod_overhead and transform, in seconds; the slot from start to end inside the pod). No outcome file is read:
+    the runner hashes outputs, reads COMPLETE.json identity and fingerprint fields (J2), the regenerated unit's
+    fingerprint record, the transform's timing file and (kit round 34) the similarity output's kind, version, provenance
+    hashes and counts. Last, the stop is shortened to 1 h from now when more remains.
+    --dry-run prints every job's commands (placeholders for values known only at run time) and writes nothing.
+    """
+    import datetime as dt
+    import hashlib
+    import json
+    import os
+    import pathlib
+    import re
+    import subprocess
+    import sys
+    import time
+    
+    HERE = pathlib.Path(__file__).resolve().parent
+    for _folder in (HERE, HERE.parent):                 # the pod: beside this script; the kit: one folder up
+        if (_folder / "stage1_rules.py").is_file():
+            sys.path.insert(0, str(_folder))
+            break
+    import stage1_rules as rules  # noqa: E402
+    
+    ROOT = pathlib.Path("/workspace/attribution-headroom")
+    HEARTBEAT = pathlib.Path("/workspace/.pod-timer/heartbeat.json")
+    ENGINE = ["venv/bin/python", "-m", "experiments.safety_selection"]
+    SCRIPT = ["venv/bin/python"]
+    TOKEN_ENV_NAMES = rules.TOKEN_ENV_NAMES
+    ROUND = "round1"
+    CERT_ROOT = "cert"                                    # C1-C3's own run root (no Gate B reading opens it)
+    DATA = "data"                                         # the bundle's data root (mirrors the checkout's tmp/)
+    PREPARED = f"{DATA}/kt-prepared/{rules.PREPARED_NAME}"
+    SHORTEN_TO_S = 3600
+    W1_18_SCRIPT = "scripts/stage1/limits/overrefusal_checks.py"
+    REP_SCRIPT = "scripts/stage1/representation_pass.py"
+    UNTUNED_SCRIPT = "scripts/stage1/make_untuned_answers.py"
+    L1_SCRIPT = "scripts/stage1/score_l1_larf.py"
+    CLASSIFIER_SCRIPT = "scripts/stage1/score_classifier.py"
+    B10_SCRIPT = "scripts/stage1_s1/eval_adapter.py"
+    B11_SCRIPT = "scripts/stage1_s1/safe_lora.py"
+    B17_SCRIPT = "scripts/stage1_s1/lean_eval_job.py"
+    OEXT_MODULE = "scripts/stage1_s1/oext_eval.py"
+    OEXT_UNIT_SCRIPT = "scripts/stage1_s1/oext_unit.py"   # the O-ext unit runner (contract below); round 3c: S1_CODE pin
+    OEXT_UNIT_SETTINGS = "scripts/stage1_s1/settings/oext_unit.json"   # its pinned settings (round 3c: S1_CODE pin)
+    B11_POINTS = ("default", "conditional", "certify")    # safe_lora.POINTS (k12 is a kit-only gated point B11 lacks)
+    VCHECK_FILE, TIMING_FILE = "safe_lora_vcheck.json", "safe_lora_timing.json"
+    B11_ADAPTER, B11_RECORD = "adapter.safetensors", "safe_lora_record.json"
+    ACCEPT_FILE = "regeneration-adapter-fingerprint.json"  # readable by the seal (fingerprints and identities only)
+    LEDGER_FILE = "cost-ledger.json"
+    LEDGER_STAGES = ("setup", "training", "greedy_generation", "sampled_generation", "judging", "scoring",
+                     "pod_overhead", "transform")
+    LS04 = "LS-04"
+    # the stage-1 inputs a job names (sealed-files.json "inputs": name -> bundle path, file or folder)
+    OEXT_INPUTS = ("oext_bank", "oext_record")
+    D2_INPUTS = ("d2_pool_pins", "req8_record")          # the filled pins file and REQ-8's record (addendum §19 point 3)
+    D2_COMMON = ["scripts/stage1_s1/d2_pool_pins/__init__.py", "scripts/stage1_s1/d2_pool_pins/fill_pins.py",
+>                "scripts/stage1_s1/d2_pool_pins/settings/d2_pool_pins.json", rules.MAN1_PATH,
+                                                                              ^^^^^^^^^^^^^^^
+                 REP_SCRIPT, "scripts/stage1/settings/representation_pass.json",
+                 "scripts/stage1/settings/representation_pools.json"]
+E   AttributeError: module 'stage1_rules' has no attribute 'MAN1_PATH'
+
+/private/var/folders/mk/33rfxgzn32318ntchzzgtm680000gn/T/pytest-of-spiderishi/pytest-41/test_the_runner_writes_the_pla0/runkit/stage1-olmo/setup/job_runner_stage1.py:156: AttributeError
+_ test_the_unit_stands_when_the_plant_record_cannot_be_written_and_a_record_is_never_written_over _
+
+kit = <function kit.<locals>.load at 0x108f8c720>
+tmp_path = PosixPath('/private/var/folders/mk/33rfxgzn32318ntchzzgtm680000gn/T/pytest-of-spiderishi/pytest-41/test_the_unit_stands_when_the_0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x109d4bf90>
+
+    def test_the_unit_stands_when_the_plant_record_cannot_be_written_and_a_record_is_never_written_over(kit, tmp_path,
+                                                                                                      monkeypatch):
+        """The other way (K6's rule): a state fingerprint that is not COMPLETE.json's e1 one gives no record, the reason in
+        the job's record, the unit complete; a job-0/arm-adapter-fingerprint.json present before the job is left as it
+        was (exclusive create), the reason recorded, the unit complete."""
+>       pod = plant_pod(kit, tmp_path, monkeypatch)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+runkit/stage1-78b/tests/test_round35.py:640: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+runkit/stage1-78b/tests/test_round35.py:554: in plant_pod
+    pod = Pod(kit, tmp_path, monkeypatch,
+runkit/stage1-78b/tests/test_stage1_runner.py:172: in __init__
+    self.runner = kit("setup/job_runner_stage1.py")
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+runkit/stage1-78b/tests/test_stage1_runner.py:82: in load
+    spec.loader.exec_module(module)
+<frozen importlib._bootstrap_external>:940: in exec_module
+    ???
+<frozen importlib._bootstrap>:241: in _call_with_frames_removed
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    """The stage-1 jobs of one host, in order (runs on the pod after the bootstrap and the preflight; B15, brief
+    notes/b15-brief.md §3 J1-J18 and §4; copied from runkit/gate-b-olmo/setup/job_runner_gateb.py).
+    
+        venv/bin/python job_runner_stage1.py HOST [--dry-run]
+    
+    Checks first (any failure refuses before a job starts): no token variable or token file; this host has not run (no
+    JOB-DONE.json); BOOTSTRAP-READY ok; PREFLIGHT-DONE ok for the host's preflight recipe (``preflight_recipe``) and with a
+    cap projection when the host holds an arm-like job or a regeneration; one engine per pod and the packed engine's code
+    identity equal to the host's engine_sha256, which must be stage1_rules.ENGINES[engine] (G4); every recipe file equal to
+    its pin and its config SHA-256 equal to plan.json's; the prepared manifest equal to the plan; sealed-files.json equal to
+    the plan's pin and every file it lists present with its SHA-256; a 500-bank job only with plan.json's recorded W1-18
+    branch, and only on that branch (G1); a W1-18 job only alone on its host (§8 Q1 (a)).
+    
+    Then each job, in order, one process per step under process_receipt.py (the commands of ``job_commands``, brief §3):
+      w1_18          scripts/stage1/limits/overrefusal_checks.py --out job-I/w1-18 --data-root data --device cuda
+                     --guard-batch-size N (N: REC's guard batch size, passed explicitly; report only in W1-18's record)
+      regenerate     engine make-job run-one (train only: no --bank, so evaluate_bank is null; --pin-code) and run-one; then
+                     the acceptance check below (J2, LN-12)
+      o_only         the O-ext unit pass (OEXT_UNIT_SCRIPT run; theta0: --untuned) on the accepted regenerated e1 state of
+                     the regeneration its regen_source names on this pod (J3)
+      transfer_report  OEXT_UNIT_SCRIPT transfer --untuned (J4; Branch 128 only)
+                     (round 3c: every O-ext unit step, J3, J4, J9, J10 and J18, seals OEXT_UNIT_SCRIPT and its settings
+                     OEXT_UNIT_SETTINGS, both stage1_rules.S1_CODE pins, with oext_eval.py and its settings)
+      rep_pass       D-2's scripts/stage1_s1/d2_pool_pins/d2_representation_pass.py with the plant, decoy and s3_safe pools
+                     and --pool-pins/--req8-record (PATH:SHA256 of the packed filled pins file and REQ-8's record, equal to
+                     the job's plan.json pins); then the s3_orig pools-only pass on the earlier untuned_answers job's
+                     output, also through D-2 (J5; addendum §19 point 3). Under the job's D-2 fallback: the W1
+                     scripts/stage1/representation_pass.py with s3_safe only, and the same s3_orig pass (§19 point 4).
+                     Both passes take --recipe recipe S (representation_pass.json pins it). A J5 moved off J6's pod
+                     (defer) reads J6's pool as the packed input pool:s3_orig by plan.json's pin (job.s3_orig)
+      untuned_answers  scripts/stage1/make_untuned_answers.py --list/--loss NAME=PATH:SHA256 (J6)
+      l1_scan        scripts/stage1/score_l1_larf.py scan (J7)
+      classifier     D-2's scripts/stage1_s1/d2_pool_pins/d2_score_classifier.py with --pool PATH:SHA256 for plant and
+                     decoy and the same two pins (J8; addendum §21); under its fallback the W1 scripts/stage1/
+                     score_classifier.py with no pools
+      arm, a0_arm, ref_train  engine calibrate --checkpoints e1 (an edit arm with --edit and its edit-<SHA-256> arm),
+                     then the O-ext unit pass on the new unit's e1 state (J9, J10, J18); kit round 32 (K6): after a
+                     complete a0_arm job the readable job-I/a0-adapter-fingerprint.json (a0_fingerprint_record), listed
+                     among its outputs; kit round 35 (block P, addendum §40 points 5-6): after a complete plant-arm job
+                     (stage1_rules.PLANT_ARMS) the readable job-I/arm-adapter-fingerprint.json (plant_fingerprint_record:
+                     e1 and q, arm, seed, steps, unit, COMPLETE.json SHA-256, the identity hashes; never an edit field),
+                     written once (exclusive create, canonical JSON) and listed among its outputs
+      c0             engine make-job run-one (R_1, seed 1101, train only, --pin-code) and scripts/stage1_s1/lean_eval_job.py run
+                     --expect-adapter-fingerprint <R_1101's e1 fingerprint, from its pinned COMPLETE.json> with a fresh
+                     registry and the O-ext inputs (J11; engine X, on block A's LN-12 pod: addendum §26)
+      retrain        LN-15e (J20): Gate B's retrain, engine make-job run-one --arm a0 --seed 1102|1103 --target e1 (train
+                     only, --pin-code) and run-one into rescore/ with its own registry rescore/registry.jsonl (the J2
+                     regeneration of the same seed writes round1/registry.jsonl; one registry refuses a seed twice)
+      a1_rescore     LN-15e (J21): Gate B's diagnostics attributes step on the retrain its regen_source names on this pod:
+                     make-job attributes --a0-state q=UNIT --a0-state e1=UNIT --groups <Gate B's 8 unit groups, from
+                     plan.json> --anchors <the packed anchor bank> --pin-code, then attributes (A1's bi-anchored cosine
+                     per row; report only, the Jaccard and Kendall tau against the sealed A1 set are read on the Mac)
+      cert_c1        engine make-job run-one --bank dev --replicate-of <R_1101's run folder> and run-one in the cert/ run
+                     root (J12, engine Y); before them the runner seeds C1's fresh registry with R_1101's registry line
+                     from the packed cert_spec input (``c1_registry_seed``; D2, kit round 30a), since engine Y's
+                     claim_trajectory refuses a replicate_of that is not a live start of the same trajectory there
+      cert_c2        engine make-job run-one with the B+Qi recipe, train only, and run-one (J13, engine Y)
+      cert_c3        engine make-job run-one --bank subsample-<SHA-256> --bank-file F and run-one (J14, engine Y); the
+                     packed subsample file and the writer's record must hash to the job's plan.json pins (§22 point 2)
+      b10_certify    scripts/stage1_s1/eval_adapter.py run --evaluations certify[,scale:0] --gate-reference-eval DIR (B10's
+                     run writes the in-process comparison <seed>-certify.compare.json) (J15); kit round 32 (K3, G11):
+                     the record names B10's gate, certification_gate "passed" (exit 0, verdict pass) or "failed" (B10's
+                     exit 4, a verdict other than pass, the certify unit only): a failed gate is complete, not crashed
+      similarity     kit round 34 (J22): B14's similarity pass on theta0, alone on its block-"sim" host:
+                     scripts/stage1_s1/overlap_similarity.py --prepared P --recipe REC --add-set S1|S3|S4 edits/<SHA-256>
+                     .edit.json <SHA-256> --out job-I/similarity, each add set by the job's plan.json pin (plan_tool takes
+                     it from stage1_rules.SIM_ADD_SETS); the packed script, settings, prepared manifest, dev bank and add
+                     sets must have the plan's pins (``similarity_args``). Then the readable job-I/similarity-record.json
+                     (``similarity_record``: the output's SHA-256, the SHA-256 the script printed, the provenance's
+                     hashes, the counts); an output off stage1_rules' pins is a crash (the record says why)
+      ref_eval       eval_adapter.py run --evaluations ... --certification-report F --certification-report-sha256 H (J16)
+      safe_lora      eval_adapter.py regenerate; then ON THE CPU, BEFORE THE PROJECTION, scripts/stage1_s1/safe_lora.py
+                     vcheck (per matrix ||V - V'||_F / ||V||_F, V' = float32(W_Instruct) - float32(bf16(W_base)), and
+                     whether the K = 39 set changes); then safe_lora.py check, and per point transform --point P and
+                     eval_adapter.py evaluate --mode external --external safe_lora with the transform's file and record by
+                     SHA-256 (J17); the transform's safe_lora_timing.json seconds.total enters the cost ledger as the
+                     "transform" stage. A k12 point refuses: B11 offers no K = 12 point.
+    Every 500-bank step gets the O-ext bank, its record and (when packed) W1-18's record. Under Branch 128 an O-only
+    pass on a regenerated a0 or R unit also gets --dev100-source, the source unit's folder (packed input
+    source_unit:ARM:SEED): LN-19 cuts that unit's stored dev-100 answers to 128 tokens, and only PHTest is generated from
+    the regenerated adapter (§8 Q15). Under fallback (c) (plan.json records.oext_fallback, status dev100_recipe_cap;
+    addendum §11 point 1) no O-ext step runs: arms run calibrate only, B10 and B17 get no O-ext flags, and an O-only pass
+    or transfer report is unrunnable.
+    
+    The per-job gate (unchanged from Gate B): the governing stop from the pod timer's heartbeat; a missing or unreadable
+    heartbeat stops the host (``heartbeat_unreadable``). A job starts only if the remaining time is at least its
+    requirement (stage1_rules.requirements: max(plan, this pod's projection), a regeneration linked to its O-only pass);
+    otherwise this job and every later one are ``deferred``, in order (deferral.json). Before a job its every input (the
+    scripts, settings, the edit file against its arm, the named stage-1 inputs and data folders) is checked against
+    sealed-files.json; a mismatch stops the host (``sealed_file_mismatch``) and nothing of that job runs. A non-zero exit,
+    or no new output, is a crash: the job is ``crashed``, later jobs ``not_started``, and the host stops (except B10's exit
+    4 at a b10_certify run, its failed gate: ``certification_gate``, kit round 32). A regeneration
+    whose unit differs from reuse_spec.json's ``accept`` fields (every field listed there: the e1 adapter fingerprint, the
+    training identity, the prepared manifest and the data config) is complete with ``acceptance`` false and reason
+    ``LS-04``; its O-only pass is then ``not_started`` with reason ``LS-04`` and the later jobs go on (LS-04 (a)).
+    
+    Records: job-done/JOB-<i>.json per job and JOB-DONE.json at the end (plan_tool record-done's schema: index, kind,
+    arm, seed, status, engine, engine_sha256, unit, complete_sha256, outputs {relpath: SHA-256}, reason); each job also
+    writes job-I/cost-ledger.json (FR-10: the stages setup, training, greedy_generation, sampled_generation, judging,
+    scoring, pod_overhead and transform, in seconds; the slot from start to end inside the pod). No outcome file is read:
+    the runner hashes outputs, reads COMPLETE.json identity and fingerprint fields (J2), the regenerated unit's
+    fingerprint record, the transform's timing file and (kit round 34) the similarity output's kind, version, provenance
+    hashes and counts. Last, the stop is shortened to 1 h from now when more remains.
+    --dry-run prints every job's commands (placeholders for values known only at run time) and writes nothing.
+    """
+    import datetime as dt
+    import hashlib
+    import json
+    import os
+    import pathlib
+    import re
+    import subprocess
+    import sys
+    import time
+    
+    HERE = pathlib.Path(__file__).resolve().parent
+    for _folder in (HERE, HERE.parent):                 # the pod: beside this script; the kit: one folder up
+        if (_folder / "stage1_rules.py").is_file():
+            sys.path.insert(0, str(_folder))
+            break
+    import stage1_rules as rules  # noqa: E402
+    
+    ROOT = pathlib.Path("/workspace/attribution-headroom")
+    HEARTBEAT = pathlib.Path("/workspace/.pod-timer/heartbeat.json")
+    ENGINE = ["venv/bin/python", "-m", "experiments.safety_selection"]
+    SCRIPT = ["venv/bin/python"]
+    TOKEN_ENV_NAMES = rules.TOKEN_ENV_NAMES
+    ROUND = "round1"
+    CERT_ROOT = "cert"                                    # C1-C3's own run root (no Gate B reading opens it)
+    DATA = "data"                                         # the bundle's data root (mirrors the checkout's tmp/)
+    PREPARED = f"{DATA}/kt-prepared/{rules.PREPARED_NAME}"
+    SHORTEN_TO_S = 3600
+    W1_18_SCRIPT = "scripts/stage1/limits/overrefusal_checks.py"
+    REP_SCRIPT = "scripts/stage1/representation_pass.py"
+    UNTUNED_SCRIPT = "scripts/stage1/make_untuned_answers.py"
+    L1_SCRIPT = "scripts/stage1/score_l1_larf.py"
+    CLASSIFIER_SCRIPT = "scripts/stage1/score_classifier.py"
+    B10_SCRIPT = "scripts/stage1_s1/eval_adapter.py"
+    B11_SCRIPT = "scripts/stage1_s1/safe_lora.py"
+    B17_SCRIPT = "scripts/stage1_s1/lean_eval_job.py"
+    OEXT_MODULE = "scripts/stage1_s1/oext_eval.py"
+    OEXT_UNIT_SCRIPT = "scripts/stage1_s1/oext_unit.py"   # the O-ext unit runner (contract below); round 3c: S1_CODE pin
+    OEXT_UNIT_SETTINGS = "scripts/stage1_s1/settings/oext_unit.json"   # its pinned settings (round 3c: S1_CODE pin)
+    B11_POINTS = ("default", "conditional", "certify")    # safe_lora.POINTS (k12 is a kit-only gated point B11 lacks)
+    VCHECK_FILE, TIMING_FILE = "safe_lora_vcheck.json", "safe_lora_timing.json"
+    B11_ADAPTER, B11_RECORD = "adapter.safetensors", "safe_lora_record.json"
+    ACCEPT_FILE = "regeneration-adapter-fingerprint.json"  # readable by the seal (fingerprints and identities only)
+    LEDGER_FILE = "cost-ledger.json"
+    LEDGER_STAGES = ("setup", "training", "greedy_generation", "sampled_generation", "judging", "scoring",
+                     "pod_overhead", "transform")
+    LS04 = "LS-04"
+    # the stage-1 inputs a job names (sealed-files.json "inputs": name -> bundle path, file or folder)
+    OEXT_INPUTS = ("oext_bank", "oext_record")
+    D2_INPUTS = ("d2_pool_pins", "req8_record")          # the filled pins file and REQ-8's record (addendum §19 point 3)
+    D2_COMMON = ["scripts/stage1_s1/d2_pool_pins/__init__.py", "scripts/stage1_s1/d2_pool_pins/fill_pins.py",
+>                "scripts/stage1_s1/d2_pool_pins/settings/d2_pool_pins.json", rules.MAN1_PATH,
+                                                                              ^^^^^^^^^^^^^^^
+                 REP_SCRIPT, "scripts/stage1/settings/representation_pass.json",
+                 "scripts/stage1/settings/representation_pools.json"]
+E   AttributeError: module 'stage1_rules' has no attribute 'MAN1_PATH'
+
+/private/var/folders/mk/33rfxgzn32318ntchzzgtm680000gn/T/pytest-of-spiderishi/pytest-41/test_the_unit_stands_when_the_0/runkit/stage1-olmo/setup/job_runner_stage1.py:156: AttributeError
+_ test_check_plan_passes_for_a_block_p_host_only_with_the_edit_packed_by_sha256 _
+
+kit = <function kit.<locals>.load at 0x108e39800>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x1089051d0>
+
+    def test_check_plan_passes_for_a_block_p_host_only_with_the_edit_packed_by_sha256(kit, monkeypatch):
+        """$0 on the Mac: a P host's three a0_plant jobs need the O-ext runner and settings and the edit file
+        edits/<SHA-256>.edit.json in the packed stage; without the edit check-plan names it (by SHA-256 only) for every
+        job; with it the host passes."""
+        _, ref = _plant_edit_ref()
+        oext = ["scripts/stage1_s1/oext_unit.py", "scripts/stage1_s1/settings/oext_unit.json"]
+        jobs = lambda r: [job(r, "arm", "a0_plant", s, edit=ref, recipe="S", steps=38) for s in (1101, 1102, 1103)]  # noqa: E731
+>       o = rn.orch(kit, monkeypatch, jobs, sealed_extra=oext)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+runkit/stage1-78b/tests/test_round35.py:667: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+runkit/stage1-78b/tests/test_stage1_runner.py:1429: in orch
+    o = kit("orchestrate.py")
+        ^^^^^^^^^^^^^^^^^^^^^
+runkit/stage1-78b/tests/test_stage1_runner.py:82: in load
+    spec.loader.exec_module(module)
+<frozen importlib._bootstrap_external>:940: in exec_module
+    ???
+<frozen importlib._bootstrap>:241: in _call_with_frames_removed
+    ???
+/private/var/folders/mk/33rfxgzn32318ntchzzgtm680000gn/T/pytest-of-spiderishi/pytest-41/test_check_plan_passes_for_a_b0/runkit/stage1-olmo/orchestrate.py:56: in <module>
+    _spec.loader.exec_module(runner)
+<frozen importlib._bootstrap_external>:940: in exec_module
+    ???
+<frozen importlib._bootstrap>:241: in _call_with_frames_removed
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    """The stage-1 jobs of one host, in order (runs on the pod after the bootstrap and the preflight; B15, brief
+    notes/b15-brief.md §3 J1-J18 and §4; copied from runkit/gate-b-olmo/setup/job_runner_gateb.py).
+    
+        venv/bin/python job_runner_stage1.py HOST [--dry-run]
+    
+    Checks first (any failure refuses before a job starts): no token variable or token file; this host has not run (no
+    JOB-DONE.json); BOOTSTRAP-READY ok; PREFLIGHT-DONE ok for the host's preflight recipe (``preflight_recipe``) and with a
+    cap projection when the host holds an arm-like job or a regeneration; one engine per pod and the packed engine's code
+    identity equal to the host's engine_sha256, which must be stage1_rules.ENGINES[engine] (G4); every recipe file equal to
+    its pin and its config SHA-256 equal to plan.json's; the prepared manifest equal to the plan; sealed-files.json equal to
+    the plan's pin and every file it lists present with its SHA-256; a 500-bank job only with plan.json's recorded W1-18
+    branch, and only on that branch (G1); a W1-18 job only alone on its host (§8 Q1 (a)).
+    
+    Then each job, in order, one process per step under process_receipt.py (the commands of ``job_commands``, brief §3):
+      w1_18          scripts/stage1/limits/overrefusal_checks.py --out job-I/w1-18 --data-root data --device cuda
+                     --guard-batch-size N (N: REC's guard batch size, passed explicitly; report only in W1-18's record)
+      regenerate     engine make-job run-one (train only: no --bank, so evaluate_bank is null; --pin-code) and run-one; then
+                     the acceptance check below (J2, LN-12)
+      o_only         the O-ext unit pass (OEXT_UNIT_SCRIPT run; theta0: --untuned) on the accepted regenerated e1 state of
+                     the regeneration its regen_source names on this pod (J3)
+      transfer_report  OEXT_UNIT_SCRIPT transfer --untuned (J4; Branch 128 only)
+                     (round 3c: every O-ext unit step, J3, J4, J9, J10 and J18, seals OEXT_UNIT_SCRIPT and its settings
+                     OEXT_UNIT_SETTINGS, both stage1_rules.S1_CODE pins, with oext_eval.py and its settings)
+      rep_pass       D-2's scripts/stage1_s1/d2_pool_pins/d2_representation_pass.py with the plant, decoy and s3_safe pools
+                     and --pool-pins/--req8-record (PATH:SHA256 of the packed filled pins file and REQ-8's record, equal to
+                     the job's plan.json pins); then the s3_orig pools-only pass on the earlier untuned_answers job's
+                     output, also through D-2 (J5; addendum §19 point 3). Under the job's D-2 fallback: the W1
+                     scripts/stage1/representation_pass.py with s3_safe only, and the same s3_orig pass (§19 point 4).
+                     Both passes take --recipe recipe S (representation_pass.json pins it). A J5 moved off J6's pod
+                     (defer) reads J6's pool as the packed input pool:s3_orig by plan.json's pin (job.s3_orig)
+      untuned_answers  scripts/stage1/make_untuned_answers.py --list/--loss NAME=PATH:SHA256 (J6)
+      l1_scan        scripts/stage1/score_l1_larf.py scan (J7)
+      classifier     D-2's scripts/stage1_s1/d2_pool_pins/d2_score_classifier.py with --pool PATH:SHA256 for plant and
+                     decoy and the same two pins (J8; addendum §21); under its fallback the W1 scripts/stage1/
+                     score_classifier.py with no pools
+      arm, a0_arm, ref_train  engine calibrate --checkpoints e1 (an edit arm with --edit and its edit-<SHA-256> arm),
+                     then the O-ext unit pass on the new unit's e1 state (J9, J10, J18); kit round 32 (K6): after a
+                     complete a0_arm job the readable job-I/a0-adapter-fingerprint.json (a0_fingerprint_record), listed
+                     among its outputs; kit round 35 (block P, addendum §40 points 5-6): after a complete plant-arm job
+                     (stage1_rules.PLANT_ARMS) the readable job-I/arm-adapter-fingerprint.json (plant_fingerprint_record:
+                     e1 and q, arm, seed, steps, unit, COMPLETE.json SHA-256, the identity hashes; never an edit field),
+                     written once (exclusive create, canonical JSON) and listed among its outputs
+      c0             engine make-job run-one (R_1, seed 1101, train only, --pin-code) and scripts/stage1_s1/lean_eval_job.py run
+                     --expect-adapter-fingerprint <R_1101's e1 fingerprint, from its pinned COMPLETE.json> with a fresh
+                     registry and the O-ext inputs (J11; engine X, on block A's LN-12 pod: addendum §26)
+      retrain        LN-15e (J20): Gate B's retrain, engine make-job run-one --arm a0 --seed 1102|1103 --target e1 (train
+                     only, --pin-code) and run-one into rescore/ with its own registry rescore/registry.jsonl (the J2
+                     regeneration of the same seed writes round1/registry.jsonl; one registry refuses a seed twice)
+      a1_rescore     LN-15e (J21): Gate B's diagnostics attributes step on the retrain its regen_source names on this pod:
+                     make-job attributes --a0-state q=UNIT --a0-state e1=UNIT --groups <Gate B's 8 unit groups, from
+                     plan.json> --anchors <the packed anchor bank> --pin-code, then attributes (A1's bi-anchored cosine
+                     per row; report only, the Jaccard and Kendall tau against the sealed A1 set are read on the Mac)
+      cert_c1        engine make-job run-one --bank dev --replicate-of <R_1101's run folder> and run-one in the cert/ run
+                     root (J12, engine Y); before them the runner seeds C1's fresh registry with R_1101's registry line
+                     from the packed cert_spec input (``c1_registry_seed``; D2, kit round 30a), since engine Y's
+                     claim_trajectory refuses a replicate_of that is not a live start of the same trajectory there
+      cert_c2        engine make-job run-one with the B+Qi recipe, train only, and run-one (J13, engine Y)
+      cert_c3        engine make-job run-one --bank subsample-<SHA-256> --bank-file F and run-one (J14, engine Y); the
+                     packed subsample file and the writer's record must hash to the job's plan.json pins (§22 point 2)
+      b10_certify    scripts/stage1_s1/eval_adapter.py run --evaluations certify[,scale:0] --gate-reference-eval DIR (B10's
+                     run writes the in-process comparison <seed>-certify.compare.json) (J15); kit round 32 (K3, G11):
+                     the record names B10's gate, certification_gate "passed" (exit 0, verdict pass) or "failed" (B10's
+                     exit 4, a verdict other than pass, the certify unit only): a failed gate is complete, not crashed
+      similarity     kit round 34 (J22): B14's similarity pass on theta0, alone on its block-"sim" host:
+                     scripts/stage1_s1/overlap_similarity.py --prepared P --recipe REC --add-set S1|S3|S4 edits/<SHA-256>
+                     .edit.json <SHA-256> --out job-I/similarity, each add set by the job's plan.json pin (plan_tool takes
+                     it from stage1_rules.SIM_ADD_SETS); the packed script, settings, prepared manifest, dev bank and add
+                     sets must have the plan's pins (``similarity_args``). Then the readable job-I/similarity-record.json
+                     (``similarity_record``: the output's SHA-256, the SHA-256 the script printed, the provenance's
+                     hashes, the counts); an output off stage1_rules' pins is a crash (the record says why)
+      ref_eval       eval_adapter.py run --evaluations ... --certification-report F --certification-report-sha256 H (J16)
+      safe_lora      eval_adapter.py regenerate; then ON THE CPU, BEFORE THE PROJECTION, scripts/stage1_s1/safe_lora.py
+                     vcheck (per matrix ||V - V'||_F / ||V||_F, V' = float32(W_Instruct) - float32(bf16(W_base)), and
+                     whether the K = 39 set changes); then safe_lora.py check, and per point transform --point P and
+                     eval_adapter.py evaluate --mode external --external safe_lora with the transform's file and record by
+                     SHA-256 (J17); the transform's safe_lora_timing.json seconds.total enters the cost ledger as the
+                     "transform" stage. A k12 point refuses: B11 offers no K = 12 point.
+    Every 500-bank step gets the O-ext bank, its record and (when packed) W1-18's record. Under Branch 128 an O-only
+    pass on a regenerated a0 or R unit also gets --dev100-source, the source unit's folder (packed input
+    source_unit:ARM:SEED): LN-19 cuts that unit's stored dev-100 answers to 128 tokens, and only PHTest is generated from
+    the regenerated adapter (§8 Q15). Under fallback (c) (plan.json records.oext_fallback, status dev100_recipe_cap;
+    addendum §11 point 1) no O-ext step runs: arms run calibrate only, B10 and B17 get no O-ext flags, and an O-only pass
+    or transfer report is unrunnable.
+    
+    The per-job gate (unchanged from Gate B): the governing stop from the pod timer's heartbeat; a missing or unreadable
+    heartbeat stops the host (``heartbeat_unreadable``). A job starts only if the remaining time is at least its
+    requirement (stage1_rules.requirements: max(plan, this pod's projection), a regeneration linked to its O-only pass);
+    otherwise this job and every later one are ``deferred``, in order (deferral.json). Before a job its every input (the
+    scripts, settings, the edit file against its arm, the named stage-1 inputs and data folders) is checked against
+    sealed-files.json; a mismatch stops the host (``sealed_file_mismatch``) and nothing of that job runs. A non-zero exit,
+    or no new output, is a crash: the job is ``crashed``, later jobs ``not_started``, and the host stops (except B10's exit
+    4 at a b10_certify run, its failed gate: ``certification_gate``, kit round 32). A regeneration
+    whose unit differs from reuse_spec.json's ``accept`` fields (every field listed there: the e1 adapter fingerprint, the
+    training identity, the prepared manifest and the data config) is complete with ``acceptance`` false and reason
+    ``LS-04``; its O-only pass is then ``not_started`` with reason ``LS-04`` and the later jobs go on (LS-04 (a)).
+    
+    Records: job-done/JOB-<i>.json per job and JOB-DONE.json at the end (plan_tool record-done's schema: index, kind,
+    arm, seed, status, engine, engine_sha256, unit, complete_sha256, outputs {relpath: SHA-256}, reason); each job also
+    writes job-I/cost-ledger.json (FR-10: the stages setup, training, greedy_generation, sampled_generation, judging,
+    scoring, pod_overhead and transform, in seconds; the slot from start to end inside the pod). No outcome file is read:
+    the runner hashes outputs, reads COMPLETE.json identity and fingerprint fields (J2), the regenerated unit's
+    fingerprint record, the transform's timing file and (kit round 34) the similarity output's kind, version, provenance
+    hashes and counts. Last, the stop is shortened to 1 h from now when more remains.
+    --dry-run prints every job's commands (placeholders for values known only at run time) and writes nothing.
+    """
+    import datetime as dt
+    import hashlib
+    import json
+    import os
+    import pathlib
+    import re
+    import subprocess
+    import sys
+    import time
+    
+    HERE = pathlib.Path(__file__).resolve().parent
+    for _folder in (HERE, HERE.parent):                 # the pod: beside this script; the kit: one folder up
+        if (_folder / "stage1_rules.py").is_file():
+            sys.path.insert(0, str(_folder))
+            break
+    import stage1_rules as rules  # noqa: E402
+    
+    ROOT = pathlib.Path("/workspace/attribution-headroom")
+    HEARTBEAT = pathlib.Path("/workspace/.pod-timer/heartbeat.json")
+    ENGINE = ["venv/bin/python", "-m", "experiments.safety_selection"]
+    SCRIPT = ["venv/bin/python"]
+    TOKEN_ENV_NAMES = rules.TOKEN_ENV_NAMES
+    ROUND = "round1"
+    CERT_ROOT = "cert"                                    # C1-C3's own run root (no Gate B reading opens it)
+    DATA = "data"                                         # the bundle's data root (mirrors the checkout's tmp/)
+    PREPARED = f"{DATA}/kt-prepared/{rules.PREPARED_NAME}"
+    SHORTEN_TO_S = 3600
+    W1_18_SCRIPT = "scripts/stage1/limits/overrefusal_checks.py"
+    REP_SCRIPT = "scripts/stage1/representation_pass.py"
+    UNTUNED_SCRIPT = "scripts/stage1/make_untuned_answers.py"
+    L1_SCRIPT = "scripts/stage1/score_l1_larf.py"
+    CLASSIFIER_SCRIPT = "scripts/stage1/score_classifier.py"
+    B10_SCRIPT = "scripts/stage1_s1/eval_adapter.py"
+    B11_SCRIPT = "scripts/stage1_s1/safe_lora.py"
+    B17_SCRIPT = "scripts/stage1_s1/lean_eval_job.py"
+    OEXT_MODULE = "scripts/stage1_s1/oext_eval.py"
+    OEXT_UNIT_SCRIPT = "scripts/stage1_s1/oext_unit.py"   # the O-ext unit runner (contract below); round 3c: S1_CODE pin
+    OEXT_UNIT_SETTINGS = "scripts/stage1_s1/settings/oext_unit.json"   # its pinned settings (round 3c: S1_CODE pin)
+    B11_POINTS = ("default", "conditional", "certify")    # safe_lora.POINTS (k12 is a kit-only gated point B11 lacks)
+    VCHECK_FILE, TIMING_FILE = "safe_lora_vcheck.json", "safe_lora_timing.json"
+    B11_ADAPTER, B11_RECORD = "adapter.safetensors", "safe_lora_record.json"
+    ACCEPT_FILE = "regeneration-adapter-fingerprint.json"  # readable by the seal (fingerprints and identities only)
+    LEDGER_FILE = "cost-ledger.json"
+    LEDGER_STAGES = ("setup", "training", "greedy_generation", "sampled_generation", "judging", "scoring",
+                     "pod_overhead", "transform")
+    LS04 = "LS-04"
+    # the stage-1 inputs a job names (sealed-files.json "inputs": name -> bundle path, file or folder)
+    OEXT_INPUTS = ("oext_bank", "oext_record")
+    D2_INPUTS = ("d2_pool_pins", "req8_record")          # the filled pins file and REQ-8's record (addendum §19 point 3)
+    D2_COMMON = ["scripts/stage1_s1/d2_pool_pins/__init__.py", "scripts/stage1_s1/d2_pool_pins/fill_pins.py",
+>                "scripts/stage1_s1/d2_pool_pins/settings/d2_pool_pins.json", rules.MAN1_PATH,
+                                                                              ^^^^^^^^^^^^^^^
+                 REP_SCRIPT, "scripts/stage1/settings/representation_pass.json",
+                 "scripts/stage1/settings/representation_pools.json"]
+E   AttributeError: module 'stage1_rules' has no attribute 'MAN1_PATH'
+
+/private/var/folders/mk/33rfxgzn32318ntchzzgtm680000gn/T/pytest-of-spiderishi/pytest-41/test_check_plan_passes_for_a_b0/runkit/stage1-olmo/setup/job_runner_stage1.py:156: AttributeError
+_ test_record_done_prints_block_ps_units_and_fingerprint_records_by_path_and_sha256 _
+
+w = <test_stage1_runkit.World object at 0x108c3ee90>
+
+    def test_record_done_prints_block_ps_units_and_fingerprint_records_by_path_and_sha256(w):
+        """record-done of the pilot's host: plant_units lists each complete a0_plant job's unit (path from the repository
+        root, COMPLETE.json SHA-256: the pilot reader's inputs) and its fingerprint record {path, sha256}; a job without
+        one prints null and plan.json keeps the runner's reason; a listed record that is not this run's refuses (its kind,
+        job, arm, seed, unit, COMPLETE.json SHA-256, a non-int steps, an e1 that is no SHA-256, an edit field), nothing
+        recorded."""
+>       _plant_ready(w)
+
+runkit/stage1-78b/tests/test_round35.py:686: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+runkit/stage1-78b/tests/test_round35.py:113: in _plant_ready
+    _b_sealed(w)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+w = <test_stage1_runkit.World object at 0x108c3ee90>
+
+    def _b_sealed(w) -> None:
+        """W1-18 (Branch 128), Gate B's records, the sealed edit record of blocks A and B's arms, block A done and sealed,
+        block B (the deal's 6 pods in one launch, no judge launch, no second phase) done and sealed."""
+>       w.s10()
+        ^^^^^
+E       AttributeError: 'World' object has no attribute 's10'
+
+runkit/stage1-78b/tests/test_round35.py:99: AttributeError
+___ test_block_p_completes_and_seals_with_no_judge_launch_and_no_judge_file ____
+
+w = <test_stage1_runkit.World object at 0x108d31f90>
+
+    def test_block_p_completes_and_seals_with_no_judge_launch_and_no_judge_file(w):
+        """Addendum §40 point 7: once p-1 is recorded done the block is complete (no judge launch to release, no judge
+        file to index: judges_needed is empty, planned_judged_units 3 is the count a judge launch would have to cover);
+        seal.py block P seals it: 3 units x 4 files + 3 x (ledger, O-ext, record) + JOB-DONE.json = 22 files, 7 readable
+        (JOB-DONE.json, the ledgers, the records), no judge record, no judge not-run decision, no judges/P folder; the
+        seal's status lines print kinds, statuses, counts and hashes only."""
+>       _plant_ready(w)
+
+runkit/stage1-78b/tests/test_round35.py:727: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+runkit/stage1-78b/tests/test_round35.py:113: in _plant_ready
+    _b_sealed(w)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+w = <test_stage1_runkit.World object at 0x108d31f90>
+
+    def _b_sealed(w) -> None:
+        """W1-18 (Branch 128), Gate B's records, the sealed edit record of blocks A and B's arms, block A done and sealed,
+        block B (the deal's 6 pods in one launch, no judge launch, no second phase) done and sealed."""
+>       w.s10()
+        ^^^^^
+E       AttributeError: 'World' object has no attribute 's10'
+
+runkit/stage1-78b/tests/test_round35.py:99: AttributeError
+_____ test_a_crashed_a0_plant_run_is_re_run_once_from_block_ps_contingency _____
+
+w = <test_stage1_runkit.World object at 0x109b96410>
+
+    def test_a_crashed_a0_plant_run_is_re_run_once_from_block_ps_contingency(w):
+        """The kit's re-run rule on block P: record-done with the third run crashed; defer moves it to p-2 (the same edit,
+        deferred_from p-1), paid from P's contingency on a new pod ((4,144 + 2,520) / 3,600 x $1.79 = $3.31 of $4.16, not
+        twice); p-2's cap alone is 42 min + 9,418.29 s -> 3.5 h; record-done of p-2 completes the block; the seal lists both
+        hosts."""
+>       _plant_ready(w)
+
+runkit/stage1-78b/tests/test_round35.py:759: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+runkit/stage1-78b/tests/test_round35.py:113: in _plant_ready
+    _b_sealed(w)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+w = <test_stage1_runkit.World object at 0x109b96410>
+
+    def _b_sealed(w) -> None:
+        """W1-18 (Branch 128), Gate B's records, the sealed edit record of blocks A and B's arms, block A done and sealed,
+        block B (the deal's 6 pods in one launch, no judge launch, no second phase) done and sealed."""
+>       w.s10()
+        ^^^^^
+E       AttributeError: 'World' object has no attribute 's10'
+
+runkit/stage1-78b/tests/test_round35.py:99: AttributeError
+_ test_blinding_the_edits_name_never_reaches_a_readable_kit_file_or_the_output _
+
+w = <test_stage1_runkit.World object at 0x109c73390>
+capsys = <_pytest.capture.CaptureFixture object at 0x10994df90>
+
+    def test_blinding_the_edits_name_never_reaches_a_readable_kit_file_or_the_output(w, capsys):
+        """The sealed edit record's file holds a sentinel in its name field and every other text field; REQ-8's record's
+        unit and leaf fields are sentinels; the pulled units' COMPLETE.json, edit.json, summary and state files hold them
+        (sealed class). Through init-block P (dry run and real), deal, record-done, the finisher's light check (its
+        finished.json, verified.jsonl and log records), seal P and seal status, the sentinel is in no printed line and in
+        no readable kit file: plan.json, operator-actions.jsonl, hosts/, seals/, retrieved/p-1/verified.jsonl, JOB-DONE.json,
+        the cost ledgers, the fingerprint records; the seal classes the holding files sealed and the records readable."""
+>       _plant_ready(w)
+
+runkit/stage1-78b/tests/test_round35.py:788: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+runkit/stage1-78b/tests/test_round35.py:113: in _plant_ready
+    _b_sealed(w)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+w = <test_stage1_runkit.World object at 0x109c73390>
+
+    def _b_sealed(w) -> None:
+        """W1-18 (Branch 128), Gate B's records, the sealed edit record of blocks A and B's arms, block A done and sealed,
+        block B (the deal's 6 pods in one launch, no judge launch, no second phase) done and sealed."""
+>       w.s10()
+        ^^^^^
+E       AttributeError: 'World' object has no attribute 's10'
+
+runkit/stage1-78b/tests/test_round35.py:99: AttributeError
+=========================== short test summary info ============================
+FAILED runkit/stage1-78b/tests/test_round35.py::test_block_ps_tables_dose_cap_guard_spend_and_need_by_hand
+FAILED runkit/stage1-78b/tests/test_round35.py::test_blocks_a_b_and_cs_tables_and_block_as_pins_are_those_of_0d25497
+FAILED runkit/stage1-78b/tests/test_round35.py::test_init_block_p_needs_g3_and_block_b_complete_and_sealed
+FAILED runkit/stage1-78b/tests/test_round35.py::test_block_p_plans_one_pod_of_the_three_a0_plant_runs_from_the_balance
+FAILED runkit/stage1-78b/tests/test_round35.py::test_block_p_refuses_another_shape_a_judge_launch_a_hosts_launch_or_a_reused_run[launches0-extra0-launch 1: block P has no judge launch]
+FAILED runkit/stage1-78b/tests/test_round35.py::test_block_p_refuses_another_shape_a_judge_launch_a_hosts_launch_or_a_reused_run[launches1-extra1-launch 0: block P has no judge launch]
+FAILED runkit/stage1-78b/tests/test_round35.py::test_block_p_refuses_another_shape_a_judge_launch_a_hosts_launch_or_a_reused_run[launches2-extra2-block P's jobs come from its deal only]
+FAILED runkit/stage1-78b/tests/test_round35.py::test_block_p_refuses_another_shape_a_judge_launch_a_hosts_launch_or_a_reused_run[launches3-extra3-block P's jobs come from its deal only]
+FAILED runkit/stage1-78b/tests/test_round35.py::test_block_p_refuses_another_shape_a_judge_launch_a_hosts_launch_or_a_reused_run[launches4-extra4-block P's jobs come from its deal only]
+FAILED runkit/stage1-78b/tests/test_round35.py::test_block_p_refuses_another_shape_a_judge_launch_a_hosts_launch_or_a_reused_run[launches5-extra5-block P's jobs come from its deal only]
+FAILED runkit/stage1-78b/tests/test_round35.py::test_block_p_refuses_another_shape_a_judge_launch_a_hosts_launch_or_a_reused_run[launches6-extra6-every dealt pod appears exactly once]
+FAILED runkit/stage1-78b/tests/test_round35.py::test_block_p_refuses_another_shape_a_judge_launch_a_hosts_launch_or_a_reused_run[launches7-extra7-every dealt pod appears exactly once]
+FAILED runkit/stage1-78b/tests/test_round35.py::test_block_p_refuses_another_shape_a_judge_launch_a_hosts_launch_or_a_reused_run[launches8-extra8-deal indices must name the block's dealt pods]
+FAILED runkit/stage1-78b/tests/test_round35.py::test_block_p_refuses_another_shape_a_judge_launch_a_hosts_launch_or_a_reused_run[launches9-extra9-deal indices must name the block's dealt pods]
+FAILED runkit/stage1-78b/tests/test_round35.py::test_block_p_refuses_another_shape_a_judge_launch_a_hosts_launch_or_a_reused_run[launches10-extra10-block P: nothing is reused]
+FAILED runkit/stage1-78b/tests/test_round35.py::test_block_p_refuses_another_shape_a_judge_launch_a_hosts_launch_or_a_reused_run[launches11-extra11-a arm job on engine Y before a recorded passing X -> Y certificate refuses]
+FAILED runkit/stage1-78b/tests/test_round35.py::test_a_p_job_other_than_a0_plant_at_the_pilot_seeds_refuses_at_init_and_at_release
+FAILED runkit/stage1-78b/tests/test_round35.py::test_block_p_needs_the_sealed_edit_record_and_refuses_a_changed_or_missing_edit_file
+FAILED runkit/stage1-78b/tests/test_round35.py::test_record_sealed_binds_a_plant_edit_to_req8s_record_by_key_and_prints_no_field
+FAILED runkit/stage1-78b/tests/test_round35.py::test_the_runner_writes_the_plant_arms_readable_fingerprint_record_with_no_edit_field
+FAILED runkit/stage1-78b/tests/test_round35.py::test_the_unit_stands_when_the_plant_record_cannot_be_written_and_a_record_is_never_written_over
+FAILED runkit/stage1-78b/tests/test_round35.py::test_check_plan_passes_for_a_block_p_host_only_with_the_edit_packed_by_sha256
+FAILED runkit/stage1-78b/tests/test_round35.py::test_record_done_prints_block_ps_units_and_fingerprint_records_by_path_and_sha256
+FAILED runkit/stage1-78b/tests/test_round35.py::test_block_p_completes_and_seals_with_no_judge_launch_and_no_judge_file
+FAILED runkit/stage1-78b/tests/test_round35.py::test_a_crashed_a0_plant_run_is_re_run_once_from_block_ps_contingency
+FAILED runkit/stage1-78b/tests/test_round35.py::test_blinding_the_edits_name_never_reaches_a_readable_kit_file_or_the_output
+26 failed, 1 passed in 1.54s

@@ -1,0 +1,128 @@
+........................................................................ [ 18%]
+.................................................F..F................... [ 36%]
+........................................................................ [ 55%]
+........................................................................ [ 73%]
+........................................................................ [ 91%]
+................................                                         [100%]
+=================================== FAILURES ===================================
+________________ test_a_b_qi_recipe_on_an_x_host_still_refuses _________________
+
+w = <test_stage1_runkit.World object at 0x10b877090>
+
+    def test_a_b_qi_recipe_on_an_x_host_still_refuses(w):
+        """An X host never reads Y's tree or uses Y's code: the job gates refuse B+Qi on X; past them, the X check reads
+        main's tree, where B+Qi's recipe is missing (it is in Y's tree, at its pin); with the pinned bytes copied into
+        main's tree it is engine X's code that hashes it, and engine X's own loader refuses B+Qi's recipe."""
+        r = w.rules
+        plan = w.tool.load()
+        bqi = {"kind": "ref_train", "arm": "bqi", "seed": 1102, "recipe": "bqi", "engine": "X"}
+        with pytest.raises(SystemExit, match="B[+]Qi runs on engine Y only"):
+            w.tool.check_job(bqi, 0, [bqi], "B", plan, set())
+        with pytest.raises(SystemExit, match="cert_c2 runs on engine Y"):
+            w.tool.check_job({**CERT_POD[1], "engine": "X"}, 0, [CERT_POD[1]], "cert", plan, set())
+        w.mp.setattr(w.tool, "check_launch_gates", lambda *a: None)        # the recipe check alone
+        host = {"engine": "X", "jobs": [dict(bqi)]}
+        w.calls.clear()
+        with pytest.raises(SystemExit, match=re.escape(f"{r.RECIPE_BQI}: missing or differs from its pin (recipe bqi)")):
+            w.tool.release_hosts(plan, "B", [("b-1", host)])
+        assert w.calls == [] and plan["hosts"] == {} and "recipes_y" not in plan
+        write_json(w.repo / r.RECIPE_BQI, {"recipe": r.RECIPE_BQI})       # the same bytes as Y's tree's, in main's tree
+        w.tool.release_hosts(plan, "B", [("b-1", host)])
+        assert w.calls == [("X", "config", r.RECIPE_BQI)] and "engine" not in plan["recipes"][r.RECIPE_BQI]
+        real_y = WS_Y_TREE / r.RECIPE_BQI                               # engine X's own loader on B+Qi's committed recipe
+        done = subprocess.run([sys.executable, "-I", "-B", "-c", "import sys;sys.path.insert(0,sys.argv[1]);"
+                               "from experiments.safety_selection.config import load_recipe;load_recipe(sys.argv[2])",
+                               str(KIT.parents[1]), str(real_y)], capture_output=True, text=True, timeout=120,
+                              cwd=str(KIT.parents[1]), env={"PATH": "/usr/bin:/bin", "PYTHONDONTWRITEBYTECODE": "1"})
+>       assert sha(real_y) == REAL_RECIPE_PINS["bqi"] and done.returncode != 0 and "constrained_sft" in done.stderr
+               ^^^^^^^^^^^
+
+runkit/stage1-olmo/tests/test_stage1_runkit.py:2113: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+runkit/stage1-olmo/tests/test_stage1_runkit.py:43: in sha
+    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+                          ^^^^^^^^^^^^^^^^^^^^^^^
+/Users/spiderishi/.local/share/uv/python/cpython-3.11.15-macos-aarch64-none/lib/python3.11/pathlib.py:1050: in read_bytes
+    with self.open(mode='rb') as f:
+         ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = PosixPath('/private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-pensive-stonebraker-bf6d79/b...tchpad/b78/ws-k/tmp/engine-y-34bfd288/experiments/safety_selection/configs/study-kt-olmo2-1b-r64-bq-mb4-20261022.json')
+mode = 'rb', buffering = -1, encoding = None, errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: '/private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-pensive-stonebraker-bf6d79/b609d8b8-9fca-458c-826f-4c781de96013/scratchpad/b78/ws-k/tmp/engine-y-34bfd288/experiments/safety_selection/configs/study-kt-olmo2-1b-r64-bq-mb4-20261022.json'
+
+/Users/spiderishi/.local/share/uv/python/cpython-3.11.15-macos-aarch64-none/lib/python3.11/pathlib.py:1044: FileNotFoundError
+_____ test_the_real_engine_y_code_in_ys_tree_hashes_the_committed_recipes ______
+
+w = <test_stage1_runkit.World object at 0x10dada610>
+
+    def test_the_real_engine_y_code_in_ys_tree_hashes_the_committed_recipes(w):
+        """Engine Y's real code and tree (python -I, cwd and import path in Y's tree, code identity checked): the cert pod
+        gets B+Qi's and recipe S's config SHA-256 as engine Y's own code computes them; a Y tree whose code is not engine
+        Y's pin refuses."""
+        r = w.rules
+        _cert_ready(w)
+        bytecode = set((WS_Y_TREE / "experiments").rglob("*.pyc"))      # Y's frozen tree gets no new file
+        for name in ("recipe_sha_y", "recipe_training_identity_y"):
+            w.mp.setattr(w.tool, name, w.real[name])
+        w.mp.setattr(w.tool, "y_tree", lambda: WS_Y_TREE)
+        w.mp.setattr(w.tool, "PY", Path(sys.executable))
+        for name in ("S", "bqi"):
+            w.mp.setitem(r.RECIPE_PINS, r.RECIPE_NAMES[name], REAL_RECIPE_PINS[name])
+        w.mp.setitem(r.ENGINES, "Y", "0" * 64)                             # Y's tree is not this "engine Y"
+        with pytest.raises(SystemExit, match="the code in engine Y tree is not engine Y"):
+>           w.tool.check_recipe_y(w.tool.load(), "bqi")
+
+runkit/stage1-olmo/tests/test_stage1_runkit.py:2178: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/private/var/folders/mk/33rfxgzn32318ntchzzgtm680000gn/T/pytest-of-spiderishi/pytest-26/test_the_real_engine_y_code_in0/runkit/stage1-olmo/plan_tool.py:347: in check_recipe_y
+    fail(f"{path}: missing from engine Y's tree or differs from its pin (recipe {name_r}, {rules.Y_TREE_DEFAULT})")
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+message = "experiments/safety_selection/configs/study-kt-olmo2-1b-r64-bq-mb4-20261022.json: missing from engine Y's tree or differs from its pin (recipe bqi, tmp/engine-y-34bfd288)"
+
+    def fail(message: str):
+>       raise SystemExit(message)
+E       SystemExit: experiments/safety_selection/configs/study-kt-olmo2-1b-r64-bq-mb4-20261022.json: missing from engine Y's tree or differs from its pin (recipe bqi, tmp/engine-y-34bfd288)
+
+/private/var/folders/mk/33rfxgzn32318ntchzzgtm680000gn/T/pytest-of-spiderishi/pytest-26/test_the_real_engine_y_code_in0/runkit/stage1-olmo/plan_tool.py:268: SystemExit
+
+During handling of the above exception, another exception occurred:
+
+w = <test_stage1_runkit.World object at 0x10dada610>
+
+    def test_the_real_engine_y_code_in_ys_tree_hashes_the_committed_recipes(w):
+        """Engine Y's real code and tree (python -I, cwd and import path in Y's tree, code identity checked): the cert pod
+        gets B+Qi's and recipe S's config SHA-256 as engine Y's own code computes them; a Y tree whose code is not engine
+        Y's pin refuses."""
+        r = w.rules
+        _cert_ready(w)
+        bytecode = set((WS_Y_TREE / "experiments").rglob("*.pyc"))      # Y's frozen tree gets no new file
+        for name in ("recipe_sha_y", "recipe_training_identity_y"):
+            w.mp.setattr(w.tool, name, w.real[name])
+        w.mp.setattr(w.tool, "y_tree", lambda: WS_Y_TREE)
+        w.mp.setattr(w.tool, "PY", Path(sys.executable))
+        for name in ("S", "bqi"):
+            w.mp.setitem(r.RECIPE_PINS, r.RECIPE_NAMES[name], REAL_RECIPE_PINS[name])
+        w.mp.setitem(r.ENGINES, "Y", "0" * 64)                             # Y's tree is not this "engine Y"
+>       with pytest.raises(SystemExit, match="the code in engine Y tree is not engine Y"):
+E       AssertionError: Regex pattern did not match.
+E        Regex: 'the code in engine Y tree is not engine Y'
+E        Input: "experiments/safety_selection/configs/study-kt-olmo2-1b-r64-bq-mb4-20261022.json: missing from engine Y's tree or differs from its pin (recipe bqi, tmp/engine-y-34bfd288)"
+
+runkit/stage1-olmo/tests/test_stage1_runkit.py:2177: AssertionError
+=========================== short test summary info ============================
+FAILED runkit/stage1-olmo/tests/test_stage1_runkit.py::test_a_b_qi_recipe_on_an_x_host_still_refuses
+FAILED runkit/stage1-olmo/tests/test_stage1_runkit.py::test_the_real_engine_y_code_in_ys_tree_hashes_the_committed_recipes
+2 failed, 390 passed in 19.75s
