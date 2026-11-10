@@ -50,3 +50,15 @@ The author supplied https://orcid.org/0000-0001-5666-4904. It was saved to the e
 ## Evidence
 
 Browser snapshots and screenshots are retained locally under `../../../tmp/arr-form-20261013/` (not part of the anonymous release). The submission confirmation, saved paper, saved checklist reply and persisted ORCID link were observed directly. No confirmation email was read.
+
+## Follow-up check: 16 October 2026
+
+Observed at 2026-10-16 12:16:48 UTC. Read-only OpenReview check; no submission fields were changed.
+
+- The paper now explicitly displays **Responsible NLP Checklist: Submitted** and a Review or edit checklist link. This resolves the earlier status-indicator inconsistency recorded above.
+- The author profile displays the supplied ORCID, two confirmed emails, career/education history and research expertise. Advisors, Relations & Conflicts is empty; the author should confirm that this is accurate. No DBLP or ACL Anthology profile links are shown; these are required where applicable.
+- OpenReview Tasks lists no pending ARR task at this check.
+- There are no reviews on the paper yet; the only displayed reply is the saved Responsible NLP Checklist.
+- No designated service contributor is recorded. The submission remains subject to available review capacity under the October policy.
+
+Official schedule checked: https://aclrollingreview.org/dates (author response 24–30 November; meta-reviews 17 December; COLING/NAACL commitment 23 December).
